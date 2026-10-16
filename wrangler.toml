@@ -1,0 +1,39 @@
+name = "dailykhata"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Static SPA (public/) is served by Workers Assets; /api/* always hits the Worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dailykhata-db"
+# Replaced automatically by scripts/provision.sh (and the deploy workflow).
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "dailykhata-files"
+
+# Workers AI: used for OCR of receipts / handwritten hisaab when ANTHROPIC_API_KEY is not set.
+[ai]
+binding = "AI"
+
+# Nightly backup of every company's financial data to R2 (02:15 IST = 20:45 UTC).
+[triggers]
+crons = ["45 20 * * *"]
+
+[vars]
+APP_NAME = "DailyKhata"
+SESSION_DAYS = "7"
+BACKUP_RETENTION_DAYS = "30"
+
+# Secrets (set with `wrangler secret put <NAME>`):
+#   SETUP_TOKEN        - one-time token required to create the first super admin
+#   ANTHROPIC_API_KEY  - optional; enables Claude vision OCR (recommended accuracy)
