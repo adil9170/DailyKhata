@@ -1,4 +1,4 @@
-import { h, mount, money, rupees, num, bytes, fmtDateTime, tile, table, badge, toast, busy, modal, confirmDialog } from '../ui.js';
+import { h, mount, money, rupees, num, bytes, fmtDateTime, tile, table, badge, toast, busy, modal, confirmDialog, icon } from '../ui.js';
 import { api, download, navigate } from '../api.js';
 import { auditRows } from './audit.js';
 import { memberForm, ROLE_LABELS, PERM_LABELS } from './team.js';
@@ -28,7 +28,7 @@ export async function adminCompaniesPage(main) {
     h('td', { class: 'num' }, bytes(c.storage_bytes)), h('td', { class: 'small muted' }, fmtDateTime(c.last_activity)),
     h('td', { class: 'right' }, h('a', { class: 'btn small', href: `#/admin/company/${c.id}` }, 'Manage'))))); };
   search.addEventListener('input', render); render();
-  mount(main, h('div', { class: 'spread' }, h('h1', null, 'Companies'), h('button', { class: 'primary', onclick: () => companyForm(null, plans) }, '+ New company')),
+  mount(main, h('div', { class: 'page-head' }, h('h1', null, 'Companies'), h('button', { class: 'primary', onclick: () => companyForm(null, plans) }, icon('plus', 17), 'New company')),
     h('div', { class: 'card' }, h('div', { class: 'row', style: { marginBottom: '8px' } }, search),
       h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Company', 'Status', 'Plan', 'Users', 'Products', 'Storage', 'Last activity', ''].map((t) => h('th', null, t)))), body))));
 }
@@ -82,7 +82,7 @@ export async function adminCompanyPage(main, id, { openPortal }) {
       await api(`/api/admin/companies/${id}/users`, { method: 'POST', body: Object.fromEntries(Object.entries(f).map(([k, el]) => [k, el.value])) }); m.close(); toast('User added'); reload();
     })(); });
   };
-  const backupBtn = h('button', null, '💾 Back up now');
+  const backupBtn = h('button', null, icon('database', 17), 'Back up now');
   backupBtn.addEventListener('click', busy(backupBtn, async () => { await api(`/api/admin/companies/${id}/backup`, { method: 'POST' }); toast('Backup saved'); reload(); }));
 
   mount(main,
@@ -94,18 +94,18 @@ export async function adminCompanyPage(main, id, { openPortal }) {
         h('button', { class: 'danger', onclick: del }, 'Delete'))),
     h('div', { class: 'tiles' }, tile('Plan', c.plan_name || 'Unlimited'), tile('Collections (30d)', money(s.collections_30d), `${s.active_days_30d} active days`), tile('Purchases (30d)', money(s.purchases_30d)),
       tile('Expenses (30d)', money(s.expenses_30d)), tile('Products', num(s.products)), tile('Files', num(s.documents), bytes(s.storage_bytes))),
-    h('div', { class: 'card' }, h('div', { class: 'sec-head' }, h('h2', { style: { margin: 0 } }, 'Users & access'), h('button', { class: 'small primary', onclick: addUser }, '+ Add user')),
+    h('div', { class: 'card' }, h('div', { class: 'sec-head' }, h('h2', { style: { margin: 0 } }, 'Users & access'), h('button', { class: 'small primary', onclick: addUser }, icon('plus', 17), 'Add user')),
       table(['User', 'Role', 'Status', 'Last sign-in', ''], d.users.map((u) => h('tr', null,
         h('td', null, h('strong', null, u.name), h('div', { class: 'small muted' }, u.email)), h('td', null, ROLE_LABELS[u.role] || u.role), h('td', null, badge(u.status, u.status === 'active' ? 'good' : 'bad')),
         h('td', { class: 'small muted' }, u.last_login_at ? fmtDateTime(u.last_login_at) : 'Never'),
         h('td', { class: 'right' }, h('span', { class: 'row', style: { justifyContent: 'flex-end', flexWrap: 'nowrap' } },
           h('button', { class: 'small', onclick: () => memberForm({ ...u, permissions: u.permissions ? JSON.parse(u.permissions) : null }, fakeTeam, reload, { endpoint: (x) => `/api/admin/users/${x.id}` }) }, 'Edit'),
-          h('button', { class: 'small ghost danger', 'aria-label': 'Delete', onclick: async () => { if (!(await confirmDialog(`Delete ${u.name}?`))) return; await api(`/api/admin/users/${u.id}`, { method: 'DELETE' }); toast('Deleted'); reload(); } }, '🗑'))))))),
+          h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => { if (!(await confirmDialog(`Delete ${u.name}?`))) return; await api(`/api/admin/users/${u.id}`, { method: 'DELETE' }); toast('Deleted'); reload(); } }, icon('trash', 18)))))))),
     h('div', { class: 'grid g2' },
       h('div', { class: 'card' }, h('h2', null, 'Recent activity'), table(['When', 'Who', 'Action', 'Record', ''], auditRows(d.activity))),
       h('div', { class: 'card' }, h('div', { class: 'sec-head' }, h('h2', { style: { margin: 0 } }, 'Backups'), backupBtn),
         table(['When', 'Type', 'Size', ''], d.backups.map((b) => h('tr', null, h('td', null, fmtDateTime(b.created_at)), h('td', null, b.kind), h('td', null, bytes(b.size_bytes)),
-          h('td', { class: 'right' }, h('button', { class: 'small', onclick: () => download(`/api/admin/backups/${b.id}/download`, 'backup.json') }, '⬇')))), { empty: 'Nightly backups appear here' }))));
+          h('td', { class: 'right' }, h('button', { class: 'small', onclick: () => download(`/api/admin/backups/${b.id}/download`, 'backup.json') }, icon('download', 17))))), { empty: 'Nightly backups appear here' }))));
 }
 
 export async function adminPlansPage(main) {
@@ -123,12 +123,12 @@ export async function adminPlansPage(main) {
       m.close(); toast('Saved'); navigate('#/admin/plans');
     })(); });
   };
-  mount(main, h('div', { class: 'spread' }, h('div', null, h('h1', null, 'Plans & limits'), h('div', { class: 'muted' }, 'Limits are enforced on the server for every company on the plan.')), h('button', { class: 'primary', onclick: () => form(null) }, '+ New plan')),
+  mount(main, h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Plans & limits'), h('div', { class: 'muted' }, 'Limits are enforced on the server for every company on the plan.')), h('button', { class: 'primary', onclick: () => form(null) }, icon('plus', 17), 'New plan')),
     h('div', { class: 'card' }, table(['Plan', 'Price', 'Users', 'Products', 'Storage', 'OCR', 'Companies', ''], plans.map((p) => h('tr', null,
       h('td', null, h('strong', null, p.name)), h('td', { class: 'num' }, money(p.price_paise)), h('td', { class: 'num' }, p.max_users), h('td', { class: 'num' }, p.max_products), h('td', { class: 'num' }, `${p.max_storage_mb} MB`),
       h('td', null, p.ocr_enabled ? badge('yes', 'good') : badge('no')), h('td', { class: 'num' }, p.companies),
       h('td', { class: 'right' }, h('button', { class: 'small', onclick: () => form(p) }, 'Edit'),
-        h('button', { class: 'small ghost danger', 'aria-label': 'Delete', onclick: async () => { if (!(await confirmDialog(`Delete plan ${p.name}?`))) return; try { await api(`/api/admin/plans/${p.id}`, { method: 'DELETE' }); navigate('#/admin/plans'); } catch (e) { toast(e.message, true); } } }, '🗑')))))));
+        h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => { if (!(await confirmDialog(`Delete plan ${p.name}?`))) return; try { await api(`/api/admin/plans/${p.id}`, { method: 'DELETE' }); navigate('#/admin/plans'); } catch (e) { toast(e.message, true); } } }, icon('trash', 18))))))));
 }
 
 export async function adminActivityPage(main) {
@@ -143,5 +143,5 @@ export async function adminBackupsPage(main) {
   const rows = await api('/api/admin/backups');
   mount(main, h('h1', null, 'Backups'), h('p', { class: 'muted' }, 'Every company is backed up to private R2 storage nightly (kept 30 days). Final backups of deleted companies are retained. D1 also keeps 30 days of point-in-time recovery (Time Travel).'),
     h('div', { class: 'card' }, table(['When', 'Company', 'Type', 'Size', ''], rows.map((b) => h('tr', null, h('td', null, fmtDateTime(b.created_at)), h('td', null, b.company_name || `#${b.company_id} (deleted)`),
-      h('td', null, b.kind), h('td', null, bytes(b.size_bytes)), h('td', { class: 'right' }, h('button', { class: 'small', onclick: () => download(`/api/admin/backups/${b.id}/download`, 'backup.json') }, '⬇ Download')))), { empty: 'No backups yet — the first runs tonight' })));
+      h('td', null, b.kind), h('td', null, bytes(b.size_bytes)), h('td', { class: 'right' }, h('button', { class: 'small', onclick: () => download(`/api/admin/backups/${b.id}/download`, 'backup.json') }, icon('download', 17), 'Download')))), { empty: 'No backups yet — the first runs tonight' })));
 }

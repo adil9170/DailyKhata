@@ -1,7 +1,8 @@
-import { h, mount, toast, field, input, busy } from './ui.js';
-import { api, state, loadContext, applyBranding, setViewCompany, isSuper, can, companyUrl } from './api.js';
+import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables } from './ui.js';
+import { api, state, loadContext, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
+import { getTheme, setTheme, effectiveTheme } from './theme.js';
 import { dashboardPage } from './pages/dashboard.js';
-import { dayPage } from './pages/day.js';
+import { dayPage, uploadDoc } from './pages/day.js';
 import { productsPage } from './pages/products.js';
 import { uploadsPage } from './pages/uploads.js';
 import { reportsPage } from './pages/reports.js';
@@ -13,33 +14,23 @@ import { adminOverviewPage, adminCompaniesPage, adminCompanyPage, adminPlansPage
 
 const app = document.getElementById('app');
 
-// theme toggle (per-viewer convenience)
-function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
-try { applyTheme(localStorage.getItem('dk_theme')); } catch { /* ignore */ }
-function toggleTheme() {
-  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  applyTheme(next); try { localStorage.setItem('dk_theme', next); } catch { /* ignore */ }
-  window.dispatchEvent(new Event('themechange'));
-}
-
 const companyRoutes = [
-  { path: 'dashboard', label: 'Dashboard', icon: '📊', page: dashboardPage, perm: 'reports.view' },
-  { path: 'day', label: 'Daily Entry', icon: '📝', page: dayPage, perm: 'entries.view' },
-  { path: 'uploads', label: 'Photos & Bills', icon: '📷', page: uploadsPage, perm: 'entries.view' },
-  { path: 'products', label: 'Products', icon: '📦', page: productsPage, perm: 'entries.view' },
-  { path: 'reports', label: 'Reports & Export', icon: '📑', page: reportsPage, perm: 'reports.view' },
-  { path: 'ledger', label: 'Udhaar / Outstanding', icon: '💳', page: ledgerPage, perm: 'entries.view' },
-  { path: 'team', label: 'Team', icon: '👥', page: teamPage, perm: 'team.manage', sep: true },
-  { path: 'settings', label: 'Settings', icon: '⚙️', page: settingsPage, perm: null },
-  { path: 'audit', label: 'Audit Log', icon: '🕑', page: auditPage, perm: 'audit.view' },
+  { path: 'dashboard', label: 'Dashboard', icon: 'chart', page: dashboardPage, perm: 'reports.view' },
+  { path: 'day', label: 'Daily Entry', short: 'Entry', icon: 'pen', page: dayPage, perm: 'entries.view' },
+  { path: 'uploads', label: 'Photos & Bills', short: 'Photos', icon: 'camera', page: uploadsPage, perm: 'entries.view' },
+  { path: 'products', label: 'Products', icon: 'box', page: productsPage, perm: 'entries.view' },
+  { path: 'reports', label: 'Reports & Export', icon: 'file', page: reportsPage, perm: 'reports.view' },
+  { path: 'ledger', label: 'Udhaar / Outstanding', icon: 'wallet', page: ledgerPage, perm: 'entries.view' },
+  { path: 'team', label: 'Team', icon: 'users', page: teamPage, perm: 'team.manage', sep: true },
+  { path: 'settings', label: 'Settings', icon: 'sliders', page: settingsPage, perm: null },
+  { path: 'audit', label: 'Audit Log', icon: 'clock', page: auditPage, perm: 'audit.view' },
 ];
 const adminRoutes = [
-  { path: 'admin', label: 'Overview', icon: '📊', page: adminOverviewPage },
-  { path: 'admin/companies', label: 'Companies', icon: '🏢', page: adminCompaniesPage },
-  { path: 'admin/plans', label: 'Plans & Limits', icon: '🎚️', page: adminPlansPage },
-  { path: 'admin/activity', label: 'Activity', icon: '🕑', page: adminActivityPage },
-  { path: 'admin/backups', label: 'Backups', icon: '💾', page: adminBackupsPage },
+  { path: 'admin', label: 'Overview', icon: 'chart', page: adminOverviewPage },
+  { path: 'admin/companies', label: 'Companies', icon: 'building', page: adminCompaniesPage },
+  { path: 'admin/plans', label: 'Plans & Limits', short: 'Plans', icon: 'layers', page: adminPlansPage },
+  { path: 'admin/activity', label: 'Activity', icon: 'clock', page: adminActivityPage },
+  { path: 'admin/backups', label: 'Backups', icon: 'database', page: adminBackupsPage },
 ];
 
 async function logout() {
@@ -48,63 +39,133 @@ async function logout() {
   location.hash = '#/login';
 }
 
-function layout(routes, active, content, { portalOf } = {}) {
-  const side = h('aside', { class: 'side' });
+function themeButton() {
+  const next = { system: 'light', light: 'dark', dark: 'system' };
+  const ic = { system: 'monitor', light: 'sun', dark: 'moon' };
+  const t = getTheme();
+  return h('button', { class: 'ghost icon small', title: `Appearance: ${t} (tap to change)`, 'aria-label': `Appearance: ${t}. Change`, onclick: () => setTheme(next[t]) }, icon(ic[t], 18));
+}
+
+/** Quick-add sheet behind the mobile "+" button. */
+export function openQuickAdd() {
+  const today = state.today || todayLocal();
+  const date = (location.hash.match(/date=(\d{4}-\d{2}-\d{2})/) || [])[1] || today;
+  const go = (what) => navigate(`#/day?date=${date}&add=${what}`);
+  actionSheet('Add to today’s khata', [
+    { icon: 'bag', title: 'Purchase', desc: 'Stock you bought — boxes, pieces, cost', onclick: () => go('purchase') },
+    { icon: 'receipt', title: 'Expense', desc: 'Gas, Wi-Fi, water, rent…', onclick: () => go('expense') },
+    { icon: 'rupee', title: 'Collection', desc: 'Money from sales — cash, UPI, udhaar', onclick: () => go('collection') },
+    { icon: 'type', title: 'Type hisaab', desc: 'Write lines like “Sting 2 boxes 1020 60”', onclick: () => go('text') },
+    ...(can('uploads.write') ? [{ icon: 'camera', title: 'Scan a photo', desc: 'We read your handwritten page for you', onclick: () => pickPhoto(date) }] : []),
+  ]);
+}
+function pickPhoto(date) {
+  const inp = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'hidden' });
+  document.body.append(inp);
+  inp.addEventListener('change', async () => {
+    const f = inp.files[0]; inp.remove(); if (!f) return;
+    toast('Uploading photo…');
+    try { const doc = await uploadDoc(f, 'hisaab', date); navigate(`#/uploads?review=${doc.id}`); } catch (e) { toast(e.message, true); }
+  });
+  inp.click();
+}
+
+function layout(routes, active, { portalOf, title } = {}) {
   const company = state.company;
-  const brand = portalOf || !isSuper()
-    ? h('div', { class: 'brandbox' },
-        company?.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), alt: '' }) : h('div', { class: 'brandmark' }, (company?.name || 'D')[0].toUpperCase()),
-        h('div', null, h('div', { class: 'bname' }, company?.name || 'DailyKhata'), h('div', { class: 'small muted' }, company?.plan_name ? `${company.plan_name} plan` : '')))
-    : h('div', { class: 'brandbox' }, h('div', { class: 'brandmark' }, 'D'), h('div', null, h('div', { class: 'bname' }, 'DailyKhata'), h('div', { class: 'small muted' }, 'Super admin')));
-  const nav = h('nav', { class: 'nav' }, routes.filter((r) => !r.perm || can(r.perm)).map((r) => [
+  const showCompany = portalOf || !isSuper();
+  const side = h('aside', { class: 'side' });
+  const scrim = h('div', { class: 'scrim', onclick: () => { side.classList.remove('open'); scrim.classList.remove('open'); } });
+  const openMenu = () => { side.classList.add('open'); scrim.classList.add('open'); };
+  const closeMenu = () => { side.classList.remove('open'); scrim.classList.remove('open'); };
+  const mark = showCompany && company?.has_logo
+    ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), alt: '' })
+    : h('div', { class: 'brandmark' }, ((showCompany ? company?.name : 'D') || 'D')[0].toUpperCase());
+  const brand = h('div', { class: 'brandbox' }, mark,
+    h('div', { style: { minWidth: 0 } }, h('div', { class: 'bname' }, showCompany ? company?.name || 'DailyKhata' : 'DailyKhata'),
+      h('div', { class: 'small muted' }, showCompany ? (company?.plan_name ? `${company.plan_name} plan` : 'Daily khata') : 'Super admin')));
+  const visible = routes.filter((r) => !r.perm || can(r.perm));
+  const nav = h('nav', { class: 'nav', 'aria-label': 'Main' }, visible.map((r) => [
     r.sep ? h('div', { class: 'sep' }) : null,
-    h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '', onclick: () => side.classList.remove('open') }, h('span', { 'aria-hidden': 'true' }, r.icon), r.label),
+    h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '', 'aria-current': active === r.path ? 'page' : null, onclick: closeMenu }, icon(r.icon), r.label),
   ]));
+  const initials = (state.user.name || '?').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
   mount(side, brand, nav,
     h('div', { class: 'foot' },
-      portalOf ? h('button', { class: 'small', style: { width: '100%', marginBottom: '8px' }, onclick: () => { setViewCompany(null); state.company = null; applyBranding(null); location.hash = '#/admin/companies'; } }, '← Back to super admin') : null,
-      h('div', { class: 'small' }, h('strong', null, state.user.name)),
-      h('div', { class: 'small muted' }, state.user.email, ' · ', state.user.role.replace('_', ' ')),
-      h('div', { class: 'row', style: { marginTop: '8px' } },
-        h('button', { class: 'small', onclick: toggleTheme, 'aria-label': 'Toggle dark mode' }, 'Theme'),
-        h('button', { class: 'small', onclick: logout }, 'Sign out'))));
-  const top = h('div', { class: 'topbar' },
-    h('button', { class: 'small', 'aria-label': 'Menu', onclick: () => side.classList.toggle('open') }, '☰'),
-    h('strong', null, (portalOf || !isSuper()) ? company?.name || 'DailyKhata' : 'DailyKhata Admin'));
-  const main = h('main', { class: 'main' }, portalOf ? h('div', { class: 'banner' }, `Viewing ${company?.name} as super admin — changes are recorded in the audit log under your name.`) : null, content);
-  mount(app, h('div', { class: 'shell' }, side, h('div', null, top, main)));
+      portalOf ? h('button', { class: 'small block', onclick: () => { setViewCompany(null); state.company = null; applyBranding(null); location.hash = '#/admin/companies'; } }, icon('left', 16), 'Back to super admin') : null,
+      h('div', { class: 'me' }, h('div', { class: 'avatar' }, initials),
+        h('div', { style: { minWidth: 0, flex: 1 } }, h('div', { class: 'small', style: { fontWeight: 650 } }, state.user.name), h('div', { class: 'small muted', style: { overflow: 'hidden', textOverflow: 'ellipsis' } }, state.user.role.replace('_', ' '))),
+        themeButton(),
+        h('button', { class: 'ghost icon small', title: 'Sign out', 'aria-label': 'Sign out', onclick: logout }, icon('logout', 18)))));
+
+  const top = h('header', { class: 'topbar' },
+    h('button', { class: 'ghost icon', 'aria-label': 'Open menu', onclick: openMenu }, icon('menu')),
+    h('div', { class: 'title' }, title || (showCompany ? company?.name : 'DailyKhata Admin') || 'DailyKhata'),
+    themeButton());
+
+  // bottom tab bar (phones)
+  let tabs;
+  if (showCompany) {
+    const home = can('reports.view') ? companyRoutes[0] : companyRoutes[1];
+    const tabRoutes = [home, home.path === 'day' ? null : companyRoutes[1], companyRoutes[2]].filter(Boolean);
+    const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(r.path === 'dashboard' ? 'home' : r.icon), r.path === 'dashboard' ? 'Home' : r.short || r.label);
+    tabs = h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
+      link(tabRoutes[0]),
+      tabRoutes[1] ? link(tabRoutes[1]) : null,
+      can('entries.write') ? h('button', { class: 'fab', 'aria-label': 'Add entry', onclick: openQuickAdd }, h('span', { class: 'ring' }, icon('plus')), '') : null,
+      tabRoutes[2] && tabRoutes[2] !== tabRoutes[1] ? link(tabRoutes[2]) : null,
+      h('button', { onclick: openMenu, 'aria-label': 'More' }, icon('grid'), 'More'));
+  } else {
+    tabs = h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
+      routes.slice(0, 4).map((r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(r.icon), r.short || r.label)),
+      h('button', { onclick: openMenu, 'aria-label': 'More' }, icon('grid'), 'More'));
+  }
+
+  const main = h('main', { class: 'main', id: 'main' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton', style: { height: '260px' } }));
+  mount(app, h('div', { class: 'shell' }, side, scrim, h('div', { style: { minWidth: 0 } }, top,
+    portalOf ? h('div', { style: { padding: '12px 16px 0' } }, h('div', { class: 'banner', style: { margin: 0 } }, `Viewing ${company?.name} as super admin — your changes are audit-logged.`)) : null,
+    main)), tabs);
+  autoLabelTables(main);
   return main;
 }
 
-function authPage(title, form) {
-  mount(app, h('div', { class: 'auth' }, h('div', { class: 'card' },
-    h('div', { class: 'logo' }, h('div', { class: 'brandmark' }, 'D'), h('div', null, h('div', { class: 'bname', style: { fontWeight: 700, fontSize: '1.15rem' } }, 'DailyKhata'), h('div', { class: 'small muted' }, 'Daily accounts & inventory'))),
-    h('h2', null, title), form)));
+function authShell(title, sub, form) {
+  mount(app, h('div', { class: 'auth' },
+    h('section', { class: 'auth-hero' }, h('div', { class: 'mesh' }),
+      h('div', { class: 'logo' }, h('div', { class: 'brandmark', style: { background: 'rgba(255,255,255,.18)' } }, 'D'), 'DailyKhata'),
+      h('div', null,
+        h('h1', null, 'Your daily hisaab, done in minutes.'),
+        h('p', null, 'Purchases, expenses, collections and stock — with profit and cash checks calculated for you.'),
+        h('ul', null,
+          h('li', null, icon('camera'), 'Snap your register, we read it'),
+          h('li', null, icon('box'), 'Stock bought, sold and left — automatically'),
+          h('li', null, icon('lock'), 'Private to your company, backed up nightly'))),
+      h('div', { class: 'small', style: { opacity: 0.75 } }, '© DailyKhata')),
+    h('section', { class: 'auth-form' }, h('div', { class: 'inner' },
+      h('h2', null, title), h('p', { class: 'muted', style: { marginTop: 0, marginBottom: '22px' } }, sub), form))));
 }
 
 function loginPage() {
-  const email = input({ type: 'email', name: 'email', autocomplete: 'username', required: true });
-  const pw = input({ type: 'password', name: 'password', autocomplete: 'current-password', required: true });
-  const btn = h('button', { class: 'primary', type: 'submit', style: { width: '100%' } }, 'Sign in');
-  const form = h('form', null, field('Email', email), field('Password', pw), btn);
+  const email = input({ type: 'email', name: 'email', autocomplete: 'username', required: true, placeholder: 'you@business.com', inputmode: 'email' });
+  const pw = input({ type: 'password', name: 'password', autocomplete: 'current-password', required: true, placeholder: '••••••••' });
+  const btn = h('button', { class: 'primary block', type: 'submit', style: { minHeight: '48px', marginTop: '6px' } }, 'Sign in');
+  const form = h('form', null, field('Email', email), field('Password', pw), btn,
+    h('p', { class: 'small muted', style: { marginTop: '18px' } }, 'Forgot your password? Ask your company admin to reset it from Team.'));
   form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {
     await api('/api/auth/login', { method: 'POST', body: { email: email.value, password: pw.value } });
     await route(true);
   })(); });
-  authPage('Sign in', form);
+  authShell('Welcome back', 'Sign in to your khata.', form);
 }
 
 function setupPage() {
   const f = { setup_token: input({ name: 'setup_token', type: 'password', required: true }), name: input({ name: 'name', required: true }), email: input({ name: 'email', type: 'email', required: true }), password: input({ name: 'password', type: 'password', autocomplete: 'new-password', required: true }) };
-  const btn = h('button', { class: 'primary', type: 'submit', style: { width: '100%' } }, 'Create super admin');
-  const form = h('form', null,
-    h('p', { class: 'small muted' }, 'First-time setup. Enter the SETUP_TOKEN configured on the server to create the super admin account.'),
-    field('Setup token', f.setup_token), field('Your name', f.name), field('Email', f.email), field('Password', f.password, 'At least 8 characters with letters and numbers'), btn);
+  const btn = h('button', { class: 'primary block', type: 'submit', style: { minHeight: '48px' } }, 'Create super admin');
+  const form = h('form', null, field('Setup token', f.setup_token, 'The SETUP_TOKEN secret configured on the server'), field('Your name', f.name), field('Email', f.email), field('Password', f.password, 'At least 8 characters with letters and numbers'), btn);
   form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {
     await api('/api/auth/setup', { method: 'POST', body: Object.fromEntries(Object.entries(f).map(([k, el]) => [k, el.value])) });
     toast('Super admin created'); location.hash = '#/admin'; await route(true);
   })(); });
-  authPage('Welcome', form);
+  authShell('Set up DailyKhata', 'Create the super admin account. This works only once.', form);
 }
 
 let ctxLoadedFor = null;
@@ -112,14 +173,13 @@ async function route(reloadUser = false) {
   const hash = location.hash.replace(/^#\/?/, '') || '';
   const [path, query] = hash.split('?');
   const params = new URLSearchParams(query || '');
+  document.querySelectorAll('.modal-bg').forEach((m) => m.remove());
 
   if (path === 'setup') return setupPage();
-  if (path === 'login') {
-    if (!reloadUser) {
-      const s = await api('/api/auth/setup').catch(() => ({ needed: false }));
-      if (s.needed) { location.hash = '#/setup'; return; }
-      return loginPage();
-    }
+  if (path === 'login' && !reloadUser) {
+    const s = await api('/api/auth/setup').catch(() => ({ needed: false }));
+    if (s.needed) { location.hash = '#/setup'; return; }
+    return loginPage();
   }
   if (!state.user || reloadUser) {
     try { const me = await api('/api/auth/me'); state.user = me.user; if (me.company) state.company = me.company; }
@@ -128,15 +188,17 @@ async function route(reloadUser = false) {
 
   const user = state.user;
   if (user.role === 'super_admin' && !state.viewCompanyId) {
+    applyBranding(null);
     const segs = path.split('/');
     if (segs[0] !== 'admin') { location.hash = '#/admin'; return; }
     if (segs[1] === 'company' && segs[2]) {
-      const main = layout(adminRoutes, 'admin/companies', h('div', { class: 'boot' }, 'Loading…'));
-      return adminCompanyPage(main, Number(segs[2]), { openPortal: async (id) => { setViewCompany(id); ctxLoadedFor = null; location.hash = '#/dashboard'; } });
+      const main = layout(adminRoutes, 'admin/companies');
+      return adminCompanyPage(main, Number(segs[2]), { openPortal: async (id) => { setViewCompany(id); ctxLoadedFor = null; location.hash = '#/dashboard'; } }).catch((e) => toast(e.message, true));
     }
     const r = adminRoutes.find((x) => x.path === path) || adminRoutes[0];
-    const main = layout(adminRoutes, r.path, h('div', { class: 'boot' }, 'Loading…'));
+    const main = layout(adminRoutes, r.path);
     try { await r.page(main, params); } catch (e) { toast(e.message, true); }
+    window.scrollTo(0, 0);
     return;
   }
 
@@ -149,11 +211,16 @@ async function route(reloadUser = false) {
   const seg = path.split('/')[0];
   const r = allowed.find((x) => x.path === seg) || allowed[0];
   if (r.path !== seg) { location.hash = '#/' + r.path; return; }
-  const main = layout(companyRoutes, r.path, h('div', { class: 'boot' }, 'Loading…'), { portalOf: state.viewCompanyId });
+  const main = layout(companyRoutes, r.path, { portalOf: state.viewCompanyId, title: r.label });
   try { await r.page(main, params, path.split('/').slice(1)); } catch (e) { toast(e.message, true); mount(main, h('div', { class: 'card empty' }, e.message)); }
 }
 
-window.addEventListener('hashchange', () => route());
+let lastPath = '';
+window.addEventListener('hashchange', () => {
+  const p = location.hash.split('?')[0];
+  route().then(() => { if (p !== lastPath) window.scrollTo(0, 0); lastPath = p; });
+});
 window.addEventListener('themechange', () => route());
 window.addEventListener('dk:reload-context', async () => { await loadContext(); route(); });
+document.documentElement.dataset.effective = effectiveTheme();
 route();

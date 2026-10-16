@@ -1,4 +1,4 @@
-import { h, mount, toast, busy, modal, table, badge, confirmDialog, fmtDateTime } from '../ui.js';
+import { h, mount, toast, busy, modal, table, badge, confirmDialog, fmtDateTime, icon } from '../ui.js';
 import { api, state, navigate } from '../api.js';
 
 export const PERM_LABELS = {
@@ -17,13 +17,13 @@ export async function teamPage(main) {
     h('td', { class: 'small muted' }, u.last_login_at ? fmtDateTime(u.last_login_at) : 'Never'),
     h('td', { class: 'right' }, h('span', { class: 'row', style: { justifyContent: 'flex-end', flexWrap: 'nowrap' } },
       h('button', { class: 'small', onclick: () => memberForm(u, data, () => navigate('#/team')) }, 'Edit'),
-      u.id !== state.user.id ? h('button', { class: 'small ghost danger', 'aria-label': 'Delete', onclick: async () => {
+      u.id !== state.user.id ? h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => {
         if (!(await confirmDialog(`Remove ${u.name} from the team?`))) return;
         try { await api(`/api/c/team/${u.id}`, { method: 'DELETE' }); toast('Removed'); navigate('#/team'); } catch (e) { toast(e.message, true); }
-      } }, '🗑') : null))));
+      } }, icon('trash', 18)) : null))));
   mount(main,
-    h('div', { class: 'spread' }, h('div', null, h('h1', null, 'Team'), h('div', { class: 'muted' }, `${data.members.length} of ${state.company?.max_users ?? '∞'} users on your plan`)),
-      h('button', { class: 'primary', onclick: () => memberForm(null, data, () => navigate('#/team')) }, '+ Add member')),
+    h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Team'), h('div', { class: 'muted' }, `${data.members.length} of ${state.company?.max_users ?? '∞'} users on your plan`)),
+      h('button', { class: 'primary', onclick: () => memberForm(null, data, () => navigate('#/team')) }, icon('plus', 17), 'Add member')),
     h('div', { class: 'card' }, table(['Member', 'Role', 'Status', 'Last sign-in', ''], rows)));
 }
 

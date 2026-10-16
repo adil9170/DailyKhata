@@ -1,10 +1,17 @@
 import { h, mount, toast, busy, table, confirmDialog } from '../ui.js';
 import { api, state, can, companyUrl, refreshLists, navigate, applyBranding } from '../api.js';
+import { getTheme, setTheme } from '../theme.js';
+import { icon } from '../ui.js';
 
 export async function settingsPage(main) {
   const c = state.company;
   const S = can('settings.manage'), M = can('products.manage');
   const sections = [];
+  const cur0 = getTheme();
+  sections.push(h('div', { class: 'card' }, h('h2', null, 'Appearance'),
+    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Appearance' }, [['system', 'System', 'monitor'], ['light', 'Light', 'sun'], ['dark', 'Dark', 'moon']].map(([v, l, ic]) =>
+      h('button', { class: cur0 === v ? 'on' : '', role: 'radio', 'aria-checked': cur0 === v ? 'true' : 'false', onclick: () => setTheme(v) }, icon(ic, 16), l))),
+    h('p', { class: 'small muted', style: { marginBottom: 0 } }, 'System follows your phone or computer setting. Saved on this device.')));
 
   if (S) {
     const f = {
@@ -55,5 +62,5 @@ export async function settingsPage(main) {
   sections.push(h('div', { class: 'card' }, h('h2', null, 'My account'), h('p', { class: 'muted small' }, `${state.user.name} · ${state.user.email}`),
     h('div', { class: 'fields' }, h('div', { class: 'field' }, h('label', null, 'Current password', cur)), h('div', { class: 'field' }, h('label', null, 'New password', nw)), h('div', { class: 'field' }, pbtn))));
 
-  mount(main, h('h1', null, 'Settings'), sections);
+  mount(main, h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Settings'), h('div', { class: 'sub' }, 'Appearance, branding and your account'))), sections);
 }

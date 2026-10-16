@@ -1,4 +1,4 @@
-import { h, mount, money, rupees, toast, busy, modal, table, badge, confirmDialog, fmtDate } from '../ui.js';
+import { h, mount, money, rupees, toast, busy, modal, table, badge, confirmDialog, fmtDate, icon } from '../ui.js';
 import { api, can, refreshLists, navigate } from '../api.js';
 
 export async function productsPage(main) {
@@ -17,17 +17,17 @@ export async function productsPage(main) {
       h('td', { class: 'num' }, p.sale_price_paise && p.avg_cost_per_piece_paise ? `${Math.round(((p.sale_price_paise - p.avg_cost_per_piece_paise) / p.sale_price_paise) * 100)}%` : '—'),
       h('td', { class: 'small muted' }, p.last_purchase ? fmtDate(p.last_purchase) : '—'),
       h('td', { class: 'right' }, M ? h('span', { class: 'row', style: { justifyContent: 'flex-end', flexWrap: 'nowrap' } },
-        h('button', { class: 'small ghost', 'aria-label': 'Edit', onclick: () => productForm(p) }, '✎'),
-        h('button', { class: 'small ghost danger', 'aria-label': 'Delete', onclick: async () => {
+        h('button', { class: 'ghost icon small', 'aria-label': 'Edit', title: 'Edit', onclick: () => productForm(p) }, icon('edit', 18)),
+        h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => {
           if (!(await confirmDialog(`Remove “${p.name}”? Products with purchases are archived instead of deleted.`))) return;
           const r = await api(`/api/c/products/${p.id}`, { method: 'DELETE' }); toast(r.archived ? 'Archived' : 'Deleted'); await refreshLists(); navigate('#/products');
-        } }, '🗑')) : null))));
+        } }, icon('trash', 18))) : null))));
   };
   search.addEventListener('input', render);
   render();
   mount(main,
-    h('div', { class: 'spread' }, h('div', null, h('h1', null, 'Products'), h('div', { class: 'muted' }, 'Reusable items for daily purchases. Set pieces per box and a sale price to get stock and profit estimates.')),
-      M ? h('button', { class: 'primary', onclick: () => productForm(null) }, '+ New product') : null),
+    h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Products'), h('div', { class: 'muted' }, 'Reusable items for daily purchases. Set pieces per box and a sale price to get stock and profit estimates.')),
+      M ? h('button', { class: 'primary', onclick: () => productForm(null) }, icon('plus', 17), 'New product') : null),
     h('div', { class: 'card' }, h('div', { class: 'row', style: { marginBottom: '8px' } }, search),
       h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Product', 'Pack', 'Cost / unit', 'Avg cost / pc', 'Sale price / pc', 'Margin', 'Last bought', ''].map((t) => h('th', null, t)))), body))));
 }

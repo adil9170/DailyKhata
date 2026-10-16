@@ -1,4 +1,4 @@
-import { h, mount, money, num, cls, fmtDate, addDays, tile, table, badge } from '../ui.js';
+import { h, mount, money, num, cls, fmtDate, addDays, tile, table, badge, icon } from '../ui.js';
 import { api, state, todayLocal, navigate, can } from '../api.js';
 import { barChart, profitChart, hbarChart, legend } from '../charts.js';
 
@@ -29,11 +29,13 @@ export async function dashboardPage(main, params) {
 
   const presets = [['today', 'Today'], ['yesterday', 'Yesterday'], ['7d', '7 days'], ['30d', '30 days'], ['month', 'This month'], ['lastmonth', 'Last month'], ['90d', '90 days']];
   const fIn = h('input', { type: 'date', value: from }), tIn = h('input', { type: 'date', value: to });
-  const filters = h('div', { class: 'card noprint' }, h('div', { class: 'row' },
-    h('div', { class: 'seg', role: 'group', 'aria-label': 'Date range' }, presets.map(([k, l]) => h('button', { class: preset === k ? 'on' : '', onclick: () => set({ p: k, g: '' }) }, l))),
-    h('span', { class: 'row' }, fIn, '–', tIn, h('button', { class: 'small', onclick: () => set({ p: 'custom', from: fIn.value, to: tIn.value }) }, 'Apply')),
-    h('span', { class: 'grow' }),
-    h('div', { class: 'seg', role: 'group', 'aria-label': 'Group by' }, [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']].map(([k, l]) => h('button', { class: group === k ? 'on' : '', onclick: () => set({ g: k }) }, l)))));
+  const custom = h('details', { class: 'small', open: preset === 'custom' ? true : null }, h('summary', null, 'Custom dates'),
+    h('div', { class: 'row', style: { marginTop: '8px' } }, fIn, h('span', { class: 'muted' }, 'to'), tIn, h('button', { class: 'small primary', onclick: () => set({ p: 'custom', from: fIn.value, to: tIn.value }) }, 'Apply')));
+  const filters = h('div', { class: 'noprint', style: { marginBottom: '16px', display: 'grid', gap: '10px' } },
+    h('div', { class: 'spread' },
+      h('div', { class: 'scroll-x' }, h('div', { class: 'seg', role: 'group', 'aria-label': 'Date range' }, presets.map(([k, l]) => h('button', { class: preset === k ? 'on' : '', onclick: () => set({ p: k, g: '' }) }, l)))),
+      h('div', { class: 'seg', role: 'group', 'aria-label': 'Group by' }, [['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']].map(([k, l]) => h('button', { class: group === k ? 'on' : '', onclick: () => set({ g: k }) }, l)))),
+    custom);
 
   const pr = t.profit;
   const profitTile = pr.status === 'no_activity' ? tile('Profit', '—', 'No entries')
@@ -71,8 +73,8 @@ export async function dashboardPage(main, params) {
       h('td', null, h('a', { href: `#/day?date=${d.date}` }, fmtDate(d.date))), h('td', null, badge(d.severity === 'error' ? 'High' : 'Check', d.severity === 'error' ? 'bad' : 'warn'), ' ', d.message))))) : null;
 
   mount(main,
-    h('div', { class: 'spread' }, h('div', null, h('h1', null, 'Dashboard'), h('div', { class: 'muted' }, `${fmtDate(from)} – ${fmtDate(to)}`)),
-      can('entries.write') ? h('a', { class: 'btn primary', href: `#/day?date=${today}` }, '+ Today’s entry') : null),
+    h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Dashboard'), h('div', { class: 'sub' }, `${fmtDate(from)} – ${fmtDate(to)}`)),
+      can('entries.write') ? h('a', { class: 'btn primary desk-only', href: `#/day?date=${today}` }, icon('plus', 17), 'Today’s entry') : null),
     filters, tiles,
     h('div', { class: 'card' }, h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, 'Collections, purchases & expenses'), toggle),
       legend([['Collections', cssv('--series-1')], ['Purchases', cssv('--series-2')], ['Expenses', cssv('--series-3')]]),

@@ -1,4 +1,4 @@
-import { h, mount, money, num, cls, fmtDate, addDays, table, busy, toast } from '../ui.js';
+import { h, mount, money, num, cls, fmtDate, addDays, table, busy, toast, icon } from '../ui.js';
 import { api, state, can, todayLocal, download, navigate } from '../api.js';
 import { presetRange } from './dashboard.js';
 
@@ -22,16 +22,16 @@ async function dayReport(el, date) {
   const kv = (rows) => h('div', { class: 'kv' }, rows.flatMap(([k, v, tot]) => [h('div', { class: tot ? 'tot' : '' }, k), h('div', { class: tot ? 'tot' : '' }, v)]));
   mount(el,
     h('div', { class: 'row noprint', style: { marginBottom: '12px' } },
-      h('button', { onclick: () => navigate(`#/reports?tab=day&date=${addDays(date, -1)}`) }, '‹'), di, h('button', { onclick: () => navigate(`#/reports?tab=day&date=${addDays(date, 1)}`) }, '›'),
-      h('span', { class: 'grow' }), h('button', { onclick: () => print() }, '🖨 Print'),
-      can('export') ? h('button', { onclick: () => download(`/api/c/export?from=${date}&to=${date}&format=xlsx`, 'day.xlsx') }, '⬇ Excel') : null),
+      h('button', { onclick: () => navigate(`#/reports?tab=day&date=${addDays(date, -1)}`) }, icon('left')), di, h('button', { onclick: () => navigate(`#/reports?tab=day&date=${addDays(date, 1)}`) }, icon('right')),
+      h('span', { class: 'grow' }), h('button', { onclick: () => print() }, icon('print', 17), 'Print'),
+      can('export') ? h('button', { onclick: () => download(`/api/c/export?from=${date}&to=${date}&format=xlsx`, 'day.xlsx') }, icon('download', 17), 'Excel') : null),
     h('div', { class: 'card' }, h('h2', null, `${state.company?.name ?? ''} — ${fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`),
       h('div', { class: 'grid g3' },
         h('div', null, h('h3', null, 'Money'), kv([
           ['Collection (all modes)', money(d.collections.total)], ['  of which cash', money(d.collections.cash)], ['  UPI / card', money(d.collections.upi + d.collections.card)], ['  udhaar sales', money(d.collections.credit)],
           ['Purchases', money(d.purchases.total)], ['Expenses', money(d.expenses.total)], ['Net cash flow', h('span', { class: cls(d.net_cash_flow) }, money(d.net_cash_flow)), true]])),
         h('div', null, h('h3', null, 'Cash drawer'), kv([
-          ['Opening', money(d.cash.opening)], ['+ Cash in', money(d.cash.cash_in)], ['− Cash out', money(d.cash.cash_out)], ['Expected', money(d.cash.expected), true],
+          ['Opening', money(d.cash.opening)], [icon('plus', 17), 'Cash in', money(d.cash.cash_in)], ['− Cash out', money(d.cash.cash_out)], ['Expected', money(d.cash.expected), true],
           ['Counted', money(d.cash.counted)], ['Difference', d.cash.difference === null ? '—' : h('span', { class: cls(d.cash.difference) }, money(d.cash.difference, { sign: true })), true]])),
         h('div', null, h('h3', null, 'Profit'), p.status === 'actual' ? kv([
           ['Sales revenue', money(p.revenue)], ['− Cost of goods sold', money(p.cogs)], ['Gross profit', money(p.gross), true], ['− Expenses', money(p.expenses)],
@@ -86,7 +86,7 @@ function exportTab(el, today) {
   const [f0, t0] = presetRange('month', today);
   const from = h('input', { type: 'date', value: f0 }), to = h('input', { type: 'date', value: t0 });
   const type = h('select', null, [['all', 'Everything (one sheet each)'], ['summary', 'Daily summary'], ['purchases', 'Purchases'], ['expenses', 'Expenses'], ['collections', 'Collections'], ['payments', 'Udhaar payments'], ['stock', 'Stock movement']].map(([v, l]) => h('option', { value: v }, l)));
-  const btnX = h('button', { class: 'primary' }, '⬇ Excel (.xlsx)'); const btnC = h('button', null, '⬇ CSV');
+  const btnX = h('button', { class: 'primary' }, icon('download', 17), 'Excel (.xlsx)'); const btnC = h('button', null, icon('download', 17), 'CSV');
   const go = (fmt, btn) => busy(btn, async () => { await download(`/api/c/export?from=${from.value}&to=${to.value}&type=${type.value}&format=${fmt}`, `export.${fmt}`); toast('Download started'); });
   btnX.addEventListener('click', go('xlsx', btnX)); btnC.addEventListener('click', go('csv', btnC));
   mount(el, h('div', { class: 'card' }, h('h2', null, 'Export your accounts'),

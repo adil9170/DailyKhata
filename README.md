@@ -22,6 +22,14 @@ per-piece costs, stock movement, cash differences, outstanding amounts and profi
 | **Security** | PBKDF2 password hashing, HttpOnly SameSite=Strict session cookies (only a SHA-256 of the token is stored), login lockout after 5 failures, origin check on writes, strict CSP, every query scoped by `company_id` from the session (never from the request), private R2 files served only through authenticated, company-checked routes, audit log of every change with before/after values. |
 | **Backups** | Nightly JSON snapshot of every company to R2 (30-day retention), manual backup button, a final backup before a company is deleted. D1 Time Travel also gives 30-day point-in-time restore. |
 
+## Design
+
+- **Mobile first:** bottom tab bar with a central **+** button (purchase, expense, collection, type hisaab, scan photo),
+  bottom-sheet forms, iOS-style list rows (tap to edit), large touch targets, safe-area aware, installable (web app manifest).
+- **Close your day** checklist on the daily screen: stock bought → expenses → collection → count stock → count cash.
+- **Light, dark and system themes** (Settings → Appearance, or the theme button), with charts re-themed to match.
+- Company branding drives the accent colour, hero card and buttons; everything else stays neutral.
+
 ## Deploy
 
 ### Option A — GitHub Actions (recommended)

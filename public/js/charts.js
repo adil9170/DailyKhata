@@ -16,7 +16,8 @@ function base(yFmt) {
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${yFmt(ctx.parsed.y ?? ctx.parsed.x)}` } },
+      tooltip: { backgroundColor: css('--text'), titleColor: css('--surface'), bodyColor: css('--surface'), padding: 10, cornerRadius: 10, boxPadding: 4, usePointStyle: true,
+        callbacks: { label: (ctx) => `${ctx.dataset.label}: ${yFmt(ctx.parsed.y ?? ctx.parsed.x)}` } },
     },
     scales: {
       x: { grid: { display: false }, ticks: { color: text2, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, border: { color: grid } },
@@ -35,6 +36,8 @@ export function legend(items) {
 
 function make(canvas, config) {
   if (!window.Chart) { canvas.replaceWith(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'Charts unavailable offline — see the table view.' })); return null; }
+  window.Chart.defaults.font.family = getComputedStyle(document.documentElement).fontFamily;
+  window.Chart.defaults.font.size = 12;
   const c = new window.Chart(canvas, config); charts.add(c); return c;
 }
 

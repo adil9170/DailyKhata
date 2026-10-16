@@ -1,0 +1,10 @@
+{
+  "name": "DailyKhata",
+  "short_name": "Khata",
+  "description": "Daily accounts & inventory",
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#635bff",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

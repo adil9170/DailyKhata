@@ -1,94 +1,127 @@
 // Daily Entry: the simple everyday workflow — purchases, expenses, collection, closing stock and cash.
-import { h, mount, money, num, cls, fmtDate, addDays, toast, busy, modal, confirmDialog, tile, table, rupees, compressImage, badge } from '../ui.js';
+import { h, mount, money, num, cls, fmtDate, addDays, toast, busy, modal, confirmDialog, table, rupees, compressImage, badge, icon, iconBtn } from '../ui.js';
 import { api, state, can, refreshLists, todayLocal, companyUrl, navigate } from '../api.js';
 import { reviewEditor } from './review.js';
 
 export async function dayPage(main, params) {
-  let date = params.get('date') || state.today || todayLocal();
-  const root = h('div');
-  mount(main, root);
+  const date = params.get('date') || state.today || todayLocal();
+  const today = state.today || todayLocal();
   const go = (d) => navigate(`#/day?date=${d}`);
+  const reload = () => go(date);
 
   const data = await api(`/api/c/day/${date}`);
   const rep = data.report;
   const W = can('entries.write'), DEL = can('entries.delete');
 
-  // ---------- header ----------
-  const dateInput = h('input', { type: 'date', value: date, onchange: (e) => e.target.value && go(e.target.value) });
-  const header = h('div', { class: 'spread' },
-    h('div', null, h('h1', null, 'Daily Entry'), h('div', { class: 'muted' }, fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))),
+  // ---------- header with date navigation ----------
+  const dateInput = h('input', { type: 'date', value: date, 'aria-label': 'Choose date', onchange: (e) => e.target.value && go(e.target.value) });
+  const rel = date === today ? 'Today' : date === addDays(today, -1) ? 'Yesterday' : fmtDate(date, { weekday: 'long' });
+  const header = h('div', { class: 'page-head' },
+    h('div', null, h('h1', null, rel), h('div', { class: 'sub' }, fmtDate(date, { day: 'numeric', month: 'long', year: 'numeric' }))),
     h('div', { class: 'datebar' },
-      h('button', { 'aria-label': 'Previous day', onclick: () => go(addDays(date, -1)) }, '‹'), dateInput,
-      h('button', { 'aria-label': 'Next day', onclick: () => go(addDays(date, 1)) }, '›'),
-      h('button', { onclick: () => go(state.today || todayLocal()) }, 'Today')));
+      iconBtn('left', 'Previous day', () => go(addDays(date, -1)), ''), dateInput, iconBtn('right', 'Next day', () => go(addDays(date, 1)), ''),
+      date !== today ? h('button', { class: 'small', onclick: () => go(today) }, 'Today') : null));
 
-  // ---------- summary ----------
+  // ---------- hero: the one number that matters ----------
   const p = rep.profit;
-  const profitTile = !p ? null
-    : p.status === 'actual' ? tile('Profit (actual)', h('span', { class: cls(p.net) }, money(p.net)), `Sales ${money(p.revenue)} − cost ${money(p.cogs)} − exp ${money(p.expenses)}`, 'hl')
-    : p.status === 'no_activity' ? tile('Profit', '—', 'No entries yet')
-    : tile('Profit', h('span', { class: 'muted', style: { fontSize: '1rem' } }, 'Count stock'), p.reason);
-  const summary = h('div', { class: 'tiles' },
-    tile('Purchases', money(rep.purchases.total), `${num(rep.purchases.pieces)} pcs · ${num(rep.purchases.units)} units`),
-    tile('Expenses', money(rep.expenses.total)),
-    tile('Collection', money(rep.collections.total), rep.collections.credit ? `incl. ${money(rep.collections.credit)} udhaar` : null),
-    tile('Net cash flow', h('span', { class: cls(rep.net_cash_flow) }, money(rep.net_cash_flow)), 'Money in − money out (not profit)'),
-    profitTile,
-    tile('Cash difference', rep.cash.difference === null ? '—' : h('span', { class: cls(rep.cash.difference) }, money(rep.cash.difference, { sign: true })),
-      rep.cash.difference === null ? 'Close the day to check cash' : rep.cash.difference < 0 ? 'Short' : rep.cash.difference > 0 ? 'Excess' : 'Matches'));
+  const profitPill = !p || p.status === 'no_activity' ? null
+    : p.status === 'actual' ? h('span', { class: 'pill' }, icon('sparkles', 14), `Profit ${money(p.net)}`)
+    : h('span', { class: 'pill' }, icon('info', 14), 'Count stock to see profit');
+  const hero = h('div', { class: 'hero' },
+    h('div', { class: 'spread' }, h('div', { class: 'label' }, 'Collection'), profitPill),
+    h('div', { class: 'big' }, money(rep.collections.total)),
+    h('div', { class: 'stats' },
+      h('div', null, h('div', { class: 'k' }, 'Purchases'), h('div', { class: 'v' }, money(rep.purchases.total))),
+      h('div', null, h('div', { class: 'k' }, 'Expenses'), h('div', { class: 'v' }, money(rep.expenses.total))),
+      h('div', null, h('div', { class: 'k' }, 'Net cash'), h('div', { class: 'v' }, money(rep.net_cash_flow, { sign: true })))));
 
-  const issues = rep.discrepancies.length ? h('div', { class: 'card' }, h('h3', null, 'Checks'),
-    rep.discrepancies.map((d) => h('div', { class: 'alert ' + d.severity }, h('span', { class: 'ic' }, d.severity === 'info' ? 'i' : '!'), d.message))) : null;
+  // ---------- step checklist ----------
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const needCount = rep.stock.products_needing_count;
+  const steps = [
+    { id: 'sec-purchases', ic: 'bag', t: 'Stock bought', d: data.purchases.length ? `${data.purchases.length} items · ${num(rep.purchases.pieces)} pieces` : 'Add what you purchased', amt: data.purchases.length ? money(rep.purchases.total) : null, done: data.purchases.length > 0, add: () => purchaseForm(date, null, reload) },
+    { id: 'sec-expenses', ic: 'receipt', t: 'Expenses', d: data.expenses.length ? `${data.expenses.length} entries` : 'Gas, Wi-Fi, water…', amt: data.expenses.length ? money(rep.expenses.total) : null, done: data.expenses.length > 0, add: () => expenseForm(date, null, reload) },
+    { id: 'sec-collections', ic: 'rupee', t: 'Collection', d: data.collections.length ? (rep.collections.credit ? `incl. ${money(rep.collections.credit)} udhaar` : 'Money from sales') : 'Add today’s sales money', amt: data.collections.length ? money(rep.collections.total) : null, done: data.collections.length > 0, add: () => collectionForm(date, null, reload) },
+    { id: 'sec-stock', ic: 'box', t: 'Count stock left', d: needCount ? `${rep.stock.counted_products} of ${needCount} products counted` : 'Nothing in stock to count', amt: null, done: needCount > 0 && rep.stock.counted_products >= needCount },
+    { id: 'sec-cash', ic: 'lock', t: 'Count cash & close day', d: rep.cash.counted === null ? 'Check cash in the drawer' : rep.cash.difference === null ? 'Counted' : rep.cash.difference === 0 ? 'Cash matches' : `${rep.cash.difference < 0 ? 'Short' : 'Excess'} ${money(Math.abs(rep.cash.difference))}`, amt: null, done: rep.cash.counted !== null },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  const stepsCard = h('div', { class: 'card' },
+    h('div', { class: 'spread', style: { marginBottom: '4px' } }, h('h2', { style: { margin: 0 } }, 'Close your day'), badge(`${doneCount}/5 done`, doneCount === 5 ? 'good' : '')),
+    h('div', { class: 'steps' }, steps.map((s) => h('button', { class: 'step' + (s.done ? ' done' : ''), onclick: () => (!s.done && s.add && W ? s.add() : scrollTo(s.id)) },
+      h('span', { class: 'dot' }, icon(s.done ? 'check' : s.ic)), h('span', null, h('span', { class: 't', style: { display: 'block' } }, s.t), h('span', { class: 'd', style: { display: 'block' } }, s.d)),
+      s.amt ? h('span', { class: 'amt' }, s.amt) : h('span', { class: 'amt' }), h('span', { class: 'chev' }, icon(!s.done && s.add && W ? 'plus' : 'right', 18))))));
 
-  // ---------- quick entry ----------
-  const quick = W ? quickEntryCard(date, () => go(date)) : null;
+  const issues = rep.discrepancies.filter((d) => d.severity !== 'info').length || rep.discrepancies.length ? h('div', { class: 'card' }, h('h2', null, 'Checks'),
+    rep.discrepancies.map((d) => h('div', { class: 'alert ' + d.severity }, icon(d.severity === 'info' ? 'info' : 'alert'), d.message))) : null;
 
-  // ---------- purchases ----------
-  const pRows = data.purchases.map((e) => h('tr', null,
-    h('td', null, e.product_name, e.supplier ? h('div', { class: 'small muted' }, e.supplier) : null),
-    h('td', { class: 'num' }, `${num(e.qty_units)} ${e.unit}`), h('td', { class: 'num' }, num(e.pieces)),
-    h('td', { class: 'num' }, money(e.total_cost_paise)), h('td', { class: 'num small' }, money(Math.round(e.cost_per_piece_paise))),
-    h('td', null, modeBadge(e.payment_mode)), h('td', { class: 'right' }, rowActions('purchases', e, () => purchaseForm(date, e, () => go(date)), () => go(date)))));
-  const purchasesCard = h('div', { class: 'card' },
-    h('div', { class: 'sec-head' }, h('h2', { style: { margin: 0 } }, 'Purchases (stock bought)'), W ? h('button', { class: 'primary small', onclick: () => purchaseForm(date, null, () => go(date)) }, '+ Add purchase') : null),
-    table(['Item', 'Qty', 'Pieces', 'Total', 'Per piece', 'Paid', ''], pRows, {
-      empty: 'No purchases for this day',
-      foot: data.purchases.length ? h('tr', null, h('td', null, 'Total'), h('td', { class: 'num' }, num(rep.purchases.units)), h('td', { class: 'num' }, num(rep.purchases.pieces)), h('td', { class: 'num' }, money(rep.purchases.total)), h('td', { colspan: 3 })) : null,
-    }));
+  const quick = W ? quickEntryCard(date, reload) : null;
+  const secHead = (ic, title, btn) => h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon(ic)), title), btn);
+  const addBtn = (label, fn) => (W ? h('button', { class: 'small', onclick: fn }, icon('plus', 16), label) : null);
 
-  // ---------- expenses ----------
-  const eRows = data.expenses.map((e) => h('tr', null,
-    h('td', null, e.category, e.notes ? h('div', { class: 'small muted' }, e.notes) : null), h('td', { class: 'num' }, money(e.amount_paise)), h('td', null, modeBadge(e.payment_mode)),
-    h('td', null, e.document_id ? h('a', { href: companyUrl(`/api/c/documents/${e.document_id}/file`), target: '_blank', rel: 'noopener' }, 'Receipt') : ''),
-    h('td', { class: 'right' }, rowActions('expenses', e, () => expenseForm(date, e, () => go(date)), () => go(date)))));
-  const expensesCard = h('div', { class: 'card' },
-    h('div', { class: 'sec-head' }, h('h2', { style: { margin: 0 } }, 'Expenses'), W ? h('button', { class: 'primary small', onclick: () => expenseForm(date, null, () => go(date)) }, '+ Add expense') : null),
-    table(['Category', 'Amount', 'Paid', 'Receipt', ''], eRows, { empty: 'No expenses for this day',
-      foot: data.expenses.length ? h('tr', null, h('td', null, 'Total'), h('td', { class: 'num' }, money(rep.expenses.total)), h('td', { colspan: 3 })) : null }));
+  // ---------- entry lists (tap a row to edit) ----------
+  const initials = (t) => (t || '?').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
+  const li = ({ lead, title, sub, amt, amtSub, onEdit, kind, e }) => h('div', { class: 'li' + (W ? ' tap' : ''), onclick: W ? (ev) => { if (!ev.target.closest('button,a')) onEdit(); } : null, role: W ? 'button' : null, tabindex: W ? '0' : null,
+      onkeydown: W ? (ev) => { if (ev.key === 'Enter') onEdit(); } : null },
+    h('div', { class: 'lead' }, lead), h('div', { class: 'body' }, h('div', { class: 't' }, title), sub ? h('div', { class: 'd' }, sub) : null),
+    h('div', { class: 'amt' }, amt, amtSub ? h('div', { class: 'd' }, amtSub) : null),
+    DEL ? h('div', { class: 'acts' }, delBtn(kind, e)) : null);
+  const list = (rows, empty, total) => h('div', null, h('div', { class: 'list' }, rows.length ? rows : h('div', { class: 'empty' }, empty)), rows.length && total ? total : null);
+  const totalRow = (label, value, extra) => h('div', { class: 'li-total' }, h('span', null, label, extra ? h('span', { class: 'muted small' }, ` · ${extra}`) : null), h('span', null, value));
+  const modeTxt = (m) => (m === 'credit' ? 'udhaar' : m === 'upi' ? 'UPI' : m);
 
-  // ---------- collections ----------
-  const cRows = data.collections.map((e) => h('tr', null,
-    h('td', { class: 'num' }, money(e.amount_paise)), h('td', null, modeBadge(e.mode)), h('td', null, e.customer || '', e.notes ? h('div', { class: 'small muted' }, e.notes) : null),
-    h('td', { class: 'right' }, rowActions('collections', e, () => collectionForm(date, e, () => go(date)), () => go(date)))));
-  const collectionsCard = h('div', { class: 'card' },
-    h('div', { class: 'sec-head' }, h('h2', { style: { margin: 0 } }, 'Collection (sales)'), W ? h('button', { class: 'primary small', onclick: () => collectionForm(date, null, () => go(date)) }, '+ Add collection') : null),
-    table(['Amount', 'Mode', 'Customer / notes', ''], cRows, { empty: 'No collection for this day',
-      foot: data.collections.length ? h('tr', null, h('td', { class: 'num' }, money(rep.collections.total)), h('td', { colspan: 3 }, 'Total')) : null }));
+  const purchasesCard = h('div', { class: 'card', id: 'sec-purchases' },
+    secHead('bag', 'Stock bought', addBtn('Add', () => purchaseForm(date, null, reload))),
+    list(data.purchases.map((e) => li({ kind: 'purchases', e, lead: initials(e.product_name), title: e.product_name,
+      sub: `${num(e.qty_units)} ${e.unit} · ${num(e.pieces)} pcs · ${money(Math.round(e.cost_per_piece_paise))}/pc${e.payment_mode !== 'cash' ? ' · ' + modeTxt(e.payment_mode) : ''}${e.supplier ? ' · ' + e.supplier : ''}`,
+      amt: money(e.total_cost_paise), onEdit: () => purchaseForm(date, e, reload) })), 'No purchases yet',
+      totalRow('Total', money(rep.purchases.total), `${num(rep.purchases.units)} units · ${num(rep.purchases.pieces)} pcs`)));
 
-  // ---------- closing stock ----------
-  const stockCard = stockCountCard(date, rep, W, () => go(date));
-  const cashCard = cashCloseCard(date, rep, data.closing, can('cash.close'), () => go(date));
+  const expensesCard = h('div', { class: 'card', id: 'sec-expenses' },
+    secHead('receipt', 'Expenses', addBtn('Add', () => expenseForm(date, null, reload))),
+    list(data.expenses.map((e) => li({ kind: 'expenses', e, lead: icon('receipt', 18), title: e.category,
+      sub: [modeTxt(e.payment_mode), e.notes].filter(Boolean).join(' · '),
+      amt: money(e.amount_paise), amtSub: e.document_id ? h('a', { href: companyUrl(`/api/c/documents/${e.document_id}/file`), target: '_blank', rel: 'noopener' }, 'Receipt') : null,
+      onEdit: () => expenseForm(date, e, reload) })), 'No expenses yet', totalRow('Total', money(rep.expenses.total))));
 
-  mount(root, header, summary, issues, quick, h('div', { class: 'grid g2' }, h('div', null, purchasesCard), h('div', null, expensesCard, collectionsCard)), stockCard, cashCard);
+  const collectionsCard = h('div', { class: 'card', id: 'sec-collections' },
+    secHead('rupee', 'Collection', addBtn('Add', () => collectionForm(date, null, reload))),
+    list(data.collections.map((e) => li({ kind: 'collections', e, lead: icon(e.mode === 'credit' ? 'wallet' : 'rupee', 18), title: e.mode === 'credit' ? `Udhaar${e.customer ? ' — ' + e.customer : ''}` : `${modeTxt(e.mode).replace(/^./, (c) => c.toUpperCase())}${e.customer ? ' — ' + e.customer : ''}`,
+      sub: e.notes || null, amt: money(e.amount_paise), onEdit: () => collectionForm(date, e, reload) })), 'No collection yet', totalRow('Total', money(rep.collections.total))));
 
-  function rowActions(kind, e, onEdit, onDone) {
-    return h('span', { class: 'row', style: { justifyContent: 'flex-end', flexWrap: 'nowrap' } },
-      W ? h('button', { class: 'small ghost', onclick: onEdit, 'aria-label': 'Edit' }, '✎') : null,
-      DEL ? h('button', { class: 'small ghost danger', 'aria-label': 'Delete', onclick: async () => {
-        if (!(await confirmDialog('Delete this entry? This is recorded in the audit log.'))) return;
-        try { await api(`/api/c/${kind}/${e.id}`, { method: 'DELETE' }); toast('Deleted'); onDone(); } catch (err) { toast(err.message, true); }
-      } }, '🗑') : null);
+  const stockCard = stockCountCard(date, rep, W, reload);
+  const cashCard = cashCloseCard(date, rep, data.closing, can('cash.close'), reload);
+  const profitCard = p && p.status === 'actual' ? h('div', { class: 'card' }, h('h2', null, 'Profit for the day'),
+    h('div', { class: 'kv' }, h('div', null, 'Sales'), h('div', null, money(p.revenue)), h('div', null, '− Cost of stock sold'), h('div', null, money(p.cogs)),
+      h('div', null, '− Expenses'), h('div', null, money(p.expenses)), h('div', { class: 'tot' }, 'Net profit'), h('div', { class: 'tot ' + cls(p.net) }, money(p.net)))) : null;
+
+  mount(main, header, h('div', { class: 'grid g2' }, h('div', null, hero, issues), h('div', null, stepsCard)), quick,
+    h('div', { class: 'grid g2' }, h('div', null, purchasesCard), h('div', null, expensesCard, collectionsCard)), stockCard, h('div', { class: 'grid g2' }, h('div', null, cashCard), h('div', null, profitCard)));
+
+  // deep links from the "+" sheet
+  const add = params.get('add');
+  if (add && W) {
+    history.replaceState(null, '', `#/day?date=${date}`);
+    if (add === 'purchase') purchaseForm(date, null, reload);
+    else if (add === 'expense') expenseForm(date, null, reload);
+    else if (add === 'collection') collectionForm(date, null, reload);
+    else if (add === 'text') { const ta = main.querySelector('textarea'); ta?.scrollIntoView({ behavior: 'smooth', block: 'center' }); ta?.focus(); }
   }
+
+  function delBtn(kind, e) {
+    return h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => {
+      if (!(await confirmDialog('Delete this entry? This is recorded in the audit log.'))) return;
+      try { await api(`/api/c/${kind}/${e.id}`, { method: 'DELETE' }); toast('Deleted'); reload(); } catch (err) { toast(err.message, true); }
+    } }, icon('trash', 18));
+  }
+}
+
+function formFoot(kind, e, getModal, done, saveBtn) {
+  const del = e && can('entries.delete') ? h('button', { type: 'button', class: 'ghost danger', onclick: async () => {
+    if (!(await confirmDialog('Delete this entry? This is recorded in the audit log.'))) return;
+    try { await api(`/api/c/${kind}/${e.id}`, { method: 'DELETE' }); getModal().close(); toast('Deleted'); done(); } catch (err) { toast(err.message, true); }
+  } }, icon('trash', 17), 'Delete') : h('span');
+  return h('div', { class: 'form-foot' }, del, saveBtn);
 }
 
 function modeBadge(m) { return badge(m === 'credit' ? 'udhaar' : m, m === 'credit' ? 'warn' : ''); }
@@ -96,23 +129,23 @@ function modeBadge(m) { return badge(m === 'credit' ? 'udhaar' : m, m === 'credi
 function quickEntryCard(date, done) {
   const out = h('div');
   const ta = h('textarea', { placeholder: 'Type or paste your hisaab, one line each, e.g.\nSting 2 boxes 1020 60\nCampa Orange 1 box 240 30\nGas 820\nCollection 7544', 'aria-label': 'Hisaab text' });
-  const readBtn = h('button', { class: 'primary' }, 'Read entries');
+  const readBtn = h('button', { class: 'primary' }, icon('sparkles', 18), 'Read entries');
   readBtn.addEventListener('click', busy(readBtn, async () => {
     if (!ta.value.trim()) return toast('Type some lines first', true);
     const parsed = await api('/api/c/parse', { method: 'POST', body: { text: ta.value, date } });
     if (!parsed.purchases.length && !parsed.expenses.length && !parsed.collections.length) return toast('Could not find any entries in this text', true);
-    mount(out, h('div', { class: 'card', style: { background: 'var(--surface-2)' } }, h('h3', null, 'Check before saving'),
+    mount(out, h('div', { class: 'card tint', style: { marginTop: '14px' } }, h('h3', null, 'Check before saving'),
       reviewEditor({ parsed, date, onSaved: (d) => { ta.value = ''; navigate(`#/day?date=${d}`); }, onCancel: () => mount(out) })));
   }));
   const fileIn = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'hidden' });
-  const photoBtn = h('button', { onclick: () => fileIn.click() }, '📷 Photo of hisaab');
+  const photoBtn = h('button', { onclick: () => fileIn.click() }, icon('camera', 18), 'Scan photo');
   fileIn.addEventListener('change', busy(photoBtn, async () => {
     const f = fileIn.files[0]; if (!f) return;
     const doc = await uploadDoc(f, 'hisaab', date);
     location.hash = `#/uploads?review=${doc.id}`;
   }));
   return h('div', { class: 'card' },
-    h('div', { class: 'sec-head' }, h('h2', { style: { margin: 0 } }, 'Quick entry'), h('span', { class: 'small muted' }, 'Write it the way you write your register')),
+    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('type')), 'Quick entry'), h('span', { class: 'small muted' }, 'Write it the way you write your register')),
     ta, h('div', { class: 'row', style: { marginTop: '8px' } }, readBtn, photoBtn, fileIn), out);
 }
 
@@ -149,7 +182,7 @@ function purchaseForm(date, e, done) {
   const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : 'Add purchase');
   const form = h('form', null, h('datalist', { id: 'pf-products' }, prods.map((p) => h('option', { value: p.name }))),
     h('div', { class: 'fields' }, lab('Item', item), lab('Quantity', qty), lab('Unit', unit), lab('Pieces', pieces), lab('Total cost ₹', total), lab('Paid by', mode), lab('Supplier', supplier), lab('Notes', notes)),
-    calc, h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, btn));
+    calc, formFoot('purchases', e, () => m, done, btn));
   update();
   const m = modal(e ? 'Edit purchase' : 'Add purchase', form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
@@ -171,7 +204,7 @@ function expenseForm(date, e, done) {
   const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : 'Add expense');
   const form = h('form', null, datalist('ef-cats', state.categories.map((c) => c.name)),
     h('div', { class: 'fields' }, lab('Category', cat), lab('Amount ₹', amount), lab('Paid by', mode), lab('Date', d)), lab('Notes', notes),
-    can('uploads.write') ? lab('Receipt photo (optional)', photo) : null, h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, btn));
+    can('uploads.write') ? lab('Receipt photo (optional)', photo) : null, formFoot('expenses', e, () => m, done, btn));
   const m = modal(e ? 'Edit expense' : 'Add expense', form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     let document_id = e?.document_id ?? null;
@@ -189,7 +222,7 @@ function collectionForm(date, e, done) {
   const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : 'Add collection');
   const form = h('form', null, h('div', { class: 'fields' }, lab('Amount ₹', amount), lab('Mode', mode), lab('Customer', customer)), lab('Notes', notes),
     h('div', { class: 'small muted', style: { marginBottom: '10px' } }, 'Use “Udhaar” when goods were given on credit; record the money later under Udhaar / Outstanding.'),
-    h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, btn));
+    formFoot('collections', e, () => m, done, btn));
   const m = modal(e ? 'Edit collection' : 'Add collection', form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     await api(e ? `/api/c/collections/${e.id}` : '/api/c/collections', { method: e ? 'PUT' : 'POST', body: { date, amount: amount.value, mode: mode.value, customer: customer.value, notes: notes.value } });
@@ -205,15 +238,14 @@ function stockCountCard(date, rep, W, done) {
   const extra = all.filter((p) => !shown.has(p.id));
   const inputs = new Map();
   const tr = (r) => {
-    const inp = h('input', { type: 'number', min: '0', style: { width: '90px' }, value: r.counted ? r.closing : '', placeholder: String(r.closing), disabled: !W, 'aria-label': `Closing pieces for ${r.name}` });
+    const inp = h('input', { type: 'number', inputmode: 'numeric', min: '0', value: r.counted ? r.closing : '', placeholder: String(r.closing), disabled: !W, 'aria-label': `Pieces left of ${r.name}` });
     inputs.set(r.product_id, inp);
-    return h('tr', null, h('td', null, r.name), h('td', { class: 'num' }, num(r.opening)), h('td', { class: 'num' }, num(r.purchased)),
-      h('td', { class: 'num' }, num(r.opening + r.purchased)), h('td', null, inp),
-      h('td', { class: 'num' }, r.sold === null ? '—' : num(r.sold)), h('td', { class: 'num small' }, r.cogs === null ? '—' : money(r.cogs)),
-      h('td', { class: 'num small' }, r.stock_value === null ? '—' : money(r.stock_value)));
+    const sub = [`Had ${num(r.opening)}`, r.purchased ? `+${num(r.purchased)} bought` : null, `expect ${num(r.opening + r.purchased)}`].filter(Boolean).join(' · ');
+    const sold = r.sold === null ? null : `Sold ${num(r.sold)}${r.cogs !== null ? ' · cost ' + money(r.cogs) : ''}`;
+    return h('div', { class: 'li' }, h('div', { class: 'body' }, h('div', { class: 't' }, r.name), h('div', { class: 'd' }, sold ? h('span', { style: { color: 'var(--good)', fontWeight: 600 } }, sold + ' · ') : null, sub)), inp);
   };
-  const extraSel = h('select', null, h('option', { value: '' }, 'Count another product…'), extra.map((p) => h('option', { value: p.id }, p.name)));
-  const tbody = h('tbody', null, rows.map(tr));
+  const extraSel = h('select', { style: { maxWidth: '260px' } }, h('option', { value: '' }, 'Count another product…'), extra.map((p) => h('option', { value: p.id }, p.name)));
+  const tbody = h('div', { class: 'list' }, rows.map(tr));
   extraSel.addEventListener('change', () => {
     const p = extra.find((x) => String(x.id) === extraSel.value); if (!p) return;
     tbody.append(tr({ product_id: p.id, name: p.name, opening: 0, purchased: 0, closing: 0, counted: false, sold: null, cogs: null, stock_value: null }));
@@ -226,14 +258,12 @@ function stockCountCard(date, rep, W, done) {
     toast('Stock count saved'); done();
   }));
   const fillExpected = h('button', { class: 'small', onclick: () => { for (const inp of inputs.values()) if (inp.value === '') inp.value = inp.placeholder; } }, 'Fill expected');
-  return h('div', { class: 'card' },
-    h('div', { class: 'sec-head' }, h('div', null, h('h2', { style: { margin: 0 } }, 'Closing stock count'),
-      h('div', { class: 'small muted' }, 'Count pieces left at the end of the day. Sold = opening + bought − counted. Needed for actual profit.')),
-      h('span', null, `${rep.stock.counted_products}/${rep.stock.products_needing_count} counted`)),
-    h('div', { class: 'tablewrap' }, h('table', null,
-      h('thead', null, h('tr', null, ['Item', 'Opening', 'Bought', 'Expected', 'Counted', 'Sold', 'Cost of sold', 'Stock value'].map((t) => h('th', null, t)))),
-      rows.length || extra.length ? tbody : h('tbody', null, h('tr', null, h('td', { colspan: 8, class: 'empty' }, 'Add products or purchases first'))))),
-    W ? h('div', { class: 'row', style: { marginTop: '10px' } }, extra.length ? extraSel : null, h('span', { class: 'grow' }), fillExpected, btn) : null);
+  return h('div', { class: 'card', id: 'sec-stock' },
+    h('div', { class: 'sec-head' }, h('div', null, h('h2', null, h('span', { class: 'dot' }, icon('box')), 'Stock left at closing'),
+      h('div', { class: 'small muted', style: { marginTop: '4px' } }, 'Enter pieces left on the shelf. We work out what was sold and your profit.')),
+      badge(`${rep.stock.counted_products}/${rep.stock.products_needing_count} counted`, rep.stock.products_needing_count && rep.stock.counted_products >= rep.stock.products_needing_count ? 'good' : '')),
+    rows.length || extra.length ? tbody : h('div', { class: 'empty' }, 'Add products or purchases first'),
+    W ? h('div', { class: 'row', style: { marginTop: '12px' } }, extra.length ? extraSel : null, h('span', { class: 'grow' }), fillExpected, btn) : null);
 }
 
 function cashCloseCard(date, rep, closing, canClose, done) {
@@ -247,9 +277,9 @@ function cashCloseCard(date, rep, closing, canClose, done) {
     await api(`/api/c/day/${date}/closing`, { method: 'PUT', body: { opening_cash: opening.value === '' ? null : opening.value, counted_cash: counted.value, notes: notes.value } });
     toast('Cash closing saved'); done();
   }));
-  return h('div', { class: 'card' },
-    h('h2', null, 'Cash in drawer'),
-    h('div', { class: 'grid g2' },
+  return h('div', { class: 'card', id: 'sec-cash' },
+    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('lock')), 'Cash in drawer')),
+    h('div', { class: 'grid' },
       h('div', { class: 'kv' },
         h('div', null, 'Opening cash'), h('div', null, money(c.opening)),
         h('div', null, '+ Cash collected'), h('div', null, money(c.cash_in)),

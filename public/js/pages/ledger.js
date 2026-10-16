@@ -1,5 +1,5 @@
 // Outstanding: supplier credit (to pay) and customer udhaar (to receive), plus settlement payments.
-import { h, mount, money, rupees, fmtDate, addDays, table, toast, busy, modal, confirmDialog, badge } from '../ui.js';
+import { h, mount, money, rupees, fmtDate, addDays, table, toast, busy, modal, confirmDialog, badge, icon } from '../ui.js';
 import { api, state, can, todayLocal, navigate } from '../api.js';
 
 export async function ledgerPage(main) {
@@ -14,8 +14,8 @@ export async function ledgerPage(main) {
     h('td', { class: 'right' }, W && r.balance > 0 ? h('button', { class: 'small', onclick: () => paymentForm(null, { direction: dir, party: r.party.startsWith('Unnamed') || r.party === 'Expenses on credit' ? '' : r.party, amount: r.balance }) }, dir === 'to_supplier' ? 'Pay' : 'Receive') : null))),
   { empty: 'Nothing outstanding' });
   mount(main,
-    h('div', { class: 'spread' }, h('div', null, h('h1', null, 'Udhaar / Outstanding'), h('div', { class: 'muted' }, 'Credit purchases you must pay, and credit sales customers owe you.')),
-      W ? h('button', { class: 'primary', onclick: () => paymentForm(null) }, '+ Record payment') : null),
+    h('div', { class: 'page-head' }, h('div', null, h('h1', null, 'Udhaar / Outstanding'), h('div', { class: 'muted' }, 'Credit purchases you must pay, and credit sales customers owe you.')),
+      W ? h('button', { class: 'primary', onclick: () => paymentForm(null) }, icon('plus', 17), 'Record payment') : null),
     out ? h('div', { class: 'grid g2' },
       h('div', { class: 'card' }, h('h2', null, 'To pay — suppliers'), partyTable(out.payable, 'to_supplier')),
       h('div', { class: 'card' }, h('h2', null, 'To receive — customers'), partyTable(out.receivable, 'from_customer'))) : null,
@@ -24,11 +24,11 @@ export async function ledgerPage(main) {
         h('td', null, fmtDate(p.entry_date)), h('td', null, badge(p.direction === 'to_supplier' ? 'Paid to supplier' : 'Received', p.direction === 'to_supplier' ? '' : 'good')),
         h('td', null, p.party || '—'), h('td', { class: 'num' }, money(p.amount_paise)), h('td', null, p.mode), h('td', { class: 'small muted' }, p.notes || ''),
         h('td', { class: 'right' }, h('span', { class: 'row', style: { justifyContent: 'flex-end', flexWrap: 'nowrap' } },
-          W ? h('button', { class: 'small ghost', 'aria-label': 'Edit', onclick: () => paymentForm(p) }, '✎') : null,
-          can('entries.delete') ? h('button', { class: 'small ghost danger', 'aria-label': 'Delete', onclick: async () => {
+          W ? h('button', { class: 'ghost icon small', 'aria-label': 'Edit', title: 'Edit', onclick: () => paymentForm(p) }, icon('edit', 18)) : null,
+          can('entries.delete') ? h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => {
             if (!(await confirmDialog('Delete this payment?'))) return;
             await api(`/api/c/payments/${p.id}`, { method: 'DELETE' }); toast('Deleted'); navigate('#/ledger');
-          } }, '🗑') : null)))), { empty: 'No payments recorded' })));
+          } }, icon('trash', 18)) : null)))), { empty: 'No payments recorded' })));
 
   function paymentForm(p, preset = {}) {
     const dir = h('select', null, [['to_supplier', 'Paid to supplier'], ['from_customer', 'Received from customer']].map(([v, l]) => h('option', { value: v, selected: (p?.direction ?? preset.direction) === v ? 'selected' : null }, l)));

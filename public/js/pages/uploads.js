@@ -1,5 +1,5 @@
 // Photos of handwritten hisaab, bills and receipts → OCR → review → confirm.
-import { h, mount, toast, busy, table, badge, bytes, fmtDate, fmtDateTime, confirmDialog } from '../ui.js';
+import { h, mount, toast, busy, table, badge, bytes, fmtDate, fmtDateTime, confirmDialog, icon } from '../ui.js';
 import { api, state, can, companyUrl, todayLocal, navigate, refreshLists } from '../api.js';
 import { uploadDoc } from './day.js';
 import { reviewEditor } from './review.js';
@@ -23,15 +23,15 @@ export async function uploadsPage(main, params) {
   const rows = docs.map((d) => {
     const [label, k] = STATUS[d.ocr_status] || [d.ocr_status, ''];
     return h('tr', null,
-      h('td', null, d.content_type.startsWith('image/') ? h('img', { src: companyUrl(`/api/c/documents/${d.id}/file`), alt: '', loading: 'lazy', style: { width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px' } }) : '📄'),
+      h('td', null, d.content_type.startsWith('image/') ? h('img', { src: companyUrl(`/api/c/documents/${d.id}/file`), alt: '', loading: 'lazy', style: { width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px' } }) : icon('file', 28)),
       h('td', null, h('a', { href: companyUrl(`/api/c/documents/${d.id}/file`), target: '_blank', rel: 'noopener' }, d.filename), h('div', { class: 'small muted' }, `${d.kind} · ${bytes(d.size_bytes)} · ${d.uploaded_by_name || ''}`)),
       h('td', null, d.entry_date ? fmtDate(d.entry_date) : '—'), h('td', null, badge(label, k)), h('td', { class: 'small muted' }, fmtDateTime(d.created_at)),
       h('td', { class: 'right' }, h('span', { class: 'row', style: { justifyContent: 'flex-end', flexWrap: 'nowrap' } },
         d.content_type.startsWith('image/') && can('entries.write') && d.ocr_status !== 'confirmed' ? h('a', { class: 'btn small', href: `#/uploads?review=${d.id}` }, 'Read & review') : null,
-        can('entries.delete') ? h('button', { class: 'small ghost danger', 'aria-label': 'Delete', onclick: async () => {
+        can('entries.delete') ? h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => {
           if (!(await confirmDialog('Delete this file? Entries saved from it are kept.'))) return;
           await api(`/api/c/documents/${d.id}`, { method: 'DELETE' }); toast('Deleted'); navigate('#/uploads');
-        } }, '🗑') : null)));
+        } }, icon('trash', 18)) : null)));
   });
   mount(main,
     h('h1', null, 'Photos & Bills'), h('p', { class: 'muted' }, 'Upload photos of your handwritten hisaab, supplier bills or receipts. Files are private to your company.'),

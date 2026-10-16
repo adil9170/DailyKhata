@@ -1,5 +1,5 @@
 // Editable review table for entries extracted from text or a photo. Nothing is saved until the user confirms.
-import { h, mount, money, toast, busy } from '../ui.js';
+import { h, mount, money, toast, busy, icon } from '../ui.js';
 import { api, state } from '../api.js';
 
 export function reviewEditor({ parsed, date, documentId = null, onSaved, onCancel }) {
@@ -15,7 +15,7 @@ export function reviewEditor({ parsed, date, documentId = null, onSaved, onCance
 
   const cell = (row, key, { oninput, ...attrs } = {}) => h('input', { value: row[key] ?? '', ...attrs, oninput: (e) => { row[key] = e.target.value; oninput?.(e); renderTotals(); } });
   const sel = (row, key, opts) => h('select', { onchange: (e) => { row[key] = e.target.value; } }, opts.map((o) => h('option', { value: o, selected: row[key] === o ? 'selected' : null }, o)));
-  const rm = (list, i) => h('button', { class: 'small ghost danger', 'aria-label': 'Remove row', onclick: () => { list.splice(i, 1); render(); } }, '✕');
+  const rm = (list, i) => h('button', { class: 'ghost icon small danger', 'aria-label': 'Remove row', title: 'Remove', onclick: () => { list.splice(i, 1); render(); } }, icon('x', 16));
   const totals = h('div', { class: 'kv', style: { maxWidth: '360px', marginLeft: 'auto' } });
 
   function renderTotals() {
@@ -48,21 +48,21 @@ export function reviewEditor({ parsed, date, documentId = null, onSaved, onCance
       h('div', { class: 'tablewrap' }, h('table', null,
         h('thead', null, h('tr', null, ['Item', 'Qty', 'Unit', 'Pieces', 'Total ₹', 'Per piece', 'Paid by', ''].map((t) => h('th', null, t)))),
         h('tbody', null, pRows))),
-      h('button', { class: 'small', onclick: () => { data.purchases.push({ item: '', qty: 1, unit: 'box', pieces: '', total: '', payment_mode: 'cash' }); render(); } }, '+ Add purchase row'),
+      h('button', { class: 'small', onclick: () => { data.purchases.push({ item: '', qty: 1, unit: 'box', pieces: '', total: '', payment_mode: 'cash' }); render(); } }, icon('plus', 17), 'Add purchase row'),
       h('h3', { style: { marginTop: '16px' } }, `Expenses (${data.expenses.length})`),
       h('div', { class: 'tablewrap' }, h('table', null,
         h('thead', null, h('tr', null, ['Category', 'Amount ₹', 'Paid by', 'Notes', ''].map((t) => h('th', null, t)))),
         h('tbody', null, data.expenses.map((r, i) => h('tr', null,
           h('td', null, cell(r, 'category', { list: 'rv-cats' })), h('td', null, cell(r, 'amount', { inputmode: 'decimal', style: { width: '110px' } })),
           h('td', null, sel(r, 'payment_mode', ['cash', 'bank', 'credit'])), h('td', null, cell(r, 'notes')), h('td', null, rm(data.expenses, i))))))),
-      h('button', { class: 'small', onclick: () => { data.expenses.push({ category: '', amount: '', payment_mode: 'cash', notes: '' }); render(); } }, '+ Add expense row'),
+      h('button', { class: 'small', onclick: () => { data.expenses.push({ category: '', amount: '', payment_mode: 'cash', notes: '' }); render(); } }, icon('plus', 17), 'Add expense row'),
       h('h3', { style: { marginTop: '16px' } }, `Collections (${data.collections.length})`),
       h('div', { class: 'tablewrap' }, h('table', null,
         h('thead', null, h('tr', null, ['Amount ₹', 'Mode', 'Customer (for udhaar)', ''].map((t) => h('th', null, t)))),
         h('tbody', null, data.collections.map((r, i) => h('tr', null,
           h('td', null, cell(r, 'amount', { inputmode: 'decimal', style: { width: '120px' } })), h('td', null, sel(r, 'mode', ['cash', 'upi', 'card', 'credit'])),
           h('td', null, cell(r, 'customer')), h('td', null, rm(data.collections, i))))))),
-      h('button', { class: 'small', onclick: () => { data.collections.push({ amount: '', mode: 'cash', customer: '' }); render(); } }, '+ Add collection row'),
+      h('button', { class: 'small', onclick: () => { data.collections.push({ amount: '', mode: 'cash', customer: '' }); render(); } }, icon('plus', 17), 'Add collection row'),
       parsed.unparsed?.length ? h('div', { class: 'alert warning', style: { marginTop: '12px' } }, h('span', { class: 'ic' }, '!'),
         h('div', null, h('strong', null, 'Could not understand these lines — add them manually if needed:'), h('ul', { style: { margin: '4px 0 0', paddingLeft: '18px' } }, parsed.unparsed.map((l) => h('li', null, l))))) : null,
       h('div', { style: { marginTop: '12px' } }, totals),
