@@ -82,7 +82,7 @@ function toOutcome(engine: string, data: ExtractedData): OcrOutcome {
   };
 }
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-flash-latest'; // alias that follows the current free-tier Flash model
 
 async function geminiExtract(apiKey: string, image: ArrayBuffer, media: string, ctx: ParseContext): Promise<ExtractedData> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {

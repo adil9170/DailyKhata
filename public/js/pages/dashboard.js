@@ -1,6 +1,6 @@
 import { h, mount, money, num, cls, fmtDate, addDays, tile, table, badge, icon } from '../ui.js';
 import { api, state, todayLocal, navigate, can } from '../api.js';
-import { barChart, profitChart, hbarChart, legend } from '../charts.js';
+import { barChart, profitChart, hbarChart, legend, loadChartLib } from '../charts.js';
 
 export function presetRange(preset, today) {
   const m = today.slice(0, 8);
@@ -100,7 +100,5 @@ export async function dashboardPage(main, params) {
     barChart(c3, labels, [{ label: 'Bought', data: data.series.map((s) => s.purchased_pieces) }, { label: 'Sold (counted)', data: data.series.map((s) => s.sold_pieces) }], { money: false });
     if (data.expenses_by_category.length) hbarChart(c4, data.expenses_by_category.map((e) => e.category), data.expenses_by_category.map((e) => e.amount));
   };
-  let tries = 0;
-  const whenReady = () => (window.Chart || tries++ > 50 ? draw() : setTimeout(whenReady, 100));
-  whenReady();
+  loadChartLib().then(draw);
 }

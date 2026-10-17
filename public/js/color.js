@@ -31,6 +31,25 @@ export const contrast = (a, b) => { const [x, y] = [luminance(a), luminance(b)].
 /** Text colour that stays readable on top of a brand colour. */
 export const onColor = (hex) => (contrast(hex, '#ffffff') >= 3.2 ? '#ffffff' : '#0a2540');
 
+/**
+ * Everything the stylesheet derives from one brand colour, precomputed so no CSS colour-mixing is needed
+ * (older Android browsers such as MIUI lack color-mix). fgL/fgD are text-safe versions for light/dark surfaces.
+ */
+export function tints(hex) {
+  const [r, g, b] = hexToRgb(hex), [hh, s, l] = rgbToHsl(r, g, b);
+  const a = (x) => `rgba(${r},${g},${b},${x})`;
+  const hsl = (ss, ll) => rgbToHex(...hslToRgb(hh, ss, ll));
+  let fgL = hex, ll = l; for (let i = 0; i < 14 && contrast(fgL, '#ffffff') < 4.5 && ll > 0.1; i++) { ll -= 0.035; fgL = hsl(s, ll); }
+  let fgD = hex; ll = l; for (let i = 0; i < 14 && contrast(fgD, '#101218') < 4.5 && ll < 0.9; i++) { ll += 0.04; fgD = hsl(s, ll); }
+  return {
+    '--brand-06': a(0.06), '--brand-10': a(0.1), '--brand-16': a(0.16), '--brand-25': a(0.25), '--brand-40': a(0.4),
+    '--brand-deep': hsl(Math.min(1, s * 1.05), Math.max(0.12, l * 0.5)), '--brand-light': hsl(s, Math.min(0.74, l + 0.14)),
+    '--brand-fg-l': fgL, '--brand-fg-d': fgD,
+    // hero card gradient stops: capped in lightness so white text on top is always readable, even for yellow logos
+    '--hero-a': hsl(Math.min(1, Math.max(s, 0.5)), Math.min(l, 0.44)), '--hero-b': hsl(Math.min(1, Math.max(s, 0.5)), Math.min(l, 0.44) * 0.5),
+  };
+}
+
 /** Keep the logo's hue but tame extremes so it works as a button colour (text colour is chosen by onColor). */
 function usable(hex) {
   let [hh, s, l] = rgbToHsl(...hexToRgb(hex));

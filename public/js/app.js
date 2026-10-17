@@ -2,17 +2,26 @@ import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables
 import { api, state, loadContext, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
 import { getTheme, setTheme, effectiveTheme } from './theme.js';
 import { MODES, getMode, modeOrDefault, initMode, openModeSheet, welcomeModePicker } from './mode.js';
-import { quickPage } from './pages/quick.js';
-import { dashboardPage } from './pages/dashboard.js';
-import { dayPage, uploadDoc } from './pages/day.js';
-import { productsPage } from './pages/products.js';
-import { uploadsPage } from './pages/uploads.js';
-import { reportsPage } from './pages/reports.js';
-import { ledgerPage } from './pages/ledger.js';
-import { teamPage } from './pages/team.js';
-import { settingsPage } from './pages/settings.js';
-import { auditPage } from './pages/audit.js';
-import { adminOverviewPage, adminCompaniesPage, adminCompanyPage, adminPlansPage, adminActivityPage, adminBackupsPage } from './pages/admin.js';
+import './device.js';
+
+// Pages load on demand so the first screen only downloads what it needs (fast on a Redmi over mobile data).
+const lazy = (file, name) => (...args) => import(file).then((m) => m[name](...args));
+const quickPage = lazy('./pages/quick.js', 'quickPage');
+const dashboardPage = lazy('./pages/dashboard.js', 'dashboardPage');
+const dayPage = lazy('./pages/day.js', 'dayPage');
+const productsPage = lazy('./pages/products.js', 'productsPage');
+const uploadsPage = lazy('./pages/uploads.js', 'uploadsPage');
+const reportsPage = lazy('./pages/reports.js', 'reportsPage');
+const ledgerPage = lazy('./pages/ledger.js', 'ledgerPage');
+const teamPage = lazy('./pages/team.js', 'teamPage');
+const settingsPage = lazy('./pages/settings.js', 'settingsPage');
+const auditPage = lazy('./pages/audit.js', 'auditPage');
+const adminOverviewPage = lazy('./pages/admin.js', 'adminOverviewPage');
+const adminCompaniesPage = lazy('./pages/admin.js', 'adminCompaniesPage');
+const adminCompanyPage = lazy('./pages/admin.js', 'adminCompanyPage');
+const adminPlansPage = lazy('./pages/admin.js', 'adminPlansPage');
+const adminActivityPage = lazy('./pages/admin.js', 'adminActivityPage');
+const adminBackupsPage = lazy('./pages/admin.js', 'adminBackupsPage');
 
 const app = document.getElementById('app');
 
@@ -85,7 +94,7 @@ function pickPhoto(date) {
   inp.addEventListener('change', async () => {
     const f = inp.files[0]; inp.remove(); if (!f) return;
     toast('Uploading photo…');
-    try { const doc = await uploadDoc(f, 'hisaab', date); navigate(`#/uploads?review=${doc.id}`); } catch (e) { toast(e.message, true); }
+    try { const { uploadDoc } = await import('./pages/day.js'); const doc = await uploadDoc(f, 'hisaab', date); navigate(`#/uploads?review=${doc.id}`); } catch (e) { toast(e.message, true); }
   });
   inp.click();
 }
@@ -119,7 +128,7 @@ function layout(routes, active, { portalOf, title } = {}) {
         h('button', { class: 'ghost icon small', title: 'Sign out', 'aria-label': 'Sign out', onclick: logout }, icon('logout', 18)))));
 
   const top = h('header', { class: 'topbar' },
-    h('button', { class: 'ghost icon', 'aria-label': 'Open menu', onclick: openMenu }, icon('menu')),
+    h('button', { class: 'topmark', 'aria-label': 'Open menu', onclick: openMenu }, showCompany && company?.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), alt: '' }) : h('div', { class: 'brandmark' }, ((showCompany ? company?.name : 'D') || 'D')[0].toUpperCase())),
     h('div', { class: 'title' }, title || (showCompany ? company?.name : 'DailyKhata Admin') || 'DailyKhata'),
     showCompany ? modeChip() : themeButton());
 
@@ -246,8 +255,10 @@ async function route(reloadUser = false) {
 let lastPath = '';
 window.addEventListener('hashchange', () => {
   const p = location.hash.split('?')[0];
-  route().then(() => { if (p !== lastPath) window.scrollTo(0, 0); lastPath = p; });
+  const go = () => route().then(() => { if (p !== lastPath) window.scrollTo(0, 0); lastPath = p; });
+  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(go); else go();
 });
+if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 window.addEventListener('themechange', () => route());
 // Switching mode lands on that mode's home so people are never left on a page their mode hides.
 window.addEventListener('modechange', () => { if (state.user && state.user.role !== 'super_admin') navigate('#/' + homeRoute().path); else route(); });

@@ -34,6 +34,15 @@ export function legend(items) {
   return el;
 }
 
+let chartLib;
+/** Chart.js (200 KB) is fetched only when a page actually draws a chart. */
+export function loadChartLib() {
+  if (window.Chart) return Promise.resolve();
+  return (chartLib ??= new Promise((resolve) => {
+    const s = document.createElement('script'); s.src = '/vendor/chart.umd.min.js'; s.onload = () => resolve(); s.onerror = () => resolve(); document.head.append(s);
+  }));
+}
+
 function make(canvas, config) {
   if (!window.Chart) { canvas.replaceWith(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'Charts unavailable offline — see the table view.' })); return null; }
   window.Chart.defaults.font.family = getComputedStyle(document.documentElement).fontFamily;

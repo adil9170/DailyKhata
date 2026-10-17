@@ -1,5 +1,5 @@
 // Daily Entry: the simple everyday workflow — purchases, expenses, collection, closing stock and cash.
-import { h, mount, money, num, cls, fmtDate, addDays, toast, busy, modal, confirmDialog, table, rupees, compressImage, badge, icon, iconBtn } from '../ui.js';
+import { countUp, h, mount, money, num, cls, fmtDate, addDays, toast, busy, modal, confirmDialog, table, rupees, compressImage, badge, icon, iconBtn } from '../ui.js';
 import { api, state, can, refreshLists, todayLocal, companyUrl, navigate } from '../api.js';
 import { reviewEditor } from './review.js';
 
@@ -29,7 +29,7 @@ export async function dayPage(main, params) {
     : h('span', { class: 'pill' }, icon('info', 14), 'Count stock to see profit');
   const hero = h('div', { class: 'hero' },
     h('div', { class: 'spread' }, h('div', { class: 'label' }, 'Collection'), profitPill),
-    h('div', { class: 'big' }, money(rep.collections.total)),
+    h('div', { class: 'big', dataset: { paise: String(rep.collections.total) } }, money(rep.collections.total)),
     h('div', { class: 'stats' },
       h('div', null, h('div', { class: 'k' }, 'Purchases'), h('div', { class: 'v' }, money(rep.purchases.total))),
       h('div', null, h('div', { class: 'k' }, 'Expenses'), h('div', { class: 'v' }, money(rep.expenses.total))),
@@ -99,6 +99,8 @@ export async function dayPage(main, params) {
 
   mount(main, header, h('div', { class: 'grid g2' }, h('div', null, hero, issues), h('div', null, stepsCard)), quick,
     h('div', { class: 'grid g2' }, h('div', null, purchasesCard), h('div', null, expensesCard, collectionsCard)), stockCard, h('div', { class: 'grid g2' }, h('div', null, cashCard), h('div', null, profitCard)));
+
+  const bigEl = main.querySelector('.hero .big'); if (bigEl) countUp(bigEl, rep.collections.total);
 
   // deep links from the "+" sheet
   const add = params.get('add');

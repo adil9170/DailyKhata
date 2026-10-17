@@ -19,15 +19,20 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 - Three experience modes so newbies are not overwhelmed: **Layman** (simplest), **Smart** (default-ish), **Nerdy** (everything).
 - A **Quick** entry path a newbie can use in seconds.
 - Optional logo upload that auto-derives the store's brand colours (must remain optional).
-- STILL OPEN: the owner said they gave detailed UI instructions in the cloud session; ask for them again and re-check the design against them.
+- UI brief (from owner screenshot): "mobile friendly, dark mode, super easy UX, inspiration: Stripe, Apple, NASA, yolk.coach, premium quality". Owner tests on Galaxy S24 Ultra, iPhone 17 Pro, Redmi 11. UX must be the USP.
 - Original UI instructions lived in the cloud session "Daily Accounts & Inventory Management App" and are NOT available here; ask the owner if unsure.
 
 ## Optional/pending
-- `GEMINI_API_KEY` secret not set yet (free OCR fallback code is deployed, inactive until key is added).
+- `GEMINI_API_KEY` Worker secret IS set (model alias `gemini-flash-latest`; `gemini-2.5-flash` was retired). The key was pasted in chat, so recommend rotating it in Google AI Studio and re-running `npx wrangler secret put GEMINI_API_KEY`.
 - GitHub Actions secrets (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SETUP_TOKEN) not set => the deploy job on `main` fails; manual deploy works.
 - Super-admin account: owner must create it at the live URL.
 
 ## Log
+- 2026-10-17 Premium redesign + device adaptation + speed:
+  - `public/css/app.css` fully rewritten: self-hosted Inter (public/fonts), floating glass tab bar, 28px hero, tracked-caps data labels, soft shadows, dark/light. Brand tints are precomputed CSS vars (`tints()` in color.js, set in api.js applyBranding) - no color-mix (old MIUI browsers).
+  - `public/js/device.js`: sets data-size (xs/s/m/l/tablet/desktop), data-os, data-input, .kb (keyboard open hides tab bar), Android haptics. Touch targets 48-50px on touch devices.
+  - Speed: pages lazy-loaded (app.js `lazy()`), Chart.js loaded only on dashboard, modulepreload + font preload, service worker (public/sw.js, network-first, never caches /api), view transitions, count-up on hero number, draggable bottom sheets.
+  - Test matrix: scratchpad matrix.mjs (puppeteer-core + Edge) at 360/393/402/412/820 widths x 3 modes x all pages: no horizontal overflow, no tap target under 36px. Re-run after any UI change.
 - 2026-10-17 UI/UX pass (this entry = what changed + where):
   - Modes: `public/js/mode.js` (Layman / Smart / Nerdy, saved per user in localStorage `dk_mode_<userId>`; first-login picker; chip in top bar; Settings > Experience). Route visibility is the `modes` array in `public/js/app.js` `companyRoutes`. CSS helpers: `.smart-up` (hidden in Layman), `.nerd-only` (Nerdy only).
   - Quick add: `public/js/pages/quick.js` (#/quick) = Home in Layman; big amount + Sale / Bought stock / Expense; PWA shortcut in manifest. Uses existing POST /api/c/collections|expenses|purchases.

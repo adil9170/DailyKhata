@@ -138,6 +138,7 @@ export function modal(title, body, { wide = false } = {}) {
     body);
   autoLabelTables(box);
   const bg = h('div', { class: 'modal-bg', onclick: (e) => { if (e.target === bg) close(); } }, box);
+  enableSheetDrag(box, close);
   document.addEventListener('keydown', onKey);
   document.body.append(bg);
   const first = box.querySelector('input:not([type=file]),select,textarea'); if (first && matchMedia('(min-width: 641px)').matches) first.focus();
@@ -201,6 +202,28 @@ export async function compressImage(file, maxDim = 2000, quality = 0.85) {
   canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
   const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', quality));
   return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+}
+
+/** Phones: drag the sheet's handle down to dismiss, like a native bottom sheet. */
+function enableSheetDrag(box, close) {
+  const grab = box.querySelector('.grab'); if (!grab) return;
+  let y0 = null, dy = 0;
+  grab.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; box.classList.add('dragging'); grab.setPointerCapture(e.pointerId); });
+  grab.addEventListener('pointermove', (e) => { if (y0 === null) return; dy = Math.max(0, e.clientY - y0); box.style.transform = `translateY(${dy}px)`; });
+  const end = () => {
+    if (y0 === null) return; y0 = null; box.classList.remove('dragging');
+    if (dy > 110) { box.style.transition = 'transform .2s ease'; box.style.transform = 'translateY(100%)'; setTimeout(close, 180); }
+    else { box.style.transition = 'transform .25s var(--ease)'; box.style.transform = ''; }
+  };
+  grab.addEventListener('pointerup', end); grab.addEventListener('pointercancel', end);
+}
+
+/** Roll a money figure up from zero (once per element) so numbers feel alive. */
+export function countUp(el, paise, ms = 650) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Number.isFinite(paise) || Math.abs(paise) < 100) { el.textContent = money(paise); return; }
+  const t0 = performance.now();
+  const step = (t) => { const k = Math.min(1, (t - t0) / ms), e = 1 - (1 - k) ** 3; el.textContent = money(Math.round(paise * e)); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
 }
 
 /** Action sheet: a list of large tappable choices. items: [{icon, title, desc, onclick}] */
