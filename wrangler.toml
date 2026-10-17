@@ -14,7 +14,7 @@ run_worker_first = ["/api/*"]
 binding = "DB"
 database_name = "dailykhata-db"
 # Replaced automatically by scripts/provision.sh (and the deploy workflow).
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "9c03d9a1-3e20-4253-9d6b-d3fa6e67c88a"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
