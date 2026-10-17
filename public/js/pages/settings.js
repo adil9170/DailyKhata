@@ -2,12 +2,17 @@ import { h, mount, toast, busy, table, confirmDialog } from '../ui.js';
 import { api, state, can, companyUrl, refreshLists, navigate, applyBranding } from '../api.js';
 import { getTheme, setTheme } from '../theme.js';
 import { icon } from '../ui.js';
+import { modeCards, getMode, modeOrDefault } from '../mode.js';
+import { brandFromImage } from '../color.js';
 
 export async function settingsPage(main) {
   const c = state.company;
   const S = can('settings.manage'), M = can('products.manage');
   const sections = [];
   const cur0 = getTheme();
+  sections.push(h('div', { class: 'card' }, h('h2', null, 'Experience'),
+    h('p', { class: 'small muted', style: { marginTop: 0 } }, 'Choose how much of DailyKhata you want to see. Your data is the same in every mode.'),
+    modeCards(getMode() || modeOrDefault())));
   sections.push(h('div', { class: 'card' }, h('h2', null, 'Appearance'),
     h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Appearance' }, [['system', 'System', 'monitor'], ['light', 'Light', 'sun'], ['dark', 'Dark', 'moon']].map(([v, l, ic]) =>
       h('button', { class: cur0 === v ? 'on' : '', role: 'radio', 'aria-checked': cur0 === v ? 'true' : 'false', onclick: () => setTheme(v) }, icon(ic, 16), l))),
@@ -31,18 +36,58 @@ export async function settingsPage(main) {
       await api('/api/c/settings', { method: 'PUT', body: Object.fromEntries(Object.entries(f).map(([k, el]) => [k, el.value])) });
       toast('Saved'); window.dispatchEvent(new Event('dk:reload-context'));
     })(); });
-    const logoIn = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp' });
-    const up = h('button', null, 'Upload logo');
-    up.addEventListener('click', busy(up, async () => {
-      if (!logoIn.files[0]) return toast('Choose an image', true);
-      const fd = new FormData(); fd.append('file', logoIn.files[0]);
-      await api('/api/c/settings/logo', { method: 'POST', form: fd }); toast('Logo updated'); window.dispatchEvent(new Event('dk:reload-context'));
-    }));
-    sections.push(h('div', { class: 'card' }, h('h2', null, 'Branding & business details'),
-      h('p', { class: 'small muted' }, 'Your name, logo and colours appear only in your company portal.'), form,
-      h('h3', { style: { marginTop: '16px' } }, 'Logo'),
-      h('div', { class: 'row' }, c.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(c.updated_at)}`), alt: 'Current logo', style: { height: '56px', borderRadius: '8px', border: '1px solid var(--border)' } }) : h('span', { class: 'muted' }, 'No logo yet'),
-        logoIn, up, c.has_logo ? h('button', { class: 'ghost danger', onclick: async () => { await api('/api/c/settings/logo', { method: 'DELETE' }); window.dispatchEvent(new Event('dk:reload-context')); } }, 'Remove') : null)));
+    // Logo is optional. When one is added we can suggest store colours from it; the owner stays in control.
+    const logoIn = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', class: 'hidden' });
+    const pickBtn = h('button', { type: 'button' }, icon('camera', 18), c.has_logo ? 'Change logo' : 'Add your logo');
+    pickBtn.addEventListener('click', () => logoIn.click());
+    const matchBox = h('input', { type: 'checkbox', checked: true });
+    const suggestion = h('div', { class: 'brandsuggest hidden' });
+    let suggested = null;
+    const saveColours = (cols) => api('/api/c/settings', { method: 'PUT', body: {
+      name: c.name, business_type: c.business_type ?? '', phone: c.phone ?? '', email: c.email ?? '', gstin: c.gstin ?? '', address: c.address ?? '',
+      primary_color: cols.primary, accent_color: cols.accent } });
+    const showSuggestion = (cols) => {
+      suggested = cols;
+      suggestion.classList.remove('hidden');
+      mount(suggestion,
+        h('div', { class: 'swatches' }, [cols.primary, cols.accent].map((x, i) => h('span', { class: 'sw', style: { background: x }, title: i ? 'Accent' : 'Brand colour' }))),
+        h('label', { class: 'check' }, matchBox, 'Match my store colours to this logo'),
+        h('div', { class: 'small muted' }, 'Optional. You can change colours later or switch this off.'));
+      f.primary_color.value = cols.primary; f.accent_color.value = cols.accent;
+      applyBranding({ ...c, primary_color: cols.primary, accent_color: cols.accent });
+    };
+    logoIn.addEventListener('change', async () => {
+      const file = logoIn.files[0]; if (!file) return;
+      try { const cols = await brandFromImage(file); if (cols) showSuggestion(cols); else toast('Logo has no clear colour; keeping your current colours'); } catch { /* preview only */ }
+      const fd = new FormData(); fd.append('file', file);
+      pickBtn.disabled = true;
+      try {
+        await api('/api/c/settings/logo', { method: 'POST', form: fd });
+        if (suggested && matchBox.checked) await saveColours(suggested);
+        toast('Logo updated'); window.dispatchEvent(new Event('dk:reload-context'));
+      } catch (e) { toast(e.message, true); } finally { pickBtn.disabled = false; }
+    });
+    matchBox.addEventListener('change', () => {
+      applyBranding(matchBox.checked && suggested ? { ...c, primary_color: suggested.primary, accent_color: suggested.accent } : c);
+    });
+    const fromCurrent = c.has_logo ? h('button', { type: 'button', class: 'ghost' }, 'Match colours to my logo') : null;
+    if (fromCurrent) fromCurrent.addEventListener('click', async () => {
+      try {
+        const res = await api('/api/c/logo', { raw: true });
+        const cols = await brandFromImage(await res.blob());
+        if (!cols) return toast('This logo has no clear colour', true);
+        await saveColours(cols); toast('Store colours updated from your logo'); window.dispatchEvent(new Event('dk:reload-context'));
+      } catch (e) { toast(e.message, true); }
+    });
+    const resetColours = h('button', { type: 'button', class: 'ghost', onclick: async () => { await saveColours({ primary: '#635bff', accent: '#f59e0b' }); toast('Colours reset'); window.dispatchEvent(new Event('dk:reload-context')); } }, 'Reset colours');
+    sections.push(h('div', { class: 'card' }, h('h2', null, 'Your store branding'),
+      h('p', { class: 'small muted' }, 'Optional. Add your logo and we will suggest colours that match it. Your name, logo and colours appear only in your own portal.'),
+      h('div', { class: 'logorow' },
+        c.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(c.updated_at)}`), alt: 'Current logo', class: 'logoprev' }) : h('div', { class: 'logoprev empty' }, icon('camera', 22)),
+        h('div', { class: 'grow' }, pickBtn, logoIn, suggestion)),
+      h('div', { class: 'row', style: { marginTop: '8px' } }, fromCurrent, resetColours,
+        c.has_logo ? h('button', { type: 'button', class: 'ghost danger', onclick: async () => { await api('/api/c/settings/logo', { method: 'DELETE' }); window.dispatchEvent(new Event('dk:reload-context')); } }, 'Remove logo') : null),
+      h('h3', { style: { marginTop: '18px' } }, 'Business details'), form));
   }
 
   if (M) {

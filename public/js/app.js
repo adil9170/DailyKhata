@@ -1,6 +1,8 @@
 import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables } from './ui.js';
 import { api, state, loadContext, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
 import { getTheme, setTheme, effectiveTheme } from './theme.js';
+import { MODES, getMode, modeOrDefault, initMode, openModeSheet, welcomeModePicker } from './mode.js';
+import { quickPage } from './pages/quick.js';
 import { dashboardPage } from './pages/dashboard.js';
 import { dayPage, uploadDoc } from './pages/day.js';
 import { productsPage } from './pages/products.js';
@@ -14,17 +16,28 @@ import { adminOverviewPage, adminCompaniesPage, adminCompanyPage, adminPlansPage
 
 const app = document.getElementById('app');
 
+const ALL = ['layman', 'smart', 'nerdy'], SMART_UP = ['smart', 'nerdy'];
+// `modes` = which experience modes show the page. `laymanLabel` is the friendlier name used in Layman mode.
 const companyRoutes = [
-  { path: 'dashboard', label: 'Dashboard', icon: 'chart', page: dashboardPage, perm: 'reports.view' },
-  { path: 'day', label: 'Daily Entry', short: 'Entry', icon: 'pen', page: dayPage, perm: 'entries.view' },
-  { path: 'uploads', label: 'Photos & Bills', short: 'Photos', icon: 'camera', page: uploadsPage, perm: 'entries.view' },
-  { path: 'products', label: 'Products', icon: 'box', page: productsPage, perm: 'entries.view' },
-  { path: 'reports', label: 'Reports & Export', icon: 'file', page: reportsPage, perm: 'reports.view' },
-  { path: 'ledger', label: 'Udhaar / Outstanding', icon: 'wallet', page: ledgerPage, perm: 'entries.view' },
-  { path: 'team', label: 'Team', icon: 'users', page: teamPage, perm: 'team.manage', sep: true },
-  { path: 'settings', label: 'Settings', icon: 'sliders', page: settingsPage, perm: null },
-  { path: 'audit', label: 'Audit Log', icon: 'clock', page: auditPage, perm: 'audit.view' },
+  { path: 'quick', label: 'Quick add', short: 'Home', laymanLabel: 'Home', icon: 'zap', page: quickPage, perm: 'entries.write', modes: ALL },
+  { path: 'dashboard', label: 'Dashboard', icon: 'chart', page: dashboardPage, perm: 'reports.view', modes: SMART_UP },
+  { path: 'day', label: 'Daily Entry', short: 'Entry', laymanLabel: 'My day', icon: 'pen', page: dayPage, perm: 'entries.view', modes: ALL },
+  { path: 'uploads', label: 'Photos & Bills', short: 'Photos', icon: 'camera', page: uploadsPage, perm: 'entries.view', modes: SMART_UP },
+  { path: 'products', label: 'Products', icon: 'box', page: productsPage, perm: 'entries.view', modes: SMART_UP },
+  { path: 'reports', label: 'Reports & Export', icon: 'file', page: reportsPage, perm: 'reports.view', modes: SMART_UP },
+  { path: 'ledger', label: 'Udhaar / Outstanding', icon: 'wallet', page: ledgerPage, perm: 'entries.view', modes: SMART_UP },
+  { path: 'team', label: 'Team', icon: 'users', page: teamPage, perm: 'team.manage', sep: true, modes: SMART_UP },
+  { path: 'settings', label: 'Settings', icon: 'sliders', page: settingsPage, perm: null, modes: ALL },
+  { path: 'audit', label: 'Audit Log', icon: 'clock', page: auditPage, perm: 'audit.view', modes: ['nerdy'] },
 ];
+/** Pages this person may open in the current mode. */
+const visibleCompanyRoutes = () => companyRoutes.filter((r) => (!r.perm || can(r.perm)) && r.modes.includes(modeOrDefault()));
+const routeLabel = (r) => (modeOrDefault() === 'layman' && r.laymanLabel) || r.label;
+/** Where "Home" goes: Quick add for Layman, the dashboard for everyone else who may see it. */
+function homeRoute() {
+  const rs = visibleCompanyRoutes();
+  return (modeOrDefault() !== 'layman' && rs.find((r) => r.path === 'dashboard')) || rs.find((r) => r.path === 'quick') || rs[0];
+}
 const adminRoutes = [
   { path: 'admin', label: 'Overview', icon: 'chart', page: adminOverviewPage },
   { path: 'admin/companies', label: 'Companies', icon: 'building', page: adminCompaniesPage },
@@ -46,12 +59,19 @@ function themeButton() {
   return h('button', { class: 'ghost icon small', title: `Appearance: ${t} (tap to change)`, 'aria-label': `Appearance: ${t}. Change`, onclick: () => setTheme(next[t]) }, icon(ic[t], 18));
 }
 
+function modeChip() {
+  const m = MODES.find((x) => x.id === modeOrDefault());
+  return h('button', { class: 'modechip', title: 'Change mode', 'aria-label': `Mode: ${m.label}. Change`, onclick: openModeSheet }, icon(m.icon, 15), m.label);
+}
+
 /** Quick-add sheet behind the mobile "+" button. */
 export function openQuickAdd() {
   const today = state.today || todayLocal();
   const date = (location.hash.match(/date=(\d{4}-\d{2}-\d{2})/) || [])[1] || today;
+  if (modeOrDefault() === 'layman') return navigate(`#/quick?date=${date}`);
   const go = (what) => navigate(`#/day?date=${date}&add=${what}`);
   actionSheet('Add to today’s khata', [
+    { icon: 'zap', title: 'Quick add', desc: 'Big-button entry: amount, then tap', onclick: () => navigate(`#/quick?date=${date}`) },
     { icon: 'bag', title: 'Purchase', desc: 'Stock you bought — boxes, pieces, cost', onclick: () => go('purchase') },
     { icon: 'receipt', title: 'Expense', desc: 'Gas, Wi-Fi, water, rent…', onclick: () => go('expense') },
     { icon: 'rupee', title: 'Collection', desc: 'Money from sales — cash, UPI, udhaar', onclick: () => go('collection') },
@@ -83,15 +103,16 @@ function layout(routes, active, { portalOf, title } = {}) {
   const brand = h('div', { class: 'brandbox' }, mark,
     h('div', { style: { minWidth: 0 } }, h('div', { class: 'bname' }, showCompany ? company?.name || 'DailyKhata' : 'DailyKhata'),
       h('div', { class: 'small muted' }, showCompany ? (company?.plan_name ? `${company.plan_name} plan` : 'Daily khata') : 'Super admin')));
-  const visible = routes.filter((r) => !r.perm || can(r.perm));
+  const visible = showCompany ? visibleCompanyRoutes() : routes.filter((r) => !r.perm || can(r.perm));
   const nav = h('nav', { class: 'nav', 'aria-label': 'Main' }, visible.map((r) => [
     r.sep ? h('div', { class: 'sep' }) : null,
-    h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '', 'aria-current': active === r.path ? 'page' : null, onclick: closeMenu }, icon(r.icon), r.label),
+    h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '', 'aria-current': active === r.path ? 'page' : null, onclick: closeMenu }, icon(r.icon), showCompany ? routeLabel(r) : r.label),
   ]));
   const initials = (state.user.name || '?').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
   mount(side, brand, nav,
     h('div', { class: 'foot' },
       portalOf ? h('button', { class: 'small block', onclick: () => { setViewCompany(null); state.company = null; applyBranding(null); location.hash = '#/admin/companies'; } }, icon('left', 16), 'Back to super admin') : null,
+      showCompany ? modeChip() : null,
       h('div', { class: 'me' }, h('div', { class: 'avatar' }, initials),
         h('div', { style: { minWidth: 0, flex: 1 } }, h('div', { class: 'small', style: { fontWeight: 650 } }, state.user.name), h('div', { class: 'small muted', style: { overflow: 'hidden', textOverflow: 'ellipsis' } }, state.user.role.replace('_', ' '))),
         themeButton(),
@@ -100,14 +121,19 @@ function layout(routes, active, { portalOf, title } = {}) {
   const top = h('header', { class: 'topbar' },
     h('button', { class: 'ghost icon', 'aria-label': 'Open menu', onclick: openMenu }, icon('menu')),
     h('div', { class: 'title' }, title || (showCompany ? company?.name : 'DailyKhata Admin') || 'DailyKhata'),
-    themeButton());
+    showCompany ? modeChip() : themeButton());
 
   // bottom tab bar (phones)
   let tabs;
   if (showCompany) {
-    const home = can('reports.view') ? companyRoutes[0] : companyRoutes[1];
-    const tabRoutes = [home, home.path === 'day' ? null : companyRoutes[1], companyRoutes[2]].filter(Boolean);
-    const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(r.path === 'dashboard' ? 'home' : r.icon), r.path === 'dashboard' ? 'Home' : r.short || r.label);
+    const vis = visibleCompanyRoutes();
+    const home = homeRoute();
+    const lay = modeOrDefault() === 'layman';
+    const pick = (p) => vis.find((r) => r.path === p);
+    const third = lay ? pick('settings') : pick('uploads');
+    const tabRoutes = [home, home.path === 'day' ? null : pick('day'), third].filter(Boolean);
+    const isHome = (r) => r.path === 'dashboard' || r.path === 'quick';
+    const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(isHome(r) ? 'home' : r.icon), isHome(r) ? 'Home' : (lay && r.laymanLabel) || r.short || r.label);
     tabs = h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
       link(tabRoutes[0]),
       tabRoutes[1] ? link(tabRoutes[1]) : null,
@@ -207,11 +233,13 @@ async function route(reloadUser = false) {
   if (ctxLoadedFor !== cid || reloadUser) {
     try { await loadContext(); ctxLoadedFor = cid; } catch (e) { toast(e.message, true); if (state.viewCompanyId) { setViewCompany(null); location.hash = '#/admin'; } return; }
   }
-  const allowed = companyRoutes.filter((r) => !r.perm || can(r.perm));
+  initMode(user);
   const seg = path.split('/')[0];
-  const r = allowed.find((x) => x.path === seg) || allowed[0];
+  // A page hidden by the current mode still opens when followed from a direct link.
+  const r = visibleCompanyRoutes().find((x) => x.path === seg) || companyRoutes.find((x) => x.path === seg && (!x.perm || can(x.perm))) || homeRoute();
   if (r.path !== seg) { location.hash = '#/' + r.path; return; }
-  const main = layout(companyRoutes, r.path, { portalOf: state.viewCompanyId, title: r.label });
+  const main = layout(companyRoutes, r.path, { portalOf: state.viewCompanyId, title: routeLabel(r) });
+  if (!getMode() && !state.viewCompanyId) welcomeModePicker(() => route());
   try { await r.page(main, params, path.split('/').slice(1)); } catch (e) { toast(e.message, true); mount(main, h('div', { class: 'card empty' }, e.message)); }
 }
 
@@ -221,6 +249,8 @@ window.addEventListener('hashchange', () => {
   route().then(() => { if (p !== lastPath) window.scrollTo(0, 0); lastPath = p; });
 });
 window.addEventListener('themechange', () => route());
+// Switching mode lands on that mode's home so people are never left on a page their mode hides.
+window.addEventListener('modechange', () => { if (state.user && state.user.role !== 'super_admin') navigate('#/' + homeRoute().path); else route(); });
 window.addEventListener('dk:reload-context', async () => { await loadContext(); route(); });
 document.documentElement.dataset.effective = effectiveTheme();
 route();

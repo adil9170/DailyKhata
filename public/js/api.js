@@ -1,3 +1,4 @@
+import { onColor } from './color.js';
 // API client. Session lives in an HttpOnly cookie; super admins viewing a company portal send X-Company-Id.
 export const state = {
   user: null,
@@ -55,10 +56,11 @@ export function applyBranding(company) {
   if (company) {
     root.setProperty('--brand', company.primary_color || '#0f766e');
     root.setProperty('--accent', company.accent_color || '#f59e0b');
+    root.setProperty('--on-brand', onColor(company.primary_color || '#0f766e'));
     document.title = `${company.name} · DailyKhata`;
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', company.primary_color || '#0f766e');
   } else {
-    root.removeProperty('--brand'); root.removeProperty('--accent'); document.title = 'DailyKhata';
+    root.removeProperty('--brand'); root.removeProperty('--accent'); root.removeProperty('--on-brand'); document.title = 'DailyKhata';
   }
 }
 

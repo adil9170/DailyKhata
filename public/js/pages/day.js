@@ -14,12 +14,12 @@ export async function dayPage(main, params) {
   const W = can('entries.write'), DEL = can('entries.delete');
 
   // ---------- header with date navigation ----------
-  const dateInput = h('input', { type: 'date', value: date, 'aria-label': 'Choose date', onchange: (e) => e.target.value && go(e.target.value) });
+  const dateInput = h('input', { type: 'date', value: date, 'aria-label': 'Choose date', class: 'datepick', onchange: (e) => e.target.value && go(e.target.value) });
   const rel = date === today ? 'Today' : date === addDays(today, -1) ? 'Yesterday' : fmtDate(date, { weekday: 'long' });
   const header = h('div', { class: 'page-head' },
     h('div', null, h('h1', null, rel), h('div', { class: 'sub' }, fmtDate(date, { day: 'numeric', month: 'long', year: 'numeric' }))),
     h('div', { class: 'datebar' },
-      iconBtn('left', 'Previous day', () => go(addDays(date, -1)), ''), dateInput, iconBtn('right', 'Next day', () => go(addDays(date, 1)), ''),
+      iconBtn('left', 'Previous day', () => go(addDays(date, -1)), ''), h('label', { class: 'datechip' }, icon('clock', 15), fmtDate(date, { day: 'numeric', month: 'short' }), dateInput), iconBtn('right', 'Next day', () => go(addDays(date, 1)), ''),
       date !== today ? h('button', { class: 'small', onclick: () => go(today) }, 'Today') : null));
 
   // ---------- hero: the one number that matters ----------
@@ -45,14 +45,16 @@ export async function dayPage(main, params) {
     { id: 'sec-stock', ic: 'box', t: 'Count stock left', d: needCount ? `${rep.stock.counted_products} of ${needCount} products counted` : 'Nothing in stock to count', amt: null, done: needCount > 0 && rep.stock.counted_products >= needCount },
     { id: 'sec-cash', ic: 'lock', t: 'Count cash & close day', d: rep.cash.counted === null ? 'Check cash in the drawer' : rep.cash.difference === null ? 'Counted' : rep.cash.difference === 0 ? 'Cash matches' : `${rep.cash.difference < 0 ? 'Short' : 'Excess'} ${money(Math.abs(rep.cash.difference))}`, amt: null, done: rep.cash.counted !== null },
   ];
-  const doneCount = steps.filter((s) => s.done).length;
+  const lay = document.documentElement.dataset.mode === 'layman';
+  const shownSteps = lay ? steps.filter((s) => s.id !== 'sec-stock' && s.id !== 'sec-cash') : steps;
+  const doneCount = shownSteps.filter((s) => s.done).length;
   const stepsCard = h('div', { class: 'card' },
-    h('div', { class: 'spread', style: { marginBottom: '4px' } }, h('h2', { style: { margin: 0 } }, 'Close your day'), badge(`${doneCount}/5 done`, doneCount === 5 ? 'good' : '')),
-    h('div', { class: 'steps' }, steps.map((s) => h('button', { class: 'step' + (s.done ? ' done' : ''), onclick: () => (!s.done && s.add && W ? s.add() : scrollTo(s.id)) },
+    h('div', { class: 'spread', style: { marginBottom: '4px' } }, h('h2', { style: { margin: 0 } }, 'Close your day'), badge(`${doneCount}/${shownSteps.length} done`, doneCount === shownSteps.length ? 'good' : '')),
+    h('div', { class: 'steps' }, steps.map((s) => h('button', { class: 'step' + (s.done ? ' done' : '') + (s.id === 'sec-stock' || s.id === 'sec-cash' ? ' smart-up' : ''), onclick: () => (!s.done && s.add && W ? s.add() : scrollTo(s.id)) },
       h('span', { class: 'dot' }, icon(s.done ? 'check' : s.ic)), h('span', null, h('span', { class: 't', style: { display: 'block' } }, s.t), h('span', { class: 'd', style: { display: 'block' } }, s.d)),
       s.amt ? h('span', { class: 'amt' }, s.amt) : h('span', { class: 'amt' }), h('span', { class: 'chev' }, icon(!s.done && s.add && W ? 'plus' : 'right', 18))))));
 
-  const issues = rep.discrepancies.filter((d) => d.severity !== 'info').length || rep.discrepancies.length ? h('div', { class: 'card' }, h('h2', null, 'Checks'),
+  const issues = rep.discrepancies.filter((d) => d.severity !== 'info').length || rep.discrepancies.length ? h('div', { class: 'card smart-up' }, h('h2', null, 'Checks'),
     rep.discrepancies.map((d) => h('div', { class: 'alert ' + d.severity }, icon(d.severity === 'info' ? 'info' : 'alert'), d.message))) : null;
 
   const quick = W ? quickEntryCard(date, reload) : null;
@@ -91,7 +93,7 @@ export async function dayPage(main, params) {
 
   const stockCard = stockCountCard(date, rep, W, reload);
   const cashCard = cashCloseCard(date, rep, data.closing, can('cash.close'), reload);
-  const profitCard = p && p.status === 'actual' ? h('div', { class: 'card' }, h('h2', null, 'Profit for the day'),
+  const profitCard = p && p.status === 'actual' ? h('div', { class: 'card smart-up' }, h('h2', null, 'Profit for the day'),
     h('div', { class: 'kv' }, h('div', null, 'Sales'), h('div', null, money(p.revenue)), h('div', null, '− Cost of stock sold'), h('div', null, money(p.cogs)),
       h('div', null, '− Expenses'), h('div', null, money(p.expenses)), h('div', { class: 'tot' }, 'Net profit'), h('div', { class: 'tot ' + cls(p.net) }, money(p.net)))) : null;
 
@@ -144,8 +146,8 @@ function quickEntryCard(date, done) {
     const doc = await uploadDoc(f, 'hisaab', date);
     location.hash = `#/uploads?review=${doc.id}`;
   }));
-  return h('div', { class: 'card' },
-    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('type')), 'Quick entry'), h('span', { class: 'small muted' }, 'Write it the way you write your register')),
+  return h('div', { class: 'card smart-up' },
+    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('type')), 'Type or paste hisaab'), h('span', { class: 'small muted' }, 'Write it the way you write your register')),
     ta, h('div', { class: 'row', style: { marginTop: '8px' } }, readBtn, photoBtn, fileIn), out);
 }
 
@@ -258,7 +260,7 @@ function stockCountCard(date, rep, W, done) {
     toast('Stock count saved'); done();
   }));
   const fillExpected = h('button', { class: 'small', onclick: () => { for (const inp of inputs.values()) if (inp.value === '') inp.value = inp.placeholder; } }, 'Fill expected');
-  return h('div', { class: 'card', id: 'sec-stock' },
+  return h('div', { class: 'card smart-up', id: 'sec-stock' },
     h('div', { class: 'sec-head' }, h('div', null, h('h2', null, h('span', { class: 'dot' }, icon('box')), 'Stock left at closing'),
       h('div', { class: 'small muted', style: { marginTop: '4px' } }, 'Enter pieces left on the shelf. We work out what was sold and your profit.')),
       badge(`${rep.stock.counted_products}/${rep.stock.products_needing_count} counted`, rep.stock.products_needing_count && rep.stock.counted_products >= rep.stock.products_needing_count ? 'good' : '')),
@@ -277,7 +279,7 @@ function cashCloseCard(date, rep, closing, canClose, done) {
     await api(`/api/c/day/${date}/closing`, { method: 'PUT', body: { opening_cash: opening.value === '' ? null : opening.value, counted_cash: counted.value, notes: notes.value } });
     toast('Cash closing saved'); done();
   }));
-  return h('div', { class: 'card', id: 'sec-cash' },
+  return h('div', { class: 'card smart-up', id: 'sec-cash' },
     h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('lock')), 'Cash in drawer')),
     h('div', { class: 'grid' },
       h('div', { class: 'kv' },
