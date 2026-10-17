@@ -40,6 +40,7 @@ per-piece costs, stock movement, cash differences, outstanding amounts and profi
    - `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
    - `SETUP_TOKEN` — any long random string; you'll type it once to create the super admin
    - `ANTHROPIC_API_KEY` *(optional)* — uses Claude for OCR (best for handwriting). Without it, Workers AI is used.
+   - `GEMINI_API_KEY` *(optional)* — free-tier Gemini OCR from Google AI Studio. Used when there is no Anthropic key; if Gemini errors or is rate limited, Workers AI takes over.
 3. Push to `main` (or run the workflow manually). The workflow tests, creates the D1 database and
    R2 bucket if missing, applies migrations and deploys.
 4. Open `https://dailykhata.<your-subdomain>.workers.dev`, enter the setup token and create the super admin.

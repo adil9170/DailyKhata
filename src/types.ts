@@ -8,6 +8,7 @@ export interface Env {
   BACKUP_RETENTION_DAYS: string;
   SETUP_TOKEN?: string;
   ANTHROPIC_API_KEY?: string;
+  GEMINI_API_KEY?: string;
 }
 
 export type Role = 'super_admin' | 'company_admin' | 'manager' | 'staff' | 'viewer';

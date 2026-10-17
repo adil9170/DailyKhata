@@ -37,3 +37,4 @@ BACKUP_RETENTION_DAYS = "30"
 # Secrets (set with `wrangler secret put <NAME>`):
 #   SETUP_TOKEN        - one-time token required to create the first super admin
 #   ANTHROPIC_API_KEY  - optional; enables Claude vision OCR (recommended accuracy)
+#   GEMINI_API_KEY     - optional; free-tier Gemini OCR, used when no Anthropic key (falls back to Workers AI)

@@ -61,6 +61,50 @@ function toBase64(buf: ArrayBuffer): string {
 
 export interface OcrOutcome { engine: string; result: ParsedEntries; raw_text?: string; notes?: string | null }
 
+interface ExtractedData {
+  date: string | null; notes: string | null;
+  purchases: { item: string; qty: number; unit: string; pieces: number | null; total: number }[];
+  expenses: { category: string; amount: number }[];
+  collections: { amount: number; mode: 'cash' | 'upi' | 'card' | 'credit' }[];
+}
+
+function toOutcome(engine: string, data: ExtractedData): OcrOutcome {
+  return {
+    engine,
+    notes: data.notes,
+    result: {
+      date: data.date && /^\d{4}-\d{2}-\d{2}$/.test(data.date) ? data.date : null,
+      purchases: (data.purchases ?? []).map((p) => ({ ...p, line: `${p.item} ${p.qty} ${p.unit} ₹${p.total}` })),
+      expenses: (data.expenses ?? []).map((e) => ({ ...e, line: `${e.category} ₹${e.amount}` })),
+      collections: (data.collections ?? []).map((c) => ({ ...c, line: `Collection ₹${c.amount}` })),
+      unparsed: data.notes ? [data.notes] : [],
+    },
+  };
+}
+
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
+async function geminiExtract(apiKey: string, image: ArrayBuffer, media: string, ctx: ParseContext): Promise<ExtractedData> {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: media, data: toBase64(image) } },
+          { text: `${instructions(ctx)}\nReturn only JSON matching this JSON Schema:\n${JSON.stringify(SCHEMA)}` },
+        ],
+      }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini request failed (${res.status})`);
+  const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+  const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+  if (!text) throw new Error('Gemini returned no content');
+  return JSON.parse(text) as ExtractedData;
+}
+
 export async function extractFromImage(env: Env, image: ArrayBuffer, contentType: string, ctx: ParseContext): Promise<OcrOutcome> {
   if (image.byteLength > MAX_IMAGE_BYTES) throw new Error('Image is larger than 5 MB; please upload a smaller photo');
   const media = (['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(contentType) ? contentType : 'image/jpeg') as 'image/jpeg';
@@ -83,23 +127,17 @@ export async function extractFromImage(env: Env, image: ArrayBuffer, contentType
     });
     if (res.stop_reason === 'refusal') throw new Error('The AI declined to read this image');
     const text = res.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
-    const data = JSON.parse(text) as {
-      date: string | null; notes: string | null;
-      purchases: { item: string; qty: number; unit: string; pieces: number | null; total: number }[];
-      expenses: { category: string; amount: number }[];
-      collections: { amount: number; mode: 'cash' | 'upi' | 'card' | 'credit' }[];
-    };
-    return {
-      engine: 'claude',
-      notes: data.notes,
-      result: {
-        date: data.date && /^\d{4}-\d{2}-\d{2}$/.test(data.date) ? data.date : null,
-        purchases: data.purchases.map((p) => ({ ...p, line: `${p.item} ${p.qty} ${p.unit} ₹${p.total}` })),
-        expenses: data.expenses.map((e) => ({ ...e, line: `${e.category} ₹${e.amount}` })),
-        collections: data.collections.map((c) => ({ ...c, line: `Collection ₹${c.amount}` })),
-        unparsed: data.notes ? [data.notes] : [],
-      },
-    };
+    return toOutcome('claude', JSON.parse(text) as ExtractedData);
+  }
+
+  if (env.GEMINI_API_KEY) {
+    try {
+      return toOutcome('gemini', await geminiExtract(env.GEMINI_API_KEY, image, media, ctx));
+    } catch (e) {
+      // The free tier is rate limited; fall through to Workers AI when it is available.
+      if (!env.AI) throw e;
+      console.warn('Gemini OCR failed, falling back to Workers AI:', String(e));
+    }
   }
 
   if (env.AI) {
@@ -116,5 +154,5 @@ export async function extractFromImage(env: Env, image: ArrayBuffer, contentType
     return { engine: 'workers-ai', raw_text: raw, result: parseText(raw, ctx) };
   }
 
-  throw new Error('No OCR engine configured. Set ANTHROPIC_API_KEY or enable the Workers AI binding.');
+  throw new Error('No OCR engine configured. Set ANTHROPIC_API_KEY or GEMINI_API_KEY, or enable the Workers AI binding.');
 }

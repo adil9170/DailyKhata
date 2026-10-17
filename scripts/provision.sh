@@ -27,4 +27,5 @@ if [ "${1:-}" = "--deploy" ]; then
   npx wrangler deploy
   if [ -n "${SETUP_TOKEN:-}" ]; then printf '%s' "$SETUP_TOKEN" | npx wrangler secret put SETUP_TOKEN; fi
   if [ -n "${ANTHROPIC_API_KEY:-}" ]; then printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY; fi
+  if [ -n "${GEMINI_API_KEY:-}" ]; then printf '%s' "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY; fi
 fi
