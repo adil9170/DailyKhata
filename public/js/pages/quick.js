@@ -2,6 +2,7 @@
 // Pick what happened, type the amount, tap Save. Used as Home in Layman mode.
 import { h, mount, money, num, toast, icon, busy, fmtDate } from '../ui.js';
 import { api, state, can, refreshLists, todayLocal, navigate } from '../api.js';
+import { rowOrder } from '../state.js';
 import { getMode } from '../mode.js';
 import { uploadDoc } from './day.js';
 
@@ -115,7 +116,7 @@ export async function quickPage(main, params) {
     ...data.collections.map((e) => ({ ic: 'rupee', t: e.mode === 'credit' ? 'Udhaar sale' : 'Sale', d: e.mode === 'credit' ? e.customer : e.mode.toUpperCase(), amt: e.amount_paise, id: e.id, kind: 'collections', sign: '+' })),
     ...data.purchases.map((e) => ({ ic: 'bag', t: e.product_name, d: `${num(e.qty_units)} ${e.unit}`, amt: e.total_cost_paise, id: e.id, kind: 'purchases', sign: '−' })),
     ...data.expenses.map((e) => ({ ic: 'receipt', t: e.category, d: 'Expense', amt: e.amount_paise, id: e.id, kind: 'expenses', sign: '−' })),
-  ].sort((a, b) => b.id - a.id).slice(0, 6);
+  ].sort((a, b) => rowOrder(b.id) - rowOrder(a.id)).slice(0, 6);
   const recentCard = recent.length ? h('div', { class: 'card' },
     h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, isToday ? 'Added today' : 'Added'), h('a', { href: `#/day?date=${date}`, class: 'small' }, getMode() === 'layman' ? 'See my day' : 'Full day view')),
     h('div', { class: 'list', style: { marginTop: '6px' } }, recent.map((r) => h('div', { class: 'li' }, h('div', { class: 'lead' }, icon(r.ic, 18)), h('div', { class: 'body' }, h('div', { class: 't' }, r.t), r.d ? h('div', { class: 'd' }, r.d) : null), h('div', { class: 'amt ' + (r.sign === '+' ? 'pos' : '') }, r.sign + money(r.amt)))))) : null;

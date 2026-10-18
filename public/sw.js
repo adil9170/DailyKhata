@@ -3,7 +3,7 @@
 //  - hashed chunks, fonts, icons   cache-first (they never change under the same URL)
 //  - index.html, app.js, css, manifest   network-first with a short timeout, cache as fallback, so a slow
 //    connection never blocks start-up but a good connection always picks up a new deploy
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CORE = 'dk-core-' + VERSION;
 const STATIC = 'dk-static-' + VERSION;
 const PRECACHE = ['/', '/index.html', '/boot.js', '/css/app.css', '/dist/app.js', '/favicon.svg', '/manifest.webmanifest',
@@ -40,7 +40,8 @@ async function cacheFirst(req) {
 function networkFirst(req, ms) {
   return new Promise((resolve) => {
     let settled = false;
-    const fromCache = async () => (await caches.match(req)) || (req.mode === 'navigate' ? await caches.match('/index.html') : null);
+    const fromCache = async () => (await caches.match(req, { ignoreSearch: true }))
+      || (req.mode === 'navigate' ? (await caches.match('/')) || (await caches.match('/index.html')) : null);
     const timer = setTimeout(async () => { const hit = await fromCache(); if (hit && !settled) { settled = true; resolve(hit); } }, ms);
     fetch(req).then(async (res) => {
       clearTimeout(timer);

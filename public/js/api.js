@@ -1,23 +1,13 @@
 import { onColor, tints } from './color.js';
+import { localRequest, NOT_LOCAL } from './localapi.js';
+import * as S from './store.js';
+import { pullSoon, flushNow } from './store.js';
 // API client. Session lives in an HttpOnly cookie; super admins viewing a company portal send X-Company-Id.
-export const state = {
-  user: null,
-  company: null,      // branding/context for the active company portal
-  products: [],
-  categories: [],
-  today: null,
-  viewCompanyId: null, // super admin "open portal"
-};
+export { state, setViewCompany, ApiError, can, isSuper } from './state.js';
+import { state, ApiError } from './state.js';
 
-try { state.viewCompanyId = Number(sessionStorage.getItem('dk_view_company')) || null; } catch { /* storage blocked */ }
-export function setViewCompany(id) {
-  state.viewCompanyId = id;
-  try { id ? sessionStorage.setItem('dk_view_company', String(id)) : sessionStorage.removeItem('dk_view_company'); } catch { /* ignore */ }
-}
-
-export class ApiError extends Error { constructor(msg, status) { super(msg); this.status = status; } }
-
-export async function api(path, { method = 'GET', body, form, raw = false } = {}) {
+/** Network request to the server (no local shortcut). */
+export async function netApi(path, { method = 'GET', body, form, raw = false } = {}) {
   const headers = {};
   if (body !== undefined) headers['content-type'] = 'application/json';
   if (state.viewCompanyId && path.startsWith('/api/c/')) headers['x-company-id'] = String(state.viewCompanyId);
@@ -25,10 +15,24 @@ export async function api(path, { method = 'GET', body, form, raw = false } = {}
   if (raw && res.ok) return res;
   const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
   if (!res.ok) {
-    if (res.status === 401 && !path.startsWith('/api/auth/')) { location.hash = '#/login'; }
+    if (res.status === 401 && !path.startsWith('/api/auth/')) { window.dispatchEvent(new CustomEvent('dk:unauthorized')); }
     throw new ApiError(data?.error || `Request failed (${res.status})`, res.status);
   }
   return data;
+}
+
+/**
+ * Every screen calls this. Company data (entries, products, reports…) is answered from the phone's own copy
+ * and changes are queued for upload, so screens never wait for the network. Everything else goes to the server.
+ */
+export async function api(path, opts = {}) {
+  if (!opts.form && !opts.raw && path.startsWith('/api/c/')) {
+    const local = await localRequest(opts.method || 'GET', path, opts.body);
+    if (local !== NOT_LOCAL) return local;
+  }
+  const res = await netApi(path, opts);
+  if (path === '/api/c/bulk') pullSoon(); // photo-based saves go straight to the server; fetch the new rows
+  return res;
 }
 
 /** URL for <img>/<a> links to company files; adds ?company= for super admins. */
@@ -37,12 +41,19 @@ export function companyUrl(path) {
   return path + (path.includes('?') ? '&' : '?') + 'company=' + state.viewCompanyId;
 }
 
-export const can = (p) => !!state.user?.permissions?.includes(p);
-export const isSuper = () => state.user?.role === 'super_admin';
 
 export async function loadContext() {
   const ctx = await api('/api/c/context');
+  if (S.isActive() && !S.getContext()) S.setContext({ company: ctx.company }); // first run: remember branding for offline starts
   state.company = ctx.company; state.products = ctx.products; state.categories = ctx.categories; state.today = ctx.today;
+  applyBranding(ctx.company);
+  return ctx;
+}
+/** Ask the server for the latest company details (branding, plan, logo) and keep a copy for offline starts. */
+export async function refreshContext() {
+  const ctx = await netApi('/api/c/context');
+  if (S.isActive()) await S.setContext({ company: ctx.company });
+  state.company = ctx.company; state.today = ctx.today;
   applyBranding(ctx.company);
   return ctx;
 }
@@ -70,7 +81,8 @@ export function todayLocal() {
 }
 
 export async function download(path, fallbackName) {
-  const res = await api(path, { raw: true });
+  await flushNow(4000); // exports are built on the server, so upload anything waiting first
+  const res = await netApi(path, { raw: true });
   const blob = await res.blob();
   const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') || '')?.[1] || fallbackName;
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();

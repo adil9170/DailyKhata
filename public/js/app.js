@@ -1,5 +1,6 @@
-import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables } from './ui.js';
-import { api, state, loadContext, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
+import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables, confirmDialog, modal } from './ui.js';
+import { api, netApi, state, loadContext, refreshContext, refreshLists, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
+import * as S from './store.js';
 import { getTheme, setTheme, effectiveTheme } from './theme.js';
 import { MODES, getMode, modeOrDefault, initMode, openModeSheet, welcomeModePicker } from './mode.js';
 import './device.js';
@@ -54,11 +55,91 @@ const adminRoutes = [
   { path: 'admin/backups', label: 'Backups', icon: 'database', page: adminBackupsPage },
 ];
 
+// The signed-in user is remembered on the phone so the app opens instantly (and offline); /api/auth/me re-checks it in the background.
+const SESSION_KEY = 'dk_session';
+const saveSession = () => { try { localStorage.setItem(SESSION_KEY, JSON.stringify({ user: state.user, company: state.company })); } catch { /* storage blocked */ } };
+const loadSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } };
+const clearSession = () => { try { localStorage.removeItem(SESSION_KEY); localStorage.removeItem('dk_last_company'); } catch { /* ignore */ } };
+
 async function logout() {
-  await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  await S.flushNow(3000); // upload anything still waiting before this phone forgets the data
+  const st = S.status();
+  const waiting = st.pending + st.failed;
+  if (waiting > 0 && !(await confirmDialog(`${waiting} change${waiting > 1 ? 's' : ''} haven’t reached the server yet (no connection?). If you sign out now, they will be lost.`, { okText: 'Sign out anyway' }))) return;
+  await netApi('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  await S.wipeAll(); // company data never stays on a phone that has signed out
+  clearSession();
   state.user = null; state.company = null; setViewCompany(null); applyBranding(null);
   location.hash = '#/login';
 }
+async function verifySession() {
+  try {
+    const me = await netApi('/api/auth/me');
+    const before = JSON.stringify([state.user, state.company]);
+    state.user = me.user; if (me.company) state.company = me.company;
+    saveSession();
+    if (JSON.stringify([state.user, state.company]) !== before) route();
+  } catch (e) {
+    if (e.status === 401 || e.status === 403) { state.user = null; clearSession(); location.hash = '#/login'; route(); }
+    // any other error = offline: keep working from the phone's copy
+  }
+}
+
+// ---------- sync status ----------
+const timeAgo = (t) => { const s = Math.max(0, (Date.now() - t) / 1000); return s < 45 ? 'just now' : s < 3600 ? `${Math.round(s / 60)}m ago` : s < 86400 ? `${Math.round(s / 3600)}h ago` : `${Math.round(s / 86400)}d ago`; };
+const chips = new Set();
+function paintChip(el, st) {
+  const kind = el.dataset.kind;
+  let label, cls;
+  if (!st.active) { el.hidden = true; return; }
+  if (st.state === 'auth') { label = 'Sign in to sync'; cls = 'warn'; }
+  else if (st.failed) { label = `${st.failed} not saved`; cls = 'bad'; }
+  else if (st.state === 'offline') { label = st.pending ? `Offline · ${st.pending} waiting` : 'Offline'; cls = 'warn'; }
+  else if (st.state === 'syncing' || st.pending) { label = st.pending ? `Syncing ${st.pending}…` : 'Syncing…'; cls = 'busy'; }
+  else if (st.state === 'error') { label = 'Sync problem'; cls = 'bad'; }
+  else { label = st.last ? `Synced ${timeAgo(st.last)}` : 'Synced'; cls = 'ok'; }
+  el.className = `syncchip ${kind} ${cls}`;
+  el.hidden = kind === 'bar' && cls === 'ok'; // the top bar only speaks up when something needs attention
+  mount(el, h('i', { class: 'dot' }), label);
+  el.title = st.error || 'Tap to sync now';
+}
+function syncChip(kind) {
+  const el = h('button', { class: 'syncchip', dataset: { kind }, onclick: () => {
+    const st = S.status();
+    if (st.state === 'auth') return navigate('#/login');
+    if (st.failed) return openSyncProblems();
+    toast('Syncing…'); S.syncNow();
+  } });
+  chips.add(el); paintChip(el, S.status());
+  return el;
+}
+window.addEventListener('dk:sync', (e) => { for (const el of [...chips]) { if (!el.isConnected && el.dataset.seen) { chips.delete(el); continue; } if (el.isConnected) el.dataset.seen = '1'; paintChip(el, e.detail); } });
+setInterval(() => { const st = S.status(); for (const el of chips) if (el.isConnected) paintChip(el, st); }, 30000);
+function openSyncProblems() {
+  const render = () => {
+    const ops = S.failedOps();
+    if (!ops.length) { m.close(); return; }
+    mount(body, h('p', { class: 'muted', style: { marginTop: 0 } }, 'The server refused these changes, so they are only on this phone. Fix the cause (for example a plan limit) and retry, or discard them.'),
+      ops.map((o) => h('div', { class: 'card tint', style: { marginBottom: '10px' } }, h('div', { style: { fontWeight: 650 } }, o.label), h('div', { class: 'small', style: { color: 'var(--bad)', margin: '4px 0 8px' } }, o.error),
+        h('div', { class: 'row' }, h('button', { class: 'small primary', onclick: async () => { await S.retryFailed(o.qid); render(); } }, 'Retry'), h('button', { class: 'small danger', onclick: async () => { await S.discardFailed(o.qid); render(); } }, 'Discard')))));
+  };
+  const body = h('div');
+  const m = modal('Changes that did not save', body);
+  render();
+}
+// Other devices (or a finished upload) changed our data: refresh what is on screen, without disturbing typing.
+let dataTimer;
+window.addEventListener('dk:data', () => {
+  clearTimeout(dataTimer);
+  dataTimer = setTimeout(async () => {
+    if (document.querySelector('.modal-bg') || /^#\/(login|setup)/.test(location.hash)) return;
+    const a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox' && (a.value || a.type === 'date')) return;
+    const y = scrollY; await route(); scrollTo(0, y);
+  }, 200);
+});
+window.addEventListener('dk:syncfail', (e) => toast(`Couldn’t save: ${e.detail.message}`, true));
+window.addEventListener('dk:unauthorized', () => { if (state.user) { state.user = null; clearSession(); } if (!/^#\/(login|setup)/.test(location.hash)) location.hash = '#/login'; });
 
 function themeButton() {
   const next = { system: 'light', light: 'dark', dark: 'system' };
@@ -120,6 +201,7 @@ function layout(routes, active, { portalOf, title } = {}) {
   mount(side, brand, nav,
     h('div', { class: 'foot' },
       portalOf ? h('button', { class: 'small block', onclick: () => { setViewCompany(null); state.company = null; applyBranding(null); location.hash = '#/admin/companies'; } }, icon('left', 16), 'Back to super admin') : null,
+      showCompany && S.isActive() ? syncChip('side') : null,
       showCompany ? modeChip() : null,
       h('div', { class: 'me' }, h('div', { class: 'avatar' }, initials),
         h('div', { style: { minWidth: 0, flex: 1 } }, h('div', { class: 'small', style: { fontWeight: 650 } }, state.user.name), h('div', { class: 'small muted', style: { overflow: 'hidden', textOverflow: 'ellipsis' } }, state.user.role.replace('_', ' '))),
@@ -129,7 +211,7 @@ function layout(routes, active, { portalOf, title } = {}) {
   const top = h('header', { class: 'topbar' },
     h('button', { class: 'topmark', 'aria-label': 'Open menu', onclick: openMenu }, showCompany && company?.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), alt: '' }) : h('div', { class: 'brandmark' }, ((showCompany ? company?.name : 'D') || 'D')[0].toUpperCase())),
     h('div', { class: 'title' }, title || (showCompany ? company?.name : 'DailyKhata Admin') || 'DailyKhata'),
-    showCompany ? modeChip() : themeButton());
+    showCompany ? [syncChip('bar'), modeChip()] : themeButton());
 
   // bottom tab bar (phones)
   let tabs;
@@ -216,8 +298,18 @@ async function route(reloadUser = false) {
     return loginPage();
   }
   if (!state.user || reloadUser) {
-    try { const me = await api('/api/auth/me'); state.user = me.user; if (me.company) state.company = me.company; }
-    catch { state.user = null; const s = await api('/api/auth/setup').catch(() => ({ needed: false })); location.hash = s.needed ? '#/setup' : '#/login'; if (s.needed) setupPage(); else loginPage(); return; }
+    const cached = !reloadUser && loadSession();
+    if (cached?.user) { state.user = cached.user; state.company = cached.company; verifySession(); } // instant start; verified in the background
+    else {
+      try {
+        const me = await netApi('/api/auth/me'); state.user = me.user; if (me.company) state.company = me.company;
+        // a different company signing in on this phone must never see the previous one's data
+        const last = localStorage.getItem('dk_last_company');
+        if (me.user.role !== 'super_admin' && last && last !== String(me.user.company_id)) await S.wipeAll();
+        try { if (me.user.company_id) localStorage.setItem('dk_last_company', String(me.user.company_id)); } catch { /* ignore */ }
+        saveSession();
+      } catch { state.user = null; const s = await api('/api/auth/setup').catch(() => ({ needed: false })); location.hash = s.needed ? '#/setup' : '#/login'; if (s.needed) setupPage(); else loginPage(); return; }
+    }
   }
 
   const user = state.user;
@@ -238,6 +330,15 @@ async function route(reloadUser = false) {
 
   // company portal
   const cid = state.viewCompanyId || user.company_id;
+  if (!S.isActive() || S.currentCompany() !== cid) {
+    const opened = await S.openStore(cid); // the phone's copy of this company's books (null if the browser blocks local storage)
+    if (opened?.first) {
+      mount(app, h('div', { class: 'boot' }, h('div', { class: 'spinner' }), h('div', { style: { fontWeight: 650, marginTop: '14px' } }, 'Setting up your khata on this phone…'), h('div', { class: 'small muted' }, 'One-time download. After this, the app opens instantly and works offline.')));
+      try { await S.pull(); } catch (e) { toast(`Couldn’t download your data yet (${e.message}). Using the online version for now.`, true); }
+    }
+    if (opened) { S.startSync(); if (!opened.first) S.syncNow(); }
+  }
+  if (reloadUser) S.resumeAuth();
   if (ctxLoadedFor !== cid || reloadUser) {
     try { await loadContext(); ctxLoadedFor = cid; } catch (e) { toast(e.message, true); if (state.viewCompanyId) { setViewCompany(null); location.hash = '#/admin'; } return; }
   }
@@ -258,10 +359,12 @@ window.addEventListener('hashchange', () => {
   // View transitions snapshot the whole page: nice on flagship phones, janky on low-end ones, so skip them in lite mode.
   if (document.startViewTransition && !document.documentElement.classList.contains('lite') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(go); else go();
 });
-if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 window.addEventListener('themechange', () => route());
 // Switching mode lands on that mode's home so people are never left on a page their mode hides.
 window.addEventListener('modechange', () => { if (state.user && state.user.role !== 'super_admin') navigate('#/' + homeRoute().path); else route(); });
-window.addEventListener('dk:reload-context', async () => { await loadContext(); route(); });
+window.addEventListener('dk:reload-context', async () => { try { await refreshContext(); } catch { await loadContext(); } route(); });
 document.documentElement.dataset.effective = effectiveTheme();
 route();
+// Developer hook for tests: add ?debug to the URL (or set localStorage.dk_debug) to inspect the local store.
+try { if (location.search.includes('debug') || localStorage.getItem('dk_debug')) window.__dk = { api, netApi, S, state }; } catch { /* ignore */ }

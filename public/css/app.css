@@ -436,3 +436,20 @@ html.lite .scrim.open, html.lite .modal-bg { background: rgba(6,8,18,.6) !import
 html.lite .card, html.lite .tile, html.lite .tabbar, html.lite .modal, html.lite .toast { box-shadow: 0 1px 2px rgba(0,0,0,.08) !important; }
 html.lite .auth-hero .mesh { display: none; }
 html.lite .modal { animation: none !important; }
+
+/* ---------- sync status chip & first-time download ---------- */
+.syncchip { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 12px; border-radius: 99px; font-size: .75rem; font-weight: 650; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); box-shadow: none; white-space: nowrap; }
+.syncchip[hidden] { display: none; }
+.syncchip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.syncchip.ok .dot { background: var(--good); }
+.syncchip.busy .dot { background: var(--brand); animation: pulse 1s ease-in-out infinite; }
+.syncchip.warn { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+.syncchip.warn .dot { background: var(--warn); }
+.syncchip.bad { color: var(--bad); background: var(--bad-bg); border-color: transparent; }
+.syncchip.bad .dot { background: var(--bad); }
+.syncchip.side { width: 100%; justify-content: flex-start; margin-bottom: 8px; }
+@keyframes pulse { 50% { opacity: .35; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--border-strong); border-top-color: var(--brand); animation: spin .8s linear infinite; margin: 0 auto; }
+html.lite .spinner { animation: spin .8s linear infinite !important; }
+html.lite .syncchip.busy .dot { animation: pulse 1s ease-in-out infinite !important; }
