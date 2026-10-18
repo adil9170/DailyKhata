@@ -4,24 +4,23 @@ import { getTheme, setTheme, effectiveTheme } from './theme.js';
 import { MODES, getMode, modeOrDefault, initMode, openModeSheet, welcomeModePicker } from './mode.js';
 import './device.js';
 
-// Pages load on demand so the first screen only downloads what it needs (fast on a Redmi over mobile data).
-const lazy = (file, name) => (...args) => import(file).then((m) => m[name](...args));
-const quickPage = lazy('./pages/quick.js', 'quickPage');
-const dashboardPage = lazy('./pages/dashboard.js', 'dashboardPage');
-const dayPage = lazy('./pages/day.js', 'dayPage');
-const productsPage = lazy('./pages/products.js', 'productsPage');
-const uploadsPage = lazy('./pages/uploads.js', 'uploadsPage');
-const reportsPage = lazy('./pages/reports.js', 'reportsPage');
-const ledgerPage = lazy('./pages/ledger.js', 'ledgerPage');
-const teamPage = lazy('./pages/team.js', 'teamPage');
-const settingsPage = lazy('./pages/settings.js', 'settingsPage');
-const auditPage = lazy('./pages/audit.js', 'auditPage');
-const adminOverviewPage = lazy('./pages/admin.js', 'adminOverviewPage');
-const adminCompaniesPage = lazy('./pages/admin.js', 'adminCompaniesPage');
-const adminCompanyPage = lazy('./pages/admin.js', 'adminCompanyPage');
-const adminPlansPage = lazy('./pages/admin.js', 'adminPlansPage');
-const adminActivityPage = lazy('./pages/admin.js', 'adminActivityPage');
-const adminBackupsPage = lazy('./pages/admin.js', 'adminBackupsPage');
+// Pages load on demand (code-split by the bundler) so the first screen only downloads what it needs.
+const quickPage = (...a) => import('./pages/quick.js').then((m) => m.quickPage(...a));
+const dashboardPage = (...a) => import('./pages/dashboard.js').then((m) => m.dashboardPage(...a));
+const dayPage = (...a) => import('./pages/day.js').then((m) => m.dayPage(...a));
+const productsPage = (...a) => import('./pages/products.js').then((m) => m.productsPage(...a));
+const uploadsPage = (...a) => import('./pages/uploads.js').then((m) => m.uploadsPage(...a));
+const reportsPage = (...a) => import('./pages/reports.js').then((m) => m.reportsPage(...a));
+const ledgerPage = (...a) => import('./pages/ledger.js').then((m) => m.ledgerPage(...a));
+const teamPage = (...a) => import('./pages/team.js').then((m) => m.teamPage(...a));
+const settingsPage = (...a) => import('./pages/settings.js').then((m) => m.settingsPage(...a));
+const auditPage = (...a) => import('./pages/audit.js').then((m) => m.auditPage(...a));
+const adminOverviewPage = (...a) => import('./pages/admin.js').then((m) => m.adminOverviewPage(...a));
+const adminCompaniesPage = (...a) => import('./pages/admin.js').then((m) => m.adminCompaniesPage(...a));
+const adminCompanyPage = (...a) => import('./pages/admin.js').then((m) => m.adminCompanyPage(...a));
+const adminPlansPage = (...a) => import('./pages/admin.js').then((m) => m.adminPlansPage(...a));
+const adminActivityPage = (...a) => import('./pages/admin.js').then((m) => m.adminActivityPage(...a));
+const adminBackupsPage = (...a) => import('./pages/admin.js').then((m) => m.adminBackupsPage(...a));
 
 const app = document.getElementById('app');
 
@@ -256,7 +255,8 @@ let lastPath = '';
 window.addEventListener('hashchange', () => {
   const p = location.hash.split('?')[0];
   const go = () => route().then(() => { if (p !== lastPath) window.scrollTo(0, 0); lastPath = p; });
-  if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(go); else go();
+  // View transitions snapshot the whole page: nice on flagship phones, janky on low-end ones, so skip them in lite mode.
+  if (document.startViewTransition && !document.documentElement.classList.contains('lite') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(go); else go();
 });
 if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 window.addEventListener('themechange', () => route());

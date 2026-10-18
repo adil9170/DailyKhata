@@ -3,6 +3,15 @@ main = "src/index.ts"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
+# The browser app is bundled before every dev/deploy run (see scripts/build-client.mjs). Output: public/dist (git-ignored).
+[build]
+command = "node scripts/build-client.mjs"
+watch_dir = ["public/js", "src/lib"]
+
+# Run the Worker next to D1 so its database queries are fast (the browser talks to a local copy anyway).
+[placement]
+mode = "smart"
+
 # Static SPA (public/) is served by Workers Assets; /api/* always hits the Worker.
 [assets]
 directory = "./public"
