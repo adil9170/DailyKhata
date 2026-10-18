@@ -505,3 +505,5 @@ html.lite .syncchip.busy .dot { animation: pulse 1s ease-in-out infinite !import
 .ntrow { display: flex; align-items: center; gap: 8px; }
 .ntrow .ntitle { flex: 1; min-width: 0; width: auto; }
 .cbar-top .row { flex-wrap: wrap; justify-content: flex-end; }
+/* small phones: the Save bar sits below the form instead of floating over the Udhaar chip */
+@media (max-width: 430px) { .qactions { position: static; margin: 12px 0 0; padding: 0; background: none; } }
