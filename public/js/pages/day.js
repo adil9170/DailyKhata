@@ -109,7 +109,7 @@ export async function dayPage(main, params) {
     if (add === 'purchase') purchaseForm(date, null, reload);
     else if (add === 'expense') expenseForm(date, null, reload);
     else if (add === 'collection') collectionForm(date, null, reload);
-    else if (add === 'text') { const ta = main.querySelector('textarea'); ta?.scrollIntoView({ behavior: 'smooth', block: 'center' }); ta?.focus(); }
+    else if (add === 'text') { const ta = main.querySelector('textarea'); if (ta && params.get('text')) ta.value = params.get('text'); ta?.scrollIntoView({ behavior: 'smooth', block: 'center' }); ta?.focus(); }
   }
 
   function delBtn(kind, e) {

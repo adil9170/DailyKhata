@@ -121,7 +121,10 @@ export async function quickPage(main, params) {
     h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, isToday ? 'Added today' : 'Added'), h('a', { href: `#/day?date=${date}`, class: 'small' }, getMode() === 'layman' ? 'See my day' : 'Full day view')),
     h('div', { class: 'list', style: { marginTop: '6px' } }, recent.map((r) => h('div', { class: 'li' }, h('div', { class: 'lead' }, icon(r.ic, 18)), h('div', { class: 'body' }, h('div', { class: 't' }, r.t), r.d ? h('div', { class: 'd' }, r.d) : null), h('div', { class: 'amt ' + (r.sign === '+' ? 'pos' : '') }, r.sign + money(r.amt)))))) : null;
 
-  mount(main, greeting, summary, form, recentCard);
+  const tools = h('div', { class: 'qtools' },
+    h('a', { class: 'qtool', href: '#/counter' }, h('span', { class: 'dot' }, icon('calculator', 22)), h('span', null, h('b', null, 'Count cash'), h('span', { class: 'd' }, 'Tap notes, share receipt'))),
+    h('a', { class: 'qtool', href: '#/notes' }, h('span', { class: 'dot' }, icon('book', 22)), h('span', null, h('b', null, 'Notes'), h('span', { class: 'd' }, 'Jot lines, auto total'))));
+  mount(main, greeting, summary, form, tools, recentCard);
 }
 
 function photoButton(date) {

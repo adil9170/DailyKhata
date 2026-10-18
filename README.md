@@ -22,6 +22,12 @@ per-piece costs, stock movement, cash differences, outstanding amounts and profi
 | **Security** | PBKDF2 password hashing, HttpOnly SameSite=Strict session cookies (only a SHA-256 of the token is stored), login lockout after 5 failures, origin check on writes, strict CSP, every query scoped by `company_id` from the session (never from the request), private R2 files served only through authenticated, company-checked routes, audit log of every change with before/after values. |
 | **Backups** | Nightly JSON snapshot of every company to R2 (30-day retention), manual backup button, a final backup before a company is deleted. D1 Time Travel also gives 30-day point-in-time restore. |
 
+## Local-first, cash counter, notes, receipts
+- The app keeps a full copy of your shop's data on the phone (IndexedDB) and syncs in the background, so every screen is instant and works offline.
+- **Cash counter** (`#/counter`): tap + on each note, total and amount in words (English/हिंदी) update live; share as a receipt image or save as today's cash sale / closing cash.
+- **Notes** (`#/notes`): type lines like `Chai 3 x 12`, `Rent 5000 - 10%`, `total`; the sum adds itself. Share as a receipt or send to "Type hisaab".
+- **Receipt images**: drawn on a canvas with your logo and shared through the phone's share sheet (download / WhatsApp text fallback).
+
 ## Design
 
 - **Mobile first:** bottom tab bar with a central **+** button (purchase, expense, collection, type hisaab, scan photo),

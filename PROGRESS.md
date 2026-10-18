@@ -43,3 +43,7 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
   - How I tested: local `./scripts/dev-local.sh` + `./scripts/smoke-test.sh` seed (login ravi@sharma.in / RaviPass123), headless Edge via puppeteer-core at 390x844.
 - 2026-10-17 Deployed to Cloudflare, added Gemini OCR fallback (commit a2548b3), pushed main.
 - 2026-10-17 Imported cloud-session bundle into repo, pushed branch, created `main`.
+
+## Cash counter, smart notes, receipt sharing
+- Added `pages/counter.js`, `pages/notes.js`, `receipt.js`, pure libs `words.ts` and `notescalc.ts` (unit-tested). Reachable from Quick add tiles, the + sheet and the menu.
+- `npm run deploy` now applies remote D1 migrations first (0002/0003 are required by the local-first sync).

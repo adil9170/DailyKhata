@@ -453,3 +453,55 @@ html.lite .modal { animation: none !important; }
 .spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--border-strong); border-top-color: var(--brand); animation: spin .8s linear infinite; margin: 0 auto; }
 html.lite .spinner { animation: spin .8s linear infinite !important; }
 html.lite .syncchip.busy .dot { animation: pulse 1s ease-in-out infinite !important; }
+
+/* ---- cash counter, notes, receipts ---- */
+.qtools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
+.qtool { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); color: var(--text); text-decoration: none; min-height: 68px; box-shadow: var(--shadow); }
+.qtool .dot { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--brand-10); color: var(--brand-fg); flex: none; }
+.qtool b { display: block; font-weight: 660; font-size: .95rem; }
+.qtool .d { display: block; font-size: .75rem; color: var(--muted); }
+.ccard { padding: 6px 14px; }
+.crows { display: grid; }
+.crow { display: grid; grid-template-columns: 64px minmax(0, 1fr) 92px; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.crow:last-child { border-bottom: 0; }
+.cnote { font-size: .8rem; color: var(--muted); font-weight: 600; }
+.cnote b { font-size: 1.35rem; color: var(--text); margin-left: 1px; letter-spacing: -.02em; }
+.crow.has .cnote b { color: var(--brand-fg); }
+.csum { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cextra { display: flex; align-items: center; gap: 6px; grid-column: 2; }
+.cextra input { text-align: center; font-weight: 700; min-height: 54px; width: 100%; }
+.cbar { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) - 4px); margin: 14px -4px 0; padding: 14px 16px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow-lg, var(--shadow)); z-index: 5; }
+.kb .cbar { bottom: 0; }
+.cbar-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.ctotal { font-size: clamp(2rem, 1.2rem + 4vw, 2.6rem); font-weight: 800; letter-spacing: -.04em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cwords { font-size: .85rem; color: var(--text-2); min-height: 1.2em; margin: 4px 0 10px; }
+.cbtns { display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px; }
+.cbtns button { min-height: 52px; border-radius: 16px; }
+.cbtns button:only-child { grid-column: 1 / -1; }
+.notelist { display: grid; gap: 10px; }
+.notecard { display: flex; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); color: var(--text); text-decoration: none; box-shadow: var(--shadow); }
+.nc-main { min-width: 0; }
+.nc-title { font-weight: 680; display: flex; gap: 6px; align-items: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nc-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nc-total { font-weight: 780; font-variant-numeric: tabular-nums; white-space: nowrap; align-self: center; color: var(--brand-fg); }
+.ncard { padding: 12px 14px; }
+.ntitle { border: 0 !important; background: transparent !important; box-shadow: none !important; font-size: 1.15rem; font-weight: 700; padding: 0 !important; min-height: 44px; }
+.nwrap { position: relative; overflow: hidden; border-radius: 14px; background: var(--surface-2, transparent); margin-top: 6px; }
+.nta { display: block; width: 100%; min-height: 240px; height: 40vh; resize: none; border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 10px 120px 10px 10px !important; font: 500 1rem/28px var(--font, inherit); white-space: pre; overflow: auto; position: relative; z-index: 1; }
+.nres { position: absolute; top: 10px; right: 10px; width: 110px; pointer-events: none; text-align: right; font: 650 .9rem/28px var(--font, inherit); font-variant-numeric: tabular-nums; z-index: 2; will-change: transform; }
+.nl { height: 28px; white-space: nowrap; color: var(--brand-fg); }
+.nl.subtotal { color: var(--text); font-weight: 800; }
+.nl.error { color: var(--danger, #c42631); }
+.nhint { margin-top: 8px; }
+.ghost.on, button.on.ghost { color: var(--brand-fg); background: var(--brand-10); }
+.receipt-preview { display: block; width: 100%; max-height: 52vh; object-fit: contain; border-radius: 14px; margin-bottom: 14px; background: var(--surface-2, transparent); }
+.receipt-actions { display: grid; gap: 10px; }
+.receipt-actions button { min-height: 52px; border-radius: 16px; }
+.crow { grid-template-columns: 52px minmax(0, 1fr) 76px; gap: 8px; }
+.crow .stepper { grid-template-columns: 46px minmax(0, 1fr) 46px; gap: 6px; }
+.crow .stepper button { min-height: 46px; border-radius: 14px; }
+.crow .stepper input { min-height: 46px; padding: 0 4px; min-width: 0; width: 100%; }
+.csum { font-size: .9rem; }
+.ntrow { display: flex; align-items: center; gap: 8px; }
+.ntrow .ntitle { flex: 1; min-width: 0; width: auto; }
+.cbar-top .row { flex-wrap: wrap; justify-content: flex-end; }
