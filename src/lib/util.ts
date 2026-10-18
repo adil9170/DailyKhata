@@ -14,18 +14,7 @@ export function reqDate(s: unknown, field = 'date'): string {
   if (!isDate(s)) fail(422, `${field} must be a valid YYYY-MM-DD date`);
   return s;
 }
-export function addDays(date: string, n: number): string {
-  const d = new Date(date + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-export function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000);
-}
-/** Today's date in India Standard Time (the app's business day). */
-export function todayIST(): string {
-  return new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
-}
+export { addDays, daysBetween, todayIST } from './dates';
 
 /** Convert a rupee amount (number or string like "1,020.50" / "₹820") to integer paise. */
 export function toPaise(v: unknown, field = 'amount', { allowZero = true } = {}): number {

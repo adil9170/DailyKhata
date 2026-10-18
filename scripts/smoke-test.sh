@@ -78,4 +78,33 @@ check suspend "$(j -b $SA -X PUT $B/api/admin/companies/$CID -d '{"name":"Sharma
 check suspended-login "$(j -X POST $B/api/auth/login -d '{"email":"ravi@sharma.in","password":"RaviPass123"}')" 'suspended'
 check reactivate "$(j -b $SA -X PUT $B/api/admin/companies/$CID -d "{\"name\":\"Sharma Cold Drinks\",\"plan_id\":$PLAN,\"status\":\"active\"}")" '"status":"active"'
 check overview "$(j -b $SA $B/api/admin/overview)" '"companies":2'
+
+# ---- local-first sync: snapshot, idempotent create, delta, deletes, notes, isolation ----
+js() { node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s);console.log($1)})"; }
+# (suspending a company signs its users out, so sign in again)
+j -c $CA -X POST $B/api/auth/login -d '{"email":"ravi@sharma.in","password":"RaviPass123"}' >/dev/null
+j -c $ST -X POST $B/api/auth/login -d '{"email":"sonu@sharma.in","password":"SonuPass123"}' >/dev/null
+SNAP=$(j -b $CA "$B/api/c/sync")
+check sync-snapshot "$SNAP" '"reset":true'
+check sync-snapshot-rows "$(echo "$SNAP" | js 'r.tables.purchases.upsert.length+"/"+r.tables.collections.upsert.length')" '^8/'
+SEQ=$(echo "$SNAP" | js r.seq)
+NEW=$(j -b $CA -X POST $B/api/c/collections -d "{\"date\":\"$D\",\"amount\":120,\"mode\":\"upi\",\"client_id\":\"cid-test-0001-aaaa\"}")
+check create-with-client-id "$NEW" '"client_id":"cid-test-0001-aaaa"'
+NID=$(echo "$NEW" | js r.id)
+AGAIN=$(j -b $CA -X POST $B/api/c/collections -d "{\"date\":\"$D\",\"amount\":120,\"mode\":\"upi\",\"client_id\":\"cid-test-0001-aaaa\"}")
+check retry-is-idempotent "$(echo "$AGAIN" | js 'r.id')" "^$NID\$"
+check no-duplicate-row "$(j -b $CA "$B/api/c/collections?from=$D&to=$D" | js 'r.filter(x=>x.client_id==="cid-test-0001-aaaa").length')" '^1$'
+DELTA=$(j -b $CA "$B/api/c/sync?since=$SEQ")
+check delta-has-new-row "$(echo "$DELTA" | js 'r.reset+"/"+r.tables.collections.upsert.map(x=>x.id).join(",")')" "false/$NID"
+SEQ2=$(echo "$DELTA" | js r.seq)
+check delta-empty-when-nothing-new "$(j -b $CA "$B/api/c/sync?since=$SEQ2" | js 'Object.values(r.tables).every(t=>!t.upsert.length&&!t.delete.length)')" 'true'
+j -b $CA -X DELETE $B/api/c/collections/$NID >/dev/null
+check delta-has-delete "$(j -b $CA "$B/api/c/sync?since=$SEQ2" | js 'r.tables.collections.delete.join(",")')" "^$NID\$"
+NOTE=$(j -b $CA -X PUT $B/api/c/notes/note-test-000001 -d '{"title":"Shop list","body":"Chai 3 x 12\nMilk 2 x 35","entry_date":"2026-10-16"}')
+check note-upsert "$NOTE" '"title":"Shop list"'
+check note-upsert-again "$(j -b $CA -X PUT $B/api/c/notes/note-test-000001 -d '{"title":"Shop list","body":"Chai 3 x 12"}' | js 'r.body')" '^Chai 3 x 12$'
+check note-in-sync "$(j -b $CA "$B/api/c/sync?since=$SEQ2" | js 'r.tables.notes.upsert.length')" '^1$'
+check note-isolation "$(j -b $T/o "$B/api/c/sync" | js 'r.tables.notes.upsert.length+"/"+r.tables.purchases.upsert.length')" '^0/0$'
+check note-delete "$(j -b $CA -X DELETE $B/api/c/notes/note-test-000001)" '"deleted":true'
+check sync-needs-permission "$(j -b $ST "$B/api/c/sync" | js 'typeof r.seq')" 'number'
 echo "All smoke tests passed"

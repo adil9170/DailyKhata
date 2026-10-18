@@ -4,6 +4,7 @@ import { requireAuth, companyScope, perm } from '../middleware';
 import { audit } from '../lib/audit';
 import { fail, reqDate, isDate, toPaise, optPaise, reqStr, optStr, reqNum, oneOf, isColor, idParam, todayIST, addDays, daysBetween } from '../lib/util';
 import { loadReport } from '../lib/report';
+import { buildSummary } from '../lib/summary';
 import { parseText } from '../lib/parser';
 import { extractFromImage } from '../lib/ocr';
 import { buildCsv, buildXlsx, type Cell } from '../lib/xlsx';
@@ -233,10 +234,23 @@ for (const [path, cfg] of Object.entries(ENTRY)) {
     return c.json(r.results);
   });
   co.post(`/${path}`, perm('entries.write'), async (c) => {
-    const rec = await cfg.normalize(c, await c.req.json());
+    const cid = c.get('companyId');
+    const body = await c.req.json();
+    // client_id makes the call idempotent: the phone retries uploads until it hears back, and a retry must never double-count money.
+    const clientId = optStr(body.client_id, 64);
+    const existing = () => c.env.DB.prepare(`SELECT * FROM ${cfg.table} WHERE company_id = ? AND client_id = ?`).bind(cid, clientId).first();
+    if (clientId) { const ex = await existing(); if (ex) return c.json(ex, 200); }
+    const rec = await cfg.normalize(c, body);
+    if (clientId) rec.client_id = clientId;
     const keys = Object.keys(rec);
-    const r = await c.env.DB.prepare(`INSERT INTO ${cfg.table} (company_id, created_by, ${keys.join(', ')}) VALUES (?, ?, ${keys.map(() => '?').join(', ')}) RETURNING *`)
-      .bind(c.get('companyId'), c.get('user').id, ...Object.values(rec)).first();
+    let r: unknown;
+    try {
+      r = await c.env.DB.prepare(`INSERT INTO ${cfg.table} (company_id, created_by, ${keys.join(', ')}) VALUES (?, ?, ${keys.map(() => '?').join(', ')}) RETURNING *`)
+        .bind(cid, c.get('user').id, ...Object.values(rec)).first();
+    } catch (e) {
+      if (clientId && /UNIQUE constraint failed/i.test(String((e as Error).message))) { const ex = await existing(); if (ex) return c.json(ex, 200); }
+      throw e;
+    }
     await audit(c, 'create', cfg.entity, (r as any).id, null, r);
     return c.json(r, 201);
   });
@@ -367,31 +381,13 @@ co.post('/bulk', perm('entries.write'), async (c) => {
 });
 
 // ---------- reports ----------
-function bucketKey(date: string, group: string) {
-  if (group === 'month') return date.slice(0, 7);
-  if (group === 'week') { const d = new Date(date + 'T00:00:00Z'); const dow = (d.getUTCDay() + 6) % 7; return addDays(date, -dow); }
-  return date;
-}
 co.get('/reports/summary', perm('reports.view'), async (c) => {
   const { from, to } = range(c);
   const group = oneOf(c.req.query('group'), ['day', 'week', 'month'] as const, 'group', 'day');
   const rep = await loadReport(c.env.DB, c.get('companyId'), from, to);
-  const buckets = new Map<string, any>();
-  for (const d of rep.days) {
-    const k = bucketKey(d.date, group);
-    const b = buckets.get(k) ?? { period: k, purchases: 0, expenses: 0, collections: 0, net_cash_flow: 0, profit_net: 0, profit_days: 0, active_days: 0,
-      purchased_pieces: 0, sold_pieces: 0, cash_difference: 0, stock_value: 0, payable: 0, receivable: 0 };
-    b.purchases += d.purchases.total; b.expenses += d.expenses.total; b.collections += d.collections.total; b.net_cash_flow += d.net_cash_flow;
-    b.purchased_pieces += d.stock.purchased_pieces; b.sold_pieces += d.stock.sold_pieces_known; b.cash_difference += d.cash.difference ?? 0;
-    if (d.profit.status !== 'no_activity') b.active_days++;
-    if (d.profit.status === 'actual') { b.profit_net += d.profit.net ?? 0; b.profit_days++; }
-    b.stock_value = d.stock.stock_value; b.payable = d.outstanding.payable; b.receivable = d.outstanding.receivable;
-    buckets.set(k, b);
-  }
   const cats = await c.env.DB.prepare(`SELECT k.name AS category, SUM(e.amount_paise) AS amount FROM expenses e JOIN expense_categories k ON k.id = e.category_id
-    WHERE e.company_id = ? AND e.entry_date BETWEEN ? AND ? GROUP BY k.name ORDER BY amount DESC`).bind(c.get('companyId'), from, to).all();
-  const discrepancies = rep.days.flatMap((d) => d.discrepancies.filter((x) => x.severity !== 'info').map((x) => ({ date: d.date, ...x })));
-  return c.json({ totals: rep.totals, series: [...buckets.values()], expenses_by_category: cats.results, discrepancies: discrepancies.slice(-100) });
+    WHERE e.company_id = ? AND e.entry_date BETWEEN ? AND ? GROUP BY k.name ORDER BY amount DESC`).bind(c.get('companyId'), from, to).all<{ category: string; amount: number }>();
+  return c.json(buildSummary(rep, cats.results, group));
 });
 
 co.get('/reports/day/:date', perm('reports.view'), async (c) => {
@@ -674,6 +670,72 @@ co.get('/logo', async (c) => {
   const obj = key ? await c.env.FILES.get(key) : null;
   if (!obj) fail(404, 'No logo');
   return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType ?? 'image/png', 'cache-control': 'private, max-age=3600', 'x-content-type-options': 'nosniff' } });
+});
+
+// ---------- notes (smart notes calculator; saved on the phone first, synced here) ----------
+co.get('/notes', perm('entries.view'), async (c) => {
+  const r = await c.env.DB.prepare('SELECT * FROM notes WHERE company_id = ? ORDER BY pinned DESC, updated_at DESC LIMIT 500').bind(c.get('companyId')).all();
+  return c.json(r.results);
+});
+co.put('/notes/:clientId', perm('entries.write'), async (c) => {
+  const cid = c.get('companyId'); const clientId = reqStr(c.req.param('clientId'), 'id', 64);
+  if (!/^[\w-]{8,64}$/.test(clientId)) fail(422, 'Invalid note id');
+  const b = await c.req.json();
+  const title = optStr(b.title, 120) ?? '';
+  const text = typeof b.body === 'string' ? b.body.slice(0, 30000) : '';
+  const date = b.entry_date ? reqDate(b.entry_date, 'date') : null;
+  const r = await c.env.DB.prepare(`INSERT INTO notes (company_id, client_id, title, body, entry_date, pinned, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (company_id, client_id) DO UPDATE SET title = excluded.title, body = excluded.body, entry_date = excluded.entry_date, pinned = excluded.pinned, updated_at = datetime('now')
+    RETURNING *`).bind(cid, clientId, title, text, date, b.pinned ? 1 : 0, c.get('user').id).first();
+  return c.json(r);
+});
+co.delete('/notes/:clientId', perm('entries.write'), async (c) => {
+  await c.env.DB.prepare('DELETE FROM notes WHERE company_id = ? AND client_id = ?').bind(c.get('companyId'), c.req.param('clientId')).run();
+  return c.json({ deleted: true });
+});
+
+// ---------- sync: the phone keeps a full local copy and asks only "what changed since seq N?" ----------
+const SYNC_TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'notes'] as const;
+const SYNC_PAGE = 4000;
+co.get('/sync', perm('entries.view'), async (c) => {
+  const cid = c.get('companyId'); const db = c.env.DB;
+  const sinceRaw = c.req.query('since');
+  const [headRes, floorRes] = await db.batch([
+    db.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM sync_log WHERE company_id = ?').bind(cid),
+    db.prepare(`SELECT value FROM sync_meta WHERE key = 'pruned_through'`),
+  ]);
+  const head = Number((headRes.results[0] as any)?.m ?? 0);
+  const floor = Number((floorRes.results[0] as any)?.value ?? 0);
+  const since = sinceRaw === undefined || sinceRaw === '' ? null : Number(sinceRaw);
+  const tables: Record<string, { upsert: unknown[]; delete: number[] }> = {};
+
+  // First sync (or the change log no longer reaches back far enough): send everything.
+  if (since === null || !Number.isFinite(since) || since < floor) {
+    const snap = await db.batch(SYNC_TABLES.map((t) => db.prepare(`SELECT * FROM ${t} WHERE company_id = ?`).bind(cid)));
+    SYNC_TABLES.forEach((t, i) => { tables[t] = { upsert: snap[i].results, delete: [] }; });
+    return c.json({ reset: true, seq: Math.max(head, floor), more: false, tables, server_time: new Date().toISOString() });
+  }
+
+  const log = await db.prepare('SELECT seq, tbl, row_id, op FROM sync_log WHERE company_id = ? AND seq > ? ORDER BY seq LIMIT ?').bind(cid, since, SYNC_PAGE).all<{ seq: number; tbl: string; row_id: number; op: string }>();
+  const last = new Map<string, { tbl: string; id: number; op: string }>();
+  let seq = since;
+  for (const e of log.results) { seq = e.seq; last.set(`${e.tbl}:${e.row_id}`, { tbl: e.tbl, id: e.row_id, op: e.op }); }
+  const wanted: Record<string, number[]> = {};
+  for (const t of SYNC_TABLES) tables[t] = { upsert: [], delete: [] };
+  for (const { tbl, id, op } of last.values()) {
+    if (!tables[tbl]) continue;
+    if (op === 'd') tables[tbl].delete.push(id); else (wanted[tbl] ??= []).push(id);
+  }
+  for (const [tbl, ids] of Object.entries(wanted)) {
+    for (let i = 0; i < ids.length; i += 80) {
+      const chunk = ids.slice(i, i + 80);
+      const rows = await db.prepare(`SELECT * FROM ${tbl} WHERE company_id = ? AND id IN (${chunk.map(() => '?').join(',')})`).bind(cid, ...chunk).all<{ id: number }>();
+      const found = new Set<number>();
+      for (const r of rows.results) { tables[tbl].upsert.push(r); found.add(r.id); }
+      for (const id of chunk) if (!found.has(id)) tables[tbl].delete.push(id); // changed, then deleted before we looked
+    }
+  }
+  return c.json({ reset: false, seq: log.results.length ? seq : Math.max(since, head), more: log.results.length >= SYNC_PAGE, tables, server_time: new Date().toISOString() });
 });
 
 // ---------- audit ----------

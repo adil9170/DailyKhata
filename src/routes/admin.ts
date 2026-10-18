@@ -162,8 +162,9 @@ admin.delete('/companies/:id', async (c) => {
   } while (cursor);
   await c.env.DB.batch([
     c.env.DB.prepare('DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE company_id = ?)').bind(id),
-    ...['stock_counts', 'day_closings', 'payments', 'collections', 'expenses', 'purchases', 'expense_categories', 'products', 'documents', 'users'].map((t) =>
+    ...['notes', 'stock_counts', 'day_closings', 'payments', 'collections', 'expenses', 'purchases', 'expense_categories', 'products', 'documents', 'users'].map((t) =>
       c.env.DB.prepare(`DELETE FROM ${t} WHERE company_id = ?`).bind(id)),
+    c.env.DB.prepare('DELETE FROM sync_log WHERE company_id = ?').bind(id),
     c.env.DB.prepare('DELETE FROM companies WHERE id = ?').bind(id),
   ]);
   await audit(c, 'delete', 'company', id, { name: co.name, slug: co.slug, final_backup: backup?.key }, null, null);

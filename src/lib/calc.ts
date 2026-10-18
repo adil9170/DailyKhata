@@ -13,7 +13,7 @@
  *      sold = opening stock + purchased − counted closing
  *    Days without a count carry stock forward (sales unknown) and the next count absorbs them.
  */
-import { addDays } from './util';
+import { addDays } from './dates';
 
 export interface ProductIn {
   id: number;

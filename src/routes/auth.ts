@@ -83,6 +83,17 @@ auth.post('/logout', async (c) => {
 
 auth.get('/me', requireAuth, async (c) => {
   const user = c.get('user');
+  // Sliding session: the app calls /me every time it opens, so people who use it stay signed in, while idle sessions still expire.
+  const token = getCookie(c, SESSION_COOKIE);
+  if (token) {
+    const days = Number(c.env.SESSION_DAYS || '7');
+    const res = await c.env.DB.prepare(`UPDATE sessions SET expires_at = datetime('now', ?) WHERE id = ? AND expires_at < datetime('now', ?)`)
+      .bind(`+${days} days`, await sha256Hex(token), `+${Math.floor(days / 2)} days`).run();
+    if (res.meta.changes > 0) {
+      const secure = new URL(c.req.url).protocol === 'https:';
+      setCookie(c, SESSION_COOKIE, token, { httpOnly: true, secure, sameSite: 'Strict', path: '/', maxAge: days * 86400 });
+    }
+  }
   let company = null;
   if (user.company_id) {
     company = await c.env.DB.prepare(

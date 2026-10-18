@@ -1,6 +1,6 @@
 import type { Env } from '../types';
 
-const TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'documents'] as const;
+const TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'documents', 'notes'] as const;
 
 /** Writes a full JSON snapshot of one company's financial data to R2 (private bucket). */
 export async function backupCompany(env: Env, companyId: number, kind: 'scheduled' | 'manual' = 'scheduled') {
@@ -29,6 +29,11 @@ export async function runScheduledBackups(env: Env) {
     await env.FILES.delete(b.r2_key);
     await env.DB.prepare('DELETE FROM backups WHERE id = ?').bind(b.id).run();
   }
+  // The change log only needs to cover devices that sync at least monthly; older devices simply re-download everything.
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE sync_meta SET value = MAX(value, COALESCE((SELECT MAX(seq) FROM sync_log WHERE at < datetime('now', '-45 days')), 0)) WHERE key = 'pruned_through'`),
+    env.DB.prepare(`DELETE FROM sync_log WHERE at < datetime('now', '-45 days')`),
+  ]);
   // expired sessions
   await env.DB.prepare(`DELETE FROM sessions WHERE expires_at < datetime('now')`).run();
 }
