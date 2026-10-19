@@ -447,7 +447,7 @@ html.lite .modal { animation: none !important; }
 .syncchip.warn .dot { background: var(--warn); }
 .syncchip.bad { color: var(--bad); background: var(--bad-bg); border-color: transparent; }
 .syncchip.bad .dot { background: var(--bad); }
-.syncchip.side { width: 100%; justify-content: flex-start; margin-bottom: 8px; }
+.syncchip.sync-side { width: 100%; justify-content: flex-start; margin-bottom: 8px; }
 @keyframes pulse { 50% { opacity: .35; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--border-strong); border-top-color: var(--brand); animation: spin .8s linear infinite; margin: 0 auto; }

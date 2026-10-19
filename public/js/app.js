@@ -103,7 +103,7 @@ function paintChip(el, st) {
   else if (st.state === 'syncing' || st.pending) { label = st.pending ? `Syncing ${st.pending}…` : 'Syncing…'; cls = 'busy'; }
   else if (st.state === 'error') { label = 'Sync problem'; cls = 'bad'; }
   else { label = st.last ? `Synced ${timeAgo(st.last)}` : 'Synced'; cls = 'ok'; }
-  el.className = `syncchip ${kind} ${cls}`;
+  el.className = `syncchip sync-${kind} ${cls}`; // not just "${kind}": a bare "side" class collided with the sidebar styles
   el.hidden = kind === 'bar' && cls === 'ok'; // the top bar only speaks up when something needs attention
   mount(el, h('i', { class: 'dot' }), label);
   el.title = st.error || 'Tap to sync now';
