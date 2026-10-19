@@ -28,6 +28,7 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 - Super-admin account: owner must create it at the live URL.
 
 ## Log
+- 2026-10-19 Simplicity pass: cash counter rewritten as a no-scroll 3x3 grid (500/200/100/50/20/10 notes + 5/2/1 coins, old loose-change box migrates into the 1-rupee coins; page height fitted in JS fitToScreen). Quick page gets a slim first-time hint (dk_start_done flag). Test matrix now also fails on error toasts / empty pages (an earlier edit once broke Quick add unnoticed).
 - 2026-10-19 Pulled cloud-session work (local-first sync, bundling, cash counter, notes calculator, receipts), fixed build-client.mjs for paths with spaces, merged to main, deployed, enabled auto-deploy on push to main.
 - 2026-10-17 Premium redesign + device adaptation + speed:
   - `public/css/app.css` fully rewritten: self-hosted Inter (public/fonts), floating glass tab bar, 28px hero, tracked-caps data labels, soft shadows, dark/light. Brand tints are precomputed CSS vars (`tints()` in color.js, set in api.js applyBranding) - no color-mix (old MIUI browsers).

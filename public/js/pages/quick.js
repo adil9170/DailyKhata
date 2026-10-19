@@ -124,7 +124,22 @@ export async function quickPage(main, params) {
   const tools = h('div', { class: 'qtools' },
     h('a', { class: 'qtool', href: '#/counter' }, h('span', { class: 'dot' }, icon('calculator', 22)), h('span', null, h('b', null, 'Count cash'), h('span', { class: 'd' }, 'Tap notes, share receipt'))),
     h('a', { class: 'qtool', href: '#/notes' }, h('span', { class: 'dot' }, icon('book', 22)), h('span', null, h('b', null, 'Notes'), h('span', { class: 'd' }, 'Jot lines, auto total'))));
-  mount(main, greeting, summary, form, tools, recentCard);
+  mount(main, greeting, startCard(data, isToday), summary, form, tools, recentCard);
+}
+
+/** First-minute hint for new users: one slim line with three dots that tick off by themselves. Hidden once done or dismissed. */
+function startCard(data, isToday) {
+  const KEY = 'dk_start_done';
+  try { if (localStorage.getItem(KEY)) return null; } catch { /* storage blocked: show it */ }
+  if (!isToday) return null;
+  const done = [data.collections.length > 0, data.purchases.length > 0, data.expenses.length > 0];
+  const all = done.every(Boolean);
+  const hide = () => { try { localStorage.setItem(KEY, '1'); } catch { /* ignore */ } card.remove(); };
+  const card = h('div', { class: 'startcard' },
+    h('div', { class: 'st-dots', 'aria-hidden': 'true' }, done.map((d) => h('i', { class: d ? 'on' : '' }))),
+    h('div', { class: 'st-text' }, all ? 'Nice! You have added all three kinds of entry.' : h('span', null, h('b', null, 'New here? '), 'Pick Sale, type the amount, tap Save.')),
+    h('button', { class: 'ghost small', type: 'button', onclick: hide }, all ? 'Done' : 'Hide'));
+  return card;
 }
 
 function photoButton(date) {
