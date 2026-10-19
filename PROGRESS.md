@@ -24,10 +24,11 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 
 ## Optional/pending
 - `GEMINI_API_KEY` Worker secret IS set (model alias `gemini-flash-latest`; `gemini-2.5-flash` was retired). The key was pasted in chat, so recommend rotating it in Google AI Studio and re-running `npx wrangler secret put GEMINI_API_KEY`.
-- GitHub Actions secrets (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SETUP_TOKEN) not set => the deploy job on `main` fails; manual deploy works.
+- Auto-deploy: DONE 2026-10-19. Every push to `main` runs tests then deploys (GitHub Actions secrets CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID are set; token has Workers Scripts/D1 Edit, R2 Read). The token was pasted in chat; rotate it in Cloudflare and re-run `gh secret set CLOUDFLARE_API_TOKEN -R adil9170/DailyKhata` (pipe the value on stdin).
 - Super-admin account: owner must create it at the live URL.
 
 ## Log
+- 2026-10-19 Pulled cloud-session work (local-first sync, bundling, cash counter, notes calculator, receipts), fixed build-client.mjs for paths with spaces, merged to main, deployed, enabled auto-deploy on push to main.
 - 2026-10-17 Premium redesign + device adaptation + speed:
   - `public/css/app.css` fully rewritten: self-hosted Inter (public/fonts), floating glass tab bar, 28px hero, tracked-caps data labels, soft shadows, dark/light. Brand tints are precomputed CSS vars (`tints()` in color.js, set in api.js applyBranding) - no color-mix (old MIUI browsers).
   - `public/js/device.js`: sets data-size (xs/s/m/l/tablet/desktop), data-os, data-input, .kb (keyboard open hides tab bar), Android haptics. Touch targets 48-50px on touch devices.
