@@ -5,8 +5,9 @@ import { build } from 'esbuild';
 import { rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const root = fileURLToPath(new URL('..', import.meta.url)); // decodes %20 etc., so folders with spaces work on Windows
 rmSync(`${root}public/dist`, { recursive: true, force: true });
 mkdirSync(`${root}public/dist`, { recursive: true });
 
