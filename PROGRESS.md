@@ -28,6 +28,7 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 - Super-admin account: owner must create it at the live URL.
 
 ## Log
+- 2026-10-19 OCR tested on a real handwritten Hindi-store bill (Shri Krishna Store; lines 2450/760/88, total 3298): amounts all correct. Default Gemini model is now gemini-3.1-flash-lite (2.5 s) with gemini-flash-latest as backup (was 30-70 s). GEMINI_MODEL env var forces a model. Missing qty/unit no longer produce "null" in lines. Item names on messy handwriting can still be wrong (e.g. second Maida line may be qty 10 not 20) - the review screen is where the owner confirms.
 - 2026-10-19 Simplicity pass: cash counter rewritten as a no-scroll 3x3 grid (500/200/100/50/20/10 notes + 5/2/1 coins, old loose-change box migrates into the 1-rupee coins; page height fitted in JS fitToScreen). Quick page gets a slim first-time hint (dk_start_done flag). Test matrix now also fails on error toasts / empty pages (an earlier edit once broke Quick add unnoticed).
 - 2026-10-19 Pulled cloud-session work (local-first sync, bundling, cash counter, notes calculator, receipts), fixed build-client.mjs for paths with spaces, merged to main, deployed, enabled auto-deploy on push to main.
 - 2026-10-17 Premium redesign + device adaptation + speed:

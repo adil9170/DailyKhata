@@ -74,7 +74,7 @@ function toOutcome(engine: string, data: ExtractedData): OcrOutcome {
     notes: data.notes,
     result: {
       date: data.date && /^\d{4}-\d{2}-\d{2}$/.test(data.date) ? data.date : null,
-      purchases: (data.purchases ?? []).map((p) => ({ ...p, line: `${p.item} ${p.qty} ${p.unit} ₹${p.total}` })),
+      purchases: (data.purchases ?? []).map((raw) => ({ p: { ...raw, qty: Number(raw.qty) > 0 ? Number(raw.qty) : 1, unit: raw.unit || 'unit' } })).map(({ p }) => ({ ...p, line: `${p.item} ${p.qty} ${p.unit} ₹${p.total}` })),
       expenses: (data.expenses ?? []).map((e) => ({ ...e, line: `${e.category} ₹${e.amount}` })),
       collections: (data.collections ?? []).map((c) => ({ ...c, line: `Collection ₹${c.amount}` })),
       unparsed: data.notes ? [data.notes] : [],
@@ -82,10 +82,12 @@ function toOutcome(engine: string, data: ExtractedData): OcrOutcome {
   };
 }
 
-const GEMINI_MODEL = 'gemini-flash-latest'; // alias that follows the current free-tier Flash model
+// Fast model first (2 s on a handwritten bill; the full Flash model took 30-70 s), the self-updating alias as backup if Google retires it.
+// Set GEMINI_MODEL to force a specific model.
+const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-flash-latest'];
 
-async function geminiExtract(apiKey: string, image: ArrayBuffer, media: string, ctx: ParseContext): Promise<ExtractedData> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+async function geminiExtract(apiKey: string, model: string, image: ArrayBuffer, media: string, ctx: ParseContext): Promise<ExtractedData> {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
@@ -95,7 +97,7 @@ async function geminiExtract(apiKey: string, image: ArrayBuffer, media: string, 
           { text: `${instructions(ctx)}\nReturn only JSON matching this JSON Schema:\n${JSON.stringify(SCHEMA)}` },
         ],
       }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+      generationConfig: { responseMimeType: 'application/json', temperature: 0, thinkingConfig: { thinkingBudget: 0 } }, // reading a page needs no reasoning pass; it took 70 s with thinking on
     }),
   });
   if (!res.ok) throw new Error(`Gemini request failed (${res.status})`);
@@ -131,13 +133,12 @@ export async function extractFromImage(env: Env, image: ArrayBuffer, contentType
   }
 
   if (env.GEMINI_API_KEY) {
-    try {
-      return toOutcome('gemini', await geminiExtract(env.GEMINI_API_KEY, image, media, ctx));
-    } catch (e) {
-      // The free tier is rate limited; fall through to Workers AI when it is available.
-      if (!env.AI) throw e;
-      console.warn('Gemini OCR failed, falling back to Workers AI:', String(e));
+    let lastError: unknown;
+    for (const model of env.GEMINI_MODEL ? [env.GEMINI_MODEL] : GEMINI_MODELS) {
+      try { return toOutcome('gemini', await geminiExtract(env.GEMINI_API_KEY, model, image, media, ctx)); } catch (e) { lastError = e; console.warn(`Gemini ${model} failed:`, String(e)); }
     }
+    // Free tier is rate limited: fall through to Workers AI when it is available.
+    if (!env.AI) throw lastError;
   }
 
   if (env.AI) {

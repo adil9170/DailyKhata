@@ -9,6 +9,7 @@ export interface Env {
   SETUP_TOKEN?: string;
   ANTHROPIC_API_KEY?: string;
   GEMINI_API_KEY?: string;
+  GEMINI_MODEL?: string;
 }
 
 export type Role = 'super_admin' | 'company_admin' | 'manager' | 'staff' | 'viewer';
