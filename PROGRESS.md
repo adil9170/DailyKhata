@@ -5,7 +5,7 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 ## Quick facts
 - Repo: https://github.com/adil9170/DailyKhata (`main` = deployed code; branch `claude/daily-accounts-inventory-app-8gfhbd` mirrors it)
 - Live: https://dailykhata.adilshaikh.workers.dev  (Cloudflare account `ece0e93a89a4c641a032eea0f0cdf5aa`)
-- Stack: Cloudflare Worker (Hono) + D1 `dailykhata-db` + R2 `dailykhata-files` + Workers AI; SPA in `public/` (vanilla JS, no build)
+- Stack: Cloudflare Worker (Hono) + D1 `dailykhata-db` + R2 `dailykhata-files` + Workers AI; SPA source in `public/js` (vanilla JS), bundled by esbuild via `scripts/build-client.mjs` into git-ignored `public/dist` (runs automatically before wrangler dev/deploy); local-first data in IndexedDB (store.js/localapi.js)
 - Local path: `C:\Users\Asif Shaikh\Downloads\novus\claude\adil\daily-khata\DailyKhata`
 - Deploy by hand: `npx wrangler deploy` (secrets persist). Full: `SETUP_TOKEN=... ./scripts/provision.sh --deploy`
 - Git push from this machine needs gh credential helper:
@@ -24,7 +24,7 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 
 ## Optional/pending
 - Ideas not started: Hindi (and Hinglish) labels for Layman mode; load test with thousands of entries; test on real Redmi/iPhone/Galaxy; rotate the Cloudflare API token + Gemini key that were pasted in chat.
-- `GEMINI_API_KEY` Worker secret IS set (model alias `gemini-flash-latest`; `gemini-2.5-flash` was retired). The key was pasted in chat, so recommend rotating it in Google AI Studio and re-running `npx wrangler secret put GEMINI_API_KEY`.
+- `GEMINI_API_KEY` Worker secret IS set (default model gemini-3.1-flash-lite, backup gemini-flash-latest; override with GEMINI_MODEL; gemini-2.5-flash is retired). The key was pasted in chat, so recommend rotating it in Google AI Studio and re-running `npx wrangler secret put GEMINI_API_KEY`.
 - Auto-deploy: DONE 2026-10-19. Every push to `main` runs tests then deploys (GitHub Actions secrets CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID are set; token has Workers Scripts/D1 Edit, R2 Read). The token was pasted in chat; rotate it in Cloudflare and re-run `gh secret set CLOUDFLARE_API_TOKEN -R adil9170/DailyKhata` (pipe the value on stdin).
 - Super-admin account: owner must create it at the live URL.
 
