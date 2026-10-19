@@ -23,11 +23,14 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 - Original UI instructions lived in the cloud session "Daily Accounts & Inventory Management App" and are NOT available here; ask the owner if unsure.
 
 ## Optional/pending
+- Ideas not started: Hindi (and Hinglish) labels for Layman mode; load test with thousands of entries; test on real Redmi/iPhone/Galaxy; rotate the Cloudflare API token + Gemini key that were pasted in chat.
 - `GEMINI_API_KEY` Worker secret IS set (model alias `gemini-flash-latest`; `gemini-2.5-flash` was retired). The key was pasted in chat, so recommend rotating it in Google AI Studio and re-running `npx wrangler secret put GEMINI_API_KEY`.
 - Auto-deploy: DONE 2026-10-19. Every push to `main` runs tests then deploys (GitHub Actions secrets CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID are set; token has Workers Scripts/D1 Edit, R2 Read). The token was pasted in chat; rotate it in Cloudflare and re-run `gh secret set CLOUDFLARE_API_TOKEN -R adil9170/DailyKhata` (pipe the value on stdin).
 - Super-admin account: owner must create it at the live URL.
 
 ## Log
+- 2026-10-19 Fixed sync chip in the menu stretching into a tall arch: its class was `side`, colliding with the sidebar `.side` rules; now `sync-side`/`sync-bar` (app.js paintChip + app.css). Lesson: never give a small component a generic class name like side/bar/card without checking app.css.
+- 2026-10-19 Perf measured on live site (slow-4G + 4x CPU throttle, sign-in page): first visit FCP 1.3 s, usable 2.6 s, 173 KB / 11 requests; repeat visit 1.0 s, 0 KB. Entry bundle 19 KB, pages/charts lazy. NOT yet measured: post-login screens with thousands of entries (idea: load-test with fake data), Lighthouse, real devices.
 - 2026-10-19 OCR tested on a real handwritten Hindi-store bill (Shri Krishna Store; lines 2450/760/88, total 3298): amounts all correct. Default Gemini model is now gemini-3.1-flash-lite (2.5 s) with gemini-flash-latest as backup (was 30-70 s). GEMINI_MODEL env var forces a model. Missing qty/unit no longer produce "null" in lines. Item names on messy handwriting can still be wrong (e.g. second Maida line may be qty 10 not 20) - the review screen is where the owner confirms.
 - 2026-10-19 Simplicity pass: cash counter rewritten as a no-scroll 3x3 grid (500/200/100/50/20/10 notes + 5/2/1 coins, old loose-change box migrates into the 1-rupee coins; page height fitted in JS fitToScreen). Quick page gets a slim first-time hint (dk_start_done flag). Test matrix now also fails on error toasts / empty pages (an earlier edit once broke Quick add unnoticed).
 - 2026-10-19 Pulled cloud-session work (local-first sync, bundling, cash counter, notes calculator, receipts), fixed build-client.mjs for paths with spaces, merged to main, deployed, enabled auto-deploy on push to main.
