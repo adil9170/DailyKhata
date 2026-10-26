@@ -69,11 +69,12 @@ export function applyBranding(company) {
     root.setProperty('--accent', company.accent_color || '#f59e0b');
     root.setProperty('--on-brand', onColor(company.primary_color || '#0f766e'));
     for (const [k, v] of Object.entries(tints(company.primary_color || '#0f766e'))) root.setProperty(k, v);
-    document.title = `${company.name} · DailyKhata`;
+    document.title = company.name;
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', company.primary_color || '#0f766e');
   } else {
     root.removeProperty('--brand'); root.removeProperty('--accent'); root.removeProperty('--on-brand'); for (const k of Object.keys(tints('#635bff'))) root.removeProperty(k); document.title = 'DailyKhata';
   }
+  import('./brandicon.js').then((m) => m.applyLogoIcon(company)).catch(() => {}); // tab / home-screen icon = company logo
 }
 
 export function todayLocal() {

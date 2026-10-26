@@ -1,19 +1,11 @@
 // Receipt images: draws a receipt on a canvas (company name/logo, lines, total, amount in words) and shares it
 // the way a phone expects: the share sheet (WhatsApp, Instagram, Messages…) with the picture attached.
 import { h, mount, icon, modal, toast } from './ui.js';
-import { companyUrl } from './api.js';
+import { logoImage } from './brandicon.js';
 
 const FONT = '"Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", sans-serif';
 const W = 640, MARGIN = 28, PAD = 34, SCALE = 2;
 
-async function loadLogo(company) {
-  if (!company?.has_logo) return null;
-  try {
-    const res = await fetch(companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), { credentials: 'same-origin' });
-    if (!res.ok) return null;
-    return await createImageBitmap(await res.blob());
-  } catch { return null; } // offline: the receipt just uses the company's initial
-}
 
 function wrap(ctx, text, maxW) {
   const out = []; let cur = '';
@@ -32,9 +24,9 @@ function wrap(ctx, text, maxW) {
 export async function renderReceipt(opts) {
   const { company, title, subtitle, lines, total, words, footer } = opts;
   const brand = /^#[0-9a-f]{6}$/i.test(company?.primary_color || '') ? company.primary_color : '#635bff';
-  const when = (opts.when ? new Date(opts.when) : new Date()).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const when = whenText(opts.when);
   try { await Promise.all([document.fonts.load(`400 15px ${FONT}`), document.fonts.load(`700 15px ${FONT}`), document.fonts.load(`800 40px ${FONT}`)]); } catch { /* fonts are optional */ }
-  const logo = await loadLogo(company);
+  const logo = await logoImage(company);
 
   const paperW = W - MARGIN * 2, inner = paperW - PAD * 2;
   const probe = document.createElement('canvas').getContext('2d');
@@ -53,12 +45,14 @@ export async function renderReceipt(opts) {
   gap(30);
   items.push({ h: 66, draw(ctx, y) {
     const cx = PAD + inner / 2, r = 30;
-    ctx.save(); ctx.beginPath(); ctx.arc(cx, y + r, r, 0, Math.PI * 2); ctx.closePath();
-    if (logo) { ctx.clip(); ctx.fillStyle = '#fff'; ctx.fill(); const k = Math.min((r * 2) / logo.width, (r * 2) / logo.height); ctx.drawImage(logo, cx - (logo.width * k) / 2, y + r - (logo.height * k) / 2, logo.width * k, logo.height * k); }
+    ctx.save(); ctx.beginPath();
+    if (logo) { ctx.roundRect ? ctx.roundRect(cx - r, y, r * 2, r * 2, 16) : ctx.rect(cx - r, y, r * 2, r * 2); } else ctx.arc(cx, y + r, r, 0, Math.PI * 2);
+    ctx.closePath();
+    if (logo) { ctx.clip(); ctx.fillStyle = '#fff'; ctx.fill(); const lw = logo.naturalWidth || logo.width, lh = logo.naturalHeight || logo.height, k = Math.min((r * 2) / lw, (r * 2) / lh); ctx.drawImage(logo, cx - (lw * k) / 2, y + r - (lh * k) / 2, lw * k, lh * k); }
     else { ctx.fillStyle = brand; ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = font(800, 28); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText((company?.name || 'D')[0].toUpperCase(), cx, y + r + 1); }
     ctx.restore(); } });
   gap(10);
-  text(company?.name || 'DailyKhata', font(750, 24), '#0b1020', 'center', 30);
+  if (company?.name) text(company.name, font(750, 24), '#0b1020', 'center', 30);
   const contact = [company?.phone, company?.address].filter(Boolean).join(' · ');
   if (contact) text(contact, font(500, 13), '#7d869c', 'center', 18);
   if (company?.gstin) text(`GSTIN ${company.gstin}`, font(500, 12), '#7d869c', 'center', 17);
@@ -96,7 +90,6 @@ export async function renderReceipt(opts) {
   if (words) text(words, font(500, 14), '#465069', 'center', 20);
   gap(18);
   if (footer) { text(footer, font(500, 13), '#7d869c', 'center', 19); gap(6); }
-  text('Made with DailyKhata', font(650, 11), '#9aa2b6', 'center', 16);
   gap(30);
 
   // ---- draw pass ----
@@ -126,11 +119,20 @@ export async function renderReceipt(opts) {
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not create the image'))), 'image/png'));
 }
 
+const whenText = (w) => (w ? new Date(w) : new Date()).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+const totalLine = (opts) => `${titleCase(opts.totalLabel || 'Total')}: *${opts.total}*`;
+const titleCase = (s) => String(s).toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+
+/** Short message that travels with the picture: who, what, the final amount, and when. */
+export function receiptCaption(opts) {
+  return [opts.company?.name ? `*${opts.company.name}*` : null, opts.title, totalLine(opts), opts.words || null, `🕒 ${whenText(opts.when)}`].filter(Boolean).join('\n');
+}
+
 /** Plain-text version for apps that only take text. */
 export function receiptText(opts) {
-  const out = [`*${opts.company?.name || 'DailyKhata'}*`, opts.title];
+  const out = [opts.company?.name ? `*${opts.company.name}*` : null, opts.title, `🕒 ${whenText(opts.when)}`, ''].filter((x) => x !== null);
   for (const l of opts.lines) out.push(l.kind === 'heading' ? `\n${l.label}` : l.value ? `${l.label}: ${l.value}` : l.label);
-  out.push('', `${opts.totalLabel || 'Total'}: *${opts.total}*`);
+  out.push('', totalLine(opts));
   if (opts.words) out.push(opts.words);
   return out.join('\n');
 }
@@ -143,6 +145,7 @@ const slug = (s) => String(s || 'receipt').toLowerCase().replace(/[^a-z0-9]+/g, 
 
 /** Shows the receipt and lets the person share it as a picture, save it, or send it as text. */
 export function openReceiptSheet(opts) {
+  opts = { ...opts, when: opts.when || new Date() }; // the picture and the message show the same time
   const body = h('div', null, h('div', { class: 'boot', style: { padding: '40px 0' } }, h('div', { class: 'spinner' }), h('div', { class: 'small muted', style: { marginTop: '12px' } }, 'Preparing receipt…')));
   const m = modal('Share receipt', body);
   const name = `${slug(opts.company?.name)}-${slug(opts.title)}.png`;
@@ -156,7 +159,7 @@ export function openReceiptSheet(opts) {
     const canShareFile = !!navigator.canShare?.({ files: [file] });
     const shareBtn = h('button', { class: 'primary block', onclick: async () => {
       // must run straight from the tap: the share sheet is only allowed from a user gesture
-      try { await navigator.share({ files: [file], title: opts.title, text: `${opts.company?.name || ''} — ${opts.title}` }); }
+      try { await navigator.share({ files: [file], title: opts.title, text: receiptCaption(opts) }); }
       catch (e) { if (e.name !== 'AbortError') { download(blob, name); toast('Saved to your downloads'); } }
     } }, icon('share', 18), 'Share image');
     const saveBtn = h('button', { class: canShareFile ? 'block' : 'primary block', onclick: () => { download(blob, name); toast('Saved to your downloads'); } }, icon('download', 18), 'Save image');
