@@ -165,11 +165,11 @@ export function openQuickAdd() {
   if (modeOrDefault() === 'layman') return navigate(`#/quick?date=${date}`);
   const go = (what) => navigate(`#/day?date=${date}&add=${what}`);
   actionSheet('Add to today’s khata', [
+    { icon: 'calculator', title: 'Count cash', desc: 'Tap notes — total adds itself, share as receipt', onclick: () => navigate('#/counter') },
     { icon: 'zap', title: 'Quick add', desc: 'Big-button entry: amount, then tap', onclick: () => navigate(`#/quick?date=${date}`) },
     { icon: 'bag', title: 'Purchase', desc: 'Stock you bought — boxes, pieces, cost', onclick: () => go('purchase') },
     { icon: 'receipt', title: 'Expense', desc: 'Gas, Wi-Fi, water, rent…', onclick: () => go('expense') },
     { icon: 'rupee', title: 'Collection', desc: 'Money from sales — cash, UPI, udhaar', onclick: () => go('collection') },
-    { icon: 'calculator', title: 'Count cash', desc: 'Tap notes — total adds itself, share as receipt', onclick: () => navigate('#/counter') },
     { icon: 'book', title: 'Smart note', desc: 'Jot lines — they add up as you type', onclick: () => navigate(`#/notes?id=${crypto.randomUUID()}&new=1`) },
     { icon: 'type', title: 'Type hisaab', desc: 'Write lines like “Sting 2 boxes 1020 60”', onclick: () => go('text') },
     ...(can('uploads.write') ? [{ icon: 'camera', title: 'Scan a photo', desc: 'We read your handwritten page for you', onclick: () => pickPhoto(date) }] : []),
@@ -227,7 +227,7 @@ function layout(routes, active, { portalOf, title } = {}) {
     const home = homeRoute();
     const lay = modeOrDefault() === 'layman';
     const pick = (p) => vis.find((r) => r.path === p);
-    const third = lay ? pick('settings') : pick('uploads');
+    const third = pick('counter') || (lay ? pick('settings') : pick('uploads')); // cash counter is used all day, so it gets a tab
     const tabRoutes = [home, home.path === 'day' ? null : pick('day'), third].filter(Boolean);
     const isHome = (r) => r.path === 'dashboard' || r.path === 'quick';
     const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(isHome(r) ? 'home' : r.icon), isHome(r) ? 'Home' : (lay && r.laymanLabel) || r.short || r.label);
