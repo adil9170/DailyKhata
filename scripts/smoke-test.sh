@@ -27,6 +27,7 @@ check admin-forbidden "$(j -b $CA $B/api/admin/overview)" 'Super admin only'
 D=2026-10-16
 PARSED=$(j -b $CA -X POST $B/api/c/parse -d "{\"date\":\"$D\",\"text\":\"Sting 2 boxes ₹1,020 60\nCloud Nine 2 boxes 800 60\nCampa Orange 1 box 240 30\nCampa Black 1 box 240 30\nCampa Green 1 box 240 30\nZeera 1 box 170 24\nMango Juice 1 box 240 30\nLitchi 1 box 240 30\nGas 820\nWi-Fi 2500\nWater 875\n16 October Collection: ₹7,544\"}")
 check parse "$PARSED" '"date":"2026-10-16"'
+check parse-ai-text "$(j -b $CA -X POST $B/api/c/parse-ai -d "{\"date\":\"$D\",\"text\":\"aaj gas 820 diya, chai 40. Sharma se 3000 mila\"}")" '"amount":820'
 BODY=$(echo "$PARSED" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const p=JSON.parse(s);console.log(JSON.stringify({date:p.date,purchases:p.purchases,expenses:p.expenses,collections:p.collections}))})')
 check bulk-save "$(j -b $CA -X POST $B/api/c/bulk -d "$BODY")" '"created":12'
 DAY=$(j -b $CA $B/api/c/day/$D)

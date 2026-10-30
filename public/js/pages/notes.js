@@ -77,7 +77,7 @@ async function editor(main, clientId) {
   };
   const addToDay = async () => {
     await (dirty ? save() : saving);
-    navigate(`#/day?date=${state.today || todayLocal()}&add=text&text=${encodeURIComponent(ta.value)}`);
+    (await import('./dump.js')).openDumpWith(ta.value); // pick the expenses out of this note
   };
   const del = async () => {
     if (!(await confirmDialog('Delete this note?'))) return;
@@ -98,7 +98,7 @@ async function editor(main, clientId) {
       h('div', { class: 'cbar-top' }, h('div', null, h('div', { class: 'k small muted' }, 'Total'), totalEl, saveEl), langBtn),
       wordsEl,
       h('div', { class: 'cbtns' }, h('button', { class: 'primary', onclick: shareNote }, icon('share', 18), 'Share receipt'),
-        W ? h('button', { onclick: addToDay }, 'Add to my day') : null)));
+        W ? h('button', { onclick: addToDay }, 'Find expenses') : null)));
   paint();
   if (W && !existing) ta.focus();
 }

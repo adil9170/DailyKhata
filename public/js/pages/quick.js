@@ -123,6 +123,7 @@ export async function quickPage(main, params) {
 
   const tools = h('div', { class: 'qtools' },
     h('a', { class: 'qtool', href: '#/counter' }, h('span', { class: 'dot' }, icon('calculator', 22)), h('span', null, h('b', null, 'Count cash'), h('span', { class: 'd' }, 'Tap notes, share receipt'))),
+    h('a', { class: 'qtool', href: '#/dump' }, h('span', { class: 'dot' }, icon('type', 22)), h('span', null, h('b', null, 'Write expenses'), h('span', { class: 'd' }, 'Paste or type anything'))),
     h('a', { class: 'qtool', href: '#/notes' }, h('span', { class: 'dot' }, icon('book', 22)), h('span', null, h('b', null, 'Notes'), h('span', { class: 'd' }, 'Jot lines, auto total'))));
   mount(main, greeting, startCard(data, isToday), summary, form, tools, recentCard);
 }

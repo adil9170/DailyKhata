@@ -6,7 +6,7 @@ import { fail, reqDate, isDate, toPaise, optPaise, reqStr, optStr, reqNum, oneOf
 import { loadReport } from '../lib/report';
 import { buildSummary } from '../lib/summary';
 import { parseText } from '../lib/parser';
-import { extractFromImage } from '../lib/ocr';
+import { extractFromImage, extractFromText } from '../lib/ocr';
 import { buildCsv, buildXlsx, type Cell } from '../lib/xlsx';
 import { hashPassword, validatePassword } from '../lib/crypto';
 import { PERMISSIONS, ROLE_DEFAULTS, effectivePermissions } from '../lib/permissions';
@@ -352,6 +352,19 @@ co.post('/parse', perm('entries.write'), async (c) => {
   const b = await c.req.json();
   const text = String(b.text ?? '').slice(0, 20000);
   return c.json(parseText(text, await parseCtx(c, b.date)));
+});
+
+// "Write expenses" page: the phone reads text itself; this is the optional AI pass for text it gets wrong.
+co.post('/parse-ai', perm('entries.write'), async (c) => {
+  const limits = await planLimits(c);
+  if (!limits.ocr_enabled) fail(403, 'AI reading is not included in your plan');
+  const b = await c.req.json();
+  const text = String(b.text ?? '').slice(0, 8000);
+  if (!text.trim()) fail(422, 'Write something first');
+  const date = b.date && isDate(b.date) ? b.date : todayIST();
+  const ctx = { ...(await parseCtx(c, date)), today: date };
+  try { return c.json(await extractFromText(c.env, text, ctx)); }
+  catch (e) { console.warn('parse-ai failed:', String(e)); fail(502, 'AI reading is not available right now. The quick reader still works.'); }
 });
 
 co.post('/bulk', perm('entries.write'), async (c) => {

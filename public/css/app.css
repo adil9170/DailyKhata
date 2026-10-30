@@ -590,3 +590,51 @@ html.lite .syncchip.busy .dot { animation: pulse 1s ease-in-out infinite !import
 .st-text { flex: 1; min-width: 0; font-size: .86rem; line-height: 1.35; color: var(--text); }
 .st-text b { color: var(--brand-fg); }
 .startcard .ghost { color: var(--brand-fg); flex: none; }
+
+/* ---- Quick add tools: three compact tiles ---- */
+.qtools { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.qtool { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; min-height: 0; }
+.qtool b { font-size: .88rem; line-height: 1.2; }
+.qtool .d { font-size: .72rem; line-height: 1.3; }
+@media (max-width: 380px) { .qtool .d { display: none; } }
+
+/* ---- Write expenses (text dump → entries) ---- */
+.dcard { padding: 6px; }
+.dump-ta { display: block; width: 100%; min-height: 150px; resize: none; border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 10px 12px !important; font: 500 1rem/1.55 var(--font, inherit); }
+.dfound { padding: 12px 14px; }
+.dhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; margin-bottom: 6px; }
+.dsum { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .95rem; margin-top: 2px; }
+.dsum b { font-size: 1.15rem; font-weight: 780; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.dsum .pos b { color: var(--good, #14804a); }
+.dai { flex: none; }
+.dlist { display: grid; }
+.ditem { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px; align-items: start; padding: 10px 0; border-top: 1px solid var(--border); transition: opacity .15s; }
+.ditem.off { opacity: .45; }
+.ditem.off .damt { text-decoration: line-through; }
+.dcheck { display: grid; place-items: center; height: 44px; margin: 0; cursor: pointer; }
+.dcheck input { width: 22px; height: 22px; accent-color: var(--brand); margin: 0; }
+.dmain { min-width: 0; }
+.dtop { display: flex; align-items: center; gap: 6px; }
+.dtop .dname { flex: 1; min-width: 0; min-height: 44px; font-weight: 650; }
+.dtop .drs { color: var(--muted); font-weight: 650; }
+.dtop .damt { width: 96px; flex: none; min-height: 44px; text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
+.ditem.collection .damt, .ditem.collection .drs { color: var(--good, #14804a); }
+.dsub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 5px; font-size: .74rem; color: var(--muted); min-width: 0; }
+.dtag { padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-2); font-weight: 650; white-space: nowrap; }
+.ditem.collection .dtag:first-child { background: var(--good-bg, rgba(20,128,74,.12)); color: var(--good, #14804a); }
+.ditem.purchase .dtag:first-child { background: var(--brand-10); color: var(--brand-fg); }
+.dtag.new { background: var(--accent); color: #fff; }
+.dsrc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 120px; font-style: italic; }
+.dempty { padding: 8px 2px 4px; }
+.dempty ul { margin: 6px 0 10px; padding-left: 18px; }
+.dempty li { margin: 3px 0; }
+.ddone { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--good, #14804a); }
+.ddone > div { flex: 1; color: var(--text); }
+.dskip { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+.dskip summary { cursor: pointer; }
+.dbar { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) - 4px); z-index: 5; display: flex; gap: 10px; align-items: center; margin-top: 12px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow-lg, var(--shadow)); }
+.kb .dbar { bottom: 0; }
+.ddate { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 14px; border-radius: 14px; background: var(--surface-2); font-weight: 650; margin: 0; white-space: nowrap; cursor: pointer; }
+.ddate input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.dadd { flex: 1; min-height: 52px; border-radius: 16px; font-size: 1rem; }
+@media (min-width: 861px) { .dbar { bottom: 16px; } }

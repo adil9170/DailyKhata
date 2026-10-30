@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from '../types';
 import { parseText, type ParsedEntries, type ParseContext } from './parser';
+import { readDump, type DumpContext, type DumpResult } from './dump';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -86,17 +87,12 @@ function toOutcome(engine: string, data: ExtractedData): OcrOutcome {
 // Set GEMINI_MODEL to force a specific model.
 const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-flash-latest'];
 
-async function geminiExtract(apiKey: string, model: string, image: ArrayBuffer, media: string, ctx: ParseContext): Promise<ExtractedData> {
+async function geminiJson<T>(apiKey: string, model: string, parts: unknown[]): Promise<T> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inline_data: { mime_type: media, data: toBase64(image) } },
-          { text: `${instructions(ctx)}\nReturn only JSON matching this JSON Schema:\n${JSON.stringify(SCHEMA)}` },
-        ],
-      }],
+      contents: [{ parts }],
       generationConfig: { responseMimeType: 'application/json', temperature: 0, thinkingConfig: { thinkingBudget: 0 } }, // reading a page needs no reasoning pass; it took 70 s with thinking on
     }),
   });
@@ -104,7 +100,14 @@ async function geminiExtract(apiKey: string, model: string, image: ArrayBuffer, 
   const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
   if (!text) throw new Error('Gemini returned no content');
-  return JSON.parse(text) as ExtractedData;
+  return JSON.parse(text) as T;
+}
+
+function geminiExtract(apiKey: string, model: string, image: ArrayBuffer, media: string, ctx: ParseContext): Promise<ExtractedData> {
+  return geminiJson<ExtractedData>(apiKey, model, [
+    { inline_data: { mime_type: media, data: toBase64(image) } },
+    { text: `${instructions(ctx)}\nReturn only JSON matching this JSON Schema:\n${JSON.stringify(SCHEMA)}` },
+  ]);
 }
 
 export async function extractFromImage(env: Env, image: ArrayBuffer, contentType: string, ctx: ParseContext): Promise<OcrOutcome> {
@@ -156,4 +159,98 @@ export async function extractFromImage(env: Env, image: ArrayBuffer, contentType
   }
 
   throw new Error('No OCR engine configured. Set ANTHROPIC_API_KEY or GEMINI_API_KEY, or enable the Workers AI binding.');
+}
+
+// ---------- text dumps ("Write expenses" page): AI reading for text the quick on-phone reader gets wrong ----------
+const ymd = nullable({ type: 'string', description: 'YYYY-MM-DD if the text gives a date for this item, else null' });
+const PAY = { type: 'string', enum: ['cash', 'bank', 'credit'] };
+const TEXT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['expenses', 'purchases', 'collections'],
+  properties: {
+    expenses: {
+      type: 'array',
+      items: {
+        type: 'object', additionalProperties: false, required: ['category', 'amount', 'notes', 'payment_mode', 'date', 'source'],
+        properties: { category: { type: 'string' }, amount: { type: 'number' }, notes: { type: 'string' }, payment_mode: PAY, date: ymd, source: { type: 'string', description: 'The words this came from' } },
+      },
+    },
+    purchases: {
+      type: 'array',
+      items: {
+        type: 'object', additionalProperties: false, required: ['item', 'qty', 'unit', 'pieces', 'total', 'payment_mode', 'date', 'source'],
+        properties: { item: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' }, pieces: nullable({ type: 'integer' }), total: { type: 'number' }, payment_mode: PAY, date: ymd, source: { type: 'string' } },
+      },
+    },
+    collections: {
+      type: 'array',
+      items: {
+        type: 'object', additionalProperties: false, required: ['amount', 'mode', 'customer', 'date', 'source'],
+        properties: { amount: { type: 'number' }, mode: { type: 'string', enum: ['cash', 'upi', 'card', 'credit'] }, customer: { type: 'string' }, date: ymd, source: { type: 'string' } },
+      },
+    },
+  },
+} as const;
+
+function textInstructions(text: string, ctx: DumpContext) {
+  return `The text inside <notes> is an Indian shopkeeper's rough notes: WhatsApp messages, diary lines or voice typing, in English, Hindi, Hinglish or Urdu. Today is ${ctx.today ?? 'unknown'}.
+Pick out every money movement:
+- expenses: money spent running the shop (gas, rent, salary, tea, transport, bills, repairs...). category: short name; use one of these existing categories when it fits: ${ctx.categories.join(', ') || 'none yet'}. notes: a person's name or other detail, else "".
+- purchases: stock bought to resell (item, quantity, unit such as box/crate/pack, pieces if written, total cost). Known products: ${ctx.products.map((p) => p.name).join(', ') || 'none yet'}.
+- collections: money received (sales, galla, customer payments). mode: upi for UPI/GPay/PhonePe/Paytm, card, credit only for udhaar, else cash. customer: name if written, else "".
+payment_mode for expenses and purchases: bank if paid by UPI/online/bank/card, credit if on udhaar, else cash.
+date: only when the text gives one for that item (turn "yesterday"/"kal" into a date from today), else null.
+source: the few words the item came from, copied from the text.
+Skip totals, balances, opening/closing cash, phone numbers, times and anything that is not money. Never invent items or amounts. Amounts are rupees as plain numbers.
+<notes>
+${text}
+</notes>`;
+}
+
+const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const amt = (v: unknown) => { const n = Math.round(Number(v) * 100) / 100; return Number.isFinite(n) && n > 0 ? n : 0; };
+const day = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+const pay = (v: unknown) => (v === 'bank' || v === 'credit' ? v : 'cash');
+
+/** Clean whatever the model sent back into the same shape the on-phone reader produces. */
+function cleanDump(data: any): DumpResult {
+  return {
+    expenses: (Array.isArray(data?.expenses) ? data.expenses : []).map((e: any) => ({ category: str(e.category, 60) || 'Other', amount: amt(e.amount), notes: str(e.notes, 200), payment_mode: pay(e.payment_mode), date: day(e.date), source: str(e.source, 200) }))
+      .filter((e: { amount: number }) => e.amount > 0).slice(0, 300),
+    purchases: (Array.isArray(data?.purchases) ? data.purchases : []).map((p: any) => ({ item: str(p.item, 80), product_id: null, qty: amt(p.qty) || 1, unit: str(p.unit, 20) || 'box', pieces: Number.isInteger(p.pieces) && p.pieces > 0 ? p.pieces : null, total: amt(p.total), payment_mode: pay(p.payment_mode), date: day(p.date), source: str(p.source, 200) }))
+      .filter((p: { item: string; total: number }) => p.item && p.total > 0).slice(0, 300),
+    collections: (Array.isArray(data?.collections) ? data.collections : []).map((c: any) => ({ amount: amt(c.amount), mode: ['upi', 'card', 'credit'].includes(c.mode) ? c.mode : 'cash', customer: str(c.customer, 80), date: day(c.date), source: str(c.source, 200) }))
+      .filter((c: { amount: number }) => c.amount > 0).slice(0, 300),
+    skipped: [],
+  };
+}
+
+export async function extractFromText(env: Env, text: string, ctx: DumpContext): Promise<DumpResult & { engine: string }> {
+  const prompt = textInstructions(text, ctx);
+  if (env.ANTHROPIC_API_KEY) {
+    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    const res = await client.beta.messages.create({
+      model: 'claude-opus-5-5',
+      max_tokens: 16000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: TEXT_SCHEMA } },
+      messages: [{ role: 'user', content: prompt }],
+    });
+    if (res.stop_reason === 'refusal') throw new Error('The AI declined to read this text');
+    const out = res.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
+    return { engine: 'claude', ...cleanDump(JSON.parse(out)) };
+  }
+  if (env.GEMINI_API_KEY) {
+    let lastError: unknown;
+    for (const model of env.GEMINI_MODEL ? [env.GEMINI_MODEL] : GEMINI_MODELS) {
+      try {
+        return { engine: 'gemini', ...cleanDump(await geminiJson(env.GEMINI_API_KEY, model, [{ text: `${prompt}\nReturn only JSON matching this JSON Schema:\n${JSON.stringify(TEXT_SCHEMA)}` }])) };
+      } catch (e) { lastError = e; console.warn(`Gemini ${model} failed:`, String(e)); }
+    }
+    throw lastError;
+  }
+  // No AI configured: the same reader the phone uses.
+  return { engine: 'rules', ...readDump(text, ctx) };
 }

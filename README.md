@@ -25,6 +25,7 @@ per-piece costs, stock movement, cash differences, outstanding amounts and profi
 ## Local-first, cash counter, notes, receipts
 - The app keeps a full copy of your shop's data on the phone (IndexedDB) and syncs in the background, so every screen is instant and works offline.
 - **Cash counter** (`#/counter`): tap + on each note, total and amount in words (English/हिंदी) update live; share as a receipt image or save as today's cash sale / closing cash.
+- **Write expenses** (`#/dump`): paste or type anything (WhatsApp messages, diary notes, Hinglish) and the expenses, stock purchases and money received are picked out as you type, on the phone and offline. Tick, fix, add in one tap. "Read with AI" re-reads messy text on the server.
 - **Notes** (`#/notes`): type lines like `Chai 3 x 12`, `Rent 5000 - 10%`, `total`; the sum adds itself. Share as a receipt or send to "Type hisaab".
 - **Receipt images**: drawn on a canvas with your logo and shared through the phone's share sheet (download / WhatsApp text fallback).
 

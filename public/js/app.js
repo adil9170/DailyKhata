@@ -25,6 +25,7 @@ const adminBackupsPage = (...a) => import('./pages/admin.js').then((m) => m.admi
 
 const counterPage = (...a) => import('./pages/counter.js').then((m) => m.counterPage(...a));
 const notesPage = (...a) => import('./pages/notes.js').then((m) => m.notesPage(...a));
+const dumpPage = (...a) => import('./pages/dump.js').then((m) => m.dumpPage(...a));
 
 const app = document.getElementById('app');
 
@@ -33,6 +34,7 @@ const ALL = ['layman', 'smart', 'nerdy'], SMART_UP = ['smart', 'nerdy'];
 const companyRoutes = [
   { path: 'quick', label: 'Quick add', short: 'Home', laymanLabel: 'Home', icon: 'zap', page: quickPage, perm: 'entries.write', modes: ALL },
   { path: 'notes', label: 'Notes', short: 'Notes', laymanLabel: 'Notes', icon: 'book', page: notesPage, perm: 'entries.view', modes: ALL },
+  { path: 'dump', label: 'Write expenses', short: 'Write', laymanLabel: 'Write expenses', icon: 'type', page: dumpPage, perm: 'entries.write', modes: ALL },
   { path: 'counter', label: 'Cash counter', short: 'Counter', laymanLabel: 'Count cash', icon: 'calculator', page: counterPage, perm: 'entries.view', modes: ALL },
   { path: 'dashboard', label: 'Dashboard', icon: 'chart', page: dashboardPage, perm: 'reports.view', modes: SMART_UP },
   { path: 'day', label: 'Daily Entry', short: 'Entry', laymanLabel: 'My day', icon: 'pen', page: dayPage, perm: 'entries.view', modes: ALL },
@@ -166,12 +168,12 @@ export function openQuickAdd() {
   const go = (what) => navigate(`#/day?date=${date}&add=${what}`);
   actionSheet('Add to today’s khata', [
     { icon: 'calculator', title: 'Count cash', desc: 'Tap notes — total adds itself, share as receipt', onclick: () => navigate('#/counter') },
+    { icon: 'type', title: 'Write expenses', desc: 'Type or paste anything — the money is picked out', onclick: () => navigate('#/dump') },
     { icon: 'zap', title: 'Quick add', desc: 'Big-button entry: amount, then tap', onclick: () => navigate(`#/quick?date=${date}`) },
     { icon: 'bag', title: 'Purchase', desc: 'Stock you bought — boxes, pieces, cost', onclick: () => go('purchase') },
     { icon: 'receipt', title: 'Expense', desc: 'Gas, Wi-Fi, water, rent…', onclick: () => go('expense') },
     { icon: 'rupee', title: 'Collection', desc: 'Money from sales — cash, UPI, udhaar', onclick: () => go('collection') },
     { icon: 'book', title: 'Smart note', desc: 'Jot lines — they add up as you type', onclick: () => navigate(`#/notes?id=${crypto.randomUUID()}&new=1`) },
-    { icon: 'type', title: 'Type hisaab', desc: 'Write lines like “Sting 2 boxes 1020 60”', onclick: () => go('text') },
     ...(can('uploads.write') ? [{ icon: 'camera', title: 'Scan a photo', desc: 'We read your handwritten page for you', onclick: () => pickPhoto(date) }] : []),
   ]);
 }

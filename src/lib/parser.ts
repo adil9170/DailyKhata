@@ -65,7 +65,7 @@ function valid(y: number, mo: number, d: number): string | null {
   const dt = new Date(s + 'T00:00:00Z');
   return !isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === s ? s : null;
 }
-function stripDate(text: string): string {
+export function stripDate(text: string): string {
   return text
     .replace(/\b\d{4}-\d{2}-\d{2}\b/, ' ')
     .replace(/\b\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\b/, ' ')
