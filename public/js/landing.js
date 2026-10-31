@@ -1,7 +1,9 @@
 // Landing page behaviour. Everything the page shows is real: the writing box and the "becomes" line use the same text
 // reader as the app (src/lib/dump.ts), and the receipt strip is built from what it understood.
 import { readDump } from '../../src/lib/dump.ts';
+import { t, lang, initLangSwitch } from './landing-i18n.js';
 
+const loc = () => (lang() === 'hi' ? 'hi-IN' : 'en-IN');
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
 const rs = (n) => '₹' + inr.format(n);
 const sgn = (v) => (v < 0 ? '−' : '+') + rs(Math.abs(v));
@@ -14,12 +16,13 @@ const read = (text) => readDump(text, { defaultYear: today.getFullYear(), today:
 const entries = (r) => [
   ...r.expenses.map((e) => ({ c: 'ex', n: [e.category, e.notes, e.payment_mode === 'bank' ? 'UPI' : ''].filter(Boolean).join(' · '), v: -e.amount })),
   ...r.purchases.map((p) => ({ c: 'ex', n: `${p.item} · ${p.qty} ${p.unit}`, v: -p.total })),
-  ...r.collections.map((c) => ({ c: c.mode === 'credit' ? 'ud' : 'in', n: [c.customer || (c.mode === 'credit' ? '' : 'Sale'), c.mode === 'credit' ? 'udhaar' : c.mode === 'upi' ? 'UPI' : ''].filter(Boolean).join(' · '), v: c.amount })),
+  ...r.collections.map((c) => ({ c: c.mode === 'credit' ? 'ud' : 'in', n: [c.customer || (c.mode === 'credit' ? '' : t('tape_sale')), c.mode === 'credit' ? t('tape_udhaar') : c.mode === 'upi' ? 'UPI' : ''].filter(Boolean).join(' · '), v: c.amount })),
 ];
 const line = (x) => `<li class="${x.c}"><span class="n">${esc(x.n)}</span><i class="d"></i><b>${sgn(x.v)}</b></li>`;
 
 export function initLanding() {
   const yr = document.getElementById('lp-year'); if (yr) yr.textContent = String(today.getFullYear());
+  initLangSwitch(); // paints the page in the chosen language first, then the live parts read it
   writing(); day(); words();
 }
 
@@ -28,20 +31,22 @@ function writing() {
   const note = document.getElementById('lp-note'), rows = document.getElementById('lp-rows');
   if (!note || !rows) return;
   const count = document.getElementById('lp-count'), inEl = document.getElementById('lp-in'), outEl = document.getElementById('lp-outv');
-  document.getElementById('lp-date').textContent = today.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const dateEl = document.getElementById('lp-date');
   const grow = () => { note.style.height = 'auto'; note.style.height = Math.max(200, note.scrollHeight + 4) + 'px'; };
   const paint = () => {
+    dateEl.textContent = today.toLocaleDateString(loc(), { day: 'numeric', month: 'short' });
     const r = read(note.value), list = entries(r);
-    rows.innerHTML = list.length ? list.map(line).join('') : '<li class="empty">Your lines will print here.</li>';
+    rows.innerHTML = list.length ? list.map(line).join('') : `<li class="empty">${esc(t('tape_empty'))}</li>`;
     inEl.textContent = rs(list.filter((x) => x.v > 0).reduce((s, x) => s + x.v, 0));
     outEl.textContent = rs(-list.filter((x) => x.v < 0).reduce((s, x) => s + x.v, 0));
-    count.textContent = list.length ? `${list.length} ${list.length === 1 ? 'entry' : 'entries'}${r.skipped.length ? ` · ${r.skipped.length} total skipped` : ''}` : 'Nothing yet';
+    count.textContent = list.length ? t(list.length === 1 ? 'tape_one' : 'tape_many', { n: list.length }) + (r.skipped.length ? ` · ${t('tape_skipped', { n: r.skipped.length })}` : '') : t('tape_none');
   };
-  let t, touched = false;
+  let timer, touched = false;
   const touch = () => { touched = true; };
   note.addEventListener('pointerdown', touch); note.addEventListener('keydown', touch); note.addEventListener('focus', touch);
-  note.addEventListener('input', () => { grow(); clearTimeout(t); t = setTimeout(paint, 100); });
+  note.addEventListener('input', () => { grow(); clearTimeout(timer); timer = setTimeout(paint, 100); });
   document.querySelectorAll('.lp-try button').forEach((b) => b.addEventListener('click', () => { touched = true; note.value = b.dataset.sample; grow(); paint(); }));
+  window.addEventListener('dk:lang', paint);
   grow(); paint();
   const script = ['gas 820, chai 40', 'Sharma se 3000 mila upi', 'Sting 2 box 1020', 'Raju udhaar 450'];
   (async () => {
@@ -59,12 +64,12 @@ function writing() {
 
 // One day: the step in the middle of the screen prints its lines on the strip; the drawer total follows.
 const DAY = [
-  { lines: [{ n: 'Opening cash', v: 3303, c: 'in', cash: 1 }] },
-  { lines: [{ n: 'Sting · 2 box', v: -1020, c: 'ex', cash: 1 }] },
-  { lines: [{ n: 'Gas', v: -820, c: 'ex', cash: 1 }, { n: 'Tea', v: -60, c: 'ex', cash: 1 }] },
-  { lines: [{ n: 'Mehta · udhaar', v: 230, c: 'ud', cash: 0 }] },
-  { lines: [{ n: 'Cash sales', v: 6290, c: 'in', cash: 1 }, { n: 'UPI sales', v: 1180, c: 'quiet', cash: 0 }], rule: true,
-    close: [{ n: 'Should be in drawer', v: '₹7,693', c: 'total' }, { n: 'You counted', v: '₹7,693', c: 'total' }] },
+  { lines: [{ n: 'd_open', v: 3303, c: 'in', cash: 1 }] },
+  { lines: [{ n: 'd_sting', v: -1020, c: 'ex', cash: 1 }] },
+  { lines: [{ n: 'd_gas', v: -820, c: 'ex', cash: 1 }, { n: 'd_tea', v: -60, c: 'ex', cash: 1 }] },
+  { lines: [{ n: 'd_mehta', v: 230, c: 'ud', cash: 0 }] },
+  { lines: [{ n: 'd_cash', v: 6290, c: 'in', cash: 1 }, { n: 'd_upi', v: 1180, c: 'quiet', cash: 0 }], rule: true,
+    close: [{ n: 'd_should', v: '₹7,693', c: 'total' }, { n: 'd_counted', v: '₹7,693', c: 'total' }] },
 ];
 function day() {
   const ol = document.getElementById('lp-day-lines'), drawer = document.getElementById('lp-drawer');
@@ -73,8 +78,8 @@ function day() {
   const mini = document.createElement('div'); mini.className = 'lp-mini'; mini.innerHTML = '<span></span><b></b>';
   document.getElementById('day').append(mini);
   let shown = -1, cur = 0;
-  const html = (s) => DAY[s].lines.map((x) => `<li class="${x.c}" data-s="${s}"><span class="n">${x.n}</span><i class="d"></i><b>${sgn(x.v)}</b></li>`).join('')
-    + (DAY[s].rule ? `<li class="rule" data-s="${s}"></li>` + DAY[s].close.map((x) => `<li class="${x.c}" data-s="${s}"><span class="n">${x.n}</span><i class="d"></i><b>${x.v}</b></li>`).join('') + `<li class="ok" data-s="${s}">✓ Books match</li>` : '');
+  const html = (s) => DAY[s].lines.map((x) => `<li class="${x.c}" data-s="${s}"><span class="n">${esc(t(x.n))}</span><i class="d"></i><b>${sgn(x.v)}</b></li>`).join('')
+    + (DAY[s].rule ? `<li class="rule" data-s="${s}"></li>` + DAY[s].close.map((x) => `<li class="${x.c}" data-s="${s}"><span class="n">${esc(t(x.n))}</span><i class="d"></i><b>${x.v}</b></li>`).join('') + `<li class="ok" data-s="${s}">✓ ${esc(t('d_match'))}</li>` : '');
   const cashAt = (s) => DAY.slice(0, s + 1).reduce((t, d) => t + d.lines.filter((x) => x.cash).reduce((a, x) => a + x.v, 0), 0);
   const tween = (el, to) => {
     const from = Number(el.dataset.v || 0); el.dataset.v = to;
@@ -90,9 +95,11 @@ function day() {
     shown = s;
     tween(drawer, cashAt(s));
     const last = DAY[s].lines[DAY[s].lines.length - 1];
-    mini.firstChild.textContent = s === 4 ? 'Books match' : last.n; tween(mini.lastChild, cashAt(s));
+    mini.firstChild.textContent = s === 4 ? t('d_match') : t(last.n); tween(mini.lastChild, cashAt(s));
   };
   show(0);
+  // language switch: reprint the lines that are already on the strip, in the new language
+  window.addEventListener('dk:lang', () => { const s = shown; ol.innerHTML = ''; shown = -1; for (let k = 0; k <= s; k++) ol.insertAdjacentHTML('beforeend', html(k)); shown = s; show(s); });
   if (!('IntersectionObserver' in window)) return;
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) show(moments.indexOf(e.target)); }), { rootMargin: '-42% 0px -42% 0px' });
   moments.forEach((m) => io.observe(m));

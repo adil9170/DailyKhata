@@ -302,6 +302,7 @@ function showLanding() {
   document.documentElement.classList.remove('app-mode');
   document.title = 'DailyKhata — the shop khata you can write like you talk';
   if (!landingReady) { landingReady = true; import('./landing.js').then((m) => m.initLanding()).catch(() => {}); }
+  else import('./landing-i18n.js').then((m) => m.applyLang()).catch(() => {}); // coming back from the app: restore the landing language and title
 }
 
 async function route(reloadUser = false) {
@@ -313,6 +314,7 @@ async function route(reloadUser = false) {
   // visitors who are not signed in get the landing page (plain HTML in index.html); '#try' etc. are its own anchors
   if (!/^#\/./.test(location.hash) && !state.user && !loadSession()?.user) { showLanding(); return; }
   document.documentElement.classList.add('app-mode');
+  document.documentElement.lang = 'en'; // the landing may have set Hindi; the app is English until slot 10
 
   if (path === 'setup') return setupPage();
   if (path === 'login' && !reloadUser) {

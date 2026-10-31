@@ -8,6 +8,12 @@
   // signed-in people (or anyone opening an app link) go straight to the app; everyone else sees the landing page
   var sess = null; try { sess = ls && JSON.parse(ls.getItem('dk_session') || 'null'); } catch (e) { sess = null; }
   if ((sess && sess.user) || /^#\/./.test(location.hash)) d.classList.add('app-mode');
+  // landing language (EN default; Hindi if chosen, or if the browser says hi): set <html lang> now and hold the page back until landing-i18n.js has painted it
+  if (!d.classList.contains('app-mode')) {
+    var lg = ls && ls.getItem('dk_lang');
+    if (lg !== 'en' && lg !== 'hi') lg = /^hi/i.test(navigator.language || '') ? 'hi' : 'en';
+    if (lg === 'hi') { d.lang = 'hi'; d.classList.add('lang-pending'); setTimeout(function () { d.classList.remove('lang-pending'); }, 2500); }
+  }
   var perf = (ls && ls.getItem('dk_perf')) || 'auto';
   var mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8;
   var saveData = navigator.connection && navigator.connection.saveData;
