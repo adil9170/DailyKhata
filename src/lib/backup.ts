@@ -1,6 +1,6 @@
 import type { Env } from '../types';
 
-const TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'documents', 'notes'] as const;
+const TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'documents', 'notes', 'bills'] as const;
 
 /** Writes a full JSON snapshot of one company's financial data to R2 (private bucket). */
 export async function backupCompany(env: Env, companyId: number, kind: 'scheduled' | 'manual' = 'scheduled') {

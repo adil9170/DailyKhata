@@ -9,11 +9,13 @@ import { parseText } from '../lib/parser';
 import { extractFromImage, extractFromText } from '../lib/ocr';
 import { buildCsv, buildXlsx, type Cell } from '../lib/xlsx';
 import { hashPassword, validatePassword } from '../lib/crypto';
+import bills from './bills';
 import { PERMISSIONS, ROLE_DEFAULTS, effectivePermissions } from '../lib/permissions';
 
 type C = Context<AppEnv>;
 const co = new Hono<AppEnv>();
 co.use('*', requireAuth, companyScope);
+co.route('/bills', bills);
 
 const PAY_MODES = ['cash', 'bank', 'credit'] as const;
 const COLLECTION_MODES = ['cash', 'upi', 'card', 'credit'] as const;
@@ -708,7 +710,7 @@ co.delete('/notes/:clientId', perm('entries.write'), async (c) => {
 });
 
 // ---------- sync: the phone keeps a full local copy and asks only "what changed since seq N?" ----------
-const SYNC_TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'notes'] as const;
+const SYNC_TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'notes', 'bills'] as const;
 const SYNC_PAGE = 4000;
 co.get('/sync', perm('entries.view'), async (c) => {
   const cid = c.get('companyId'); const db = c.env.DB;

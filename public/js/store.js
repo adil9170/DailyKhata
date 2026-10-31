@@ -9,7 +9,7 @@
 // everything, and whatever it sends back replaces our provisional copy.
 import { state, ApiError } from './state.js';
 
-export const TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'notes'];
+export const TABLES = ['products', 'expense_categories', 'purchases', 'expenses', 'collections', 'payments', 'stock_counts', 'day_closings', 'notes', 'bills'];
 const POLL_MS = 40_000;
 const nowSql = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 const stripRuntime = (op) => { const { inflight, ...rest } = op; return rest; };
@@ -43,12 +43,12 @@ function rememberDb(name) {
 function openDb(cid) {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable'));
-    const req = indexedDB.open(dbName(cid), 1);
+    const req = indexedDB.open(dbName(cid), 2); // v2 adds the bills store
     req.onupgradeneeded = () => {
       const d = req.result;
-      for (const t of TABLES) d.createObjectStore(t, { keyPath: 'id' });
-      d.createObjectStore('outbox', { keyPath: 'qid' });
-      d.createObjectStore('kv', { keyPath: 'k' });
+      for (const t of TABLES) if (!d.objectStoreNames.contains(t)) d.createObjectStore(t, { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('outbox')) d.createObjectStore('outbox', { keyPath: 'qid' });
+      if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv', { keyPath: 'k' });
     };
     req.onsuccess = () => { rememberDb(dbName(cid)); resolve(req.result); };
     req.onerror = () => reject(req.error);
@@ -102,7 +102,7 @@ async function load() {
   for (const t of TABLES) for (const r of all[t]) data[t].set(r.id, r);
   outbox = all.outbox.sort((a, b) => a.qid - b.qid);
   const m = all.kv.find((x) => x.k === 'meta');
-  meta = m ? { seq: m.seq ?? null, synced: !!m.synced, lastSync: m.lastSync || 0, context: m.context || null } : { seq: null, synced: false, lastSync: 0, context: null };
+  meta = m ? { seq: m.seq ?? null, synced: !!m.synced, lastSync: m.lastSync || 0, context: m.context || null, bills: m.bills || null } : { seq: null, synced: false, lastSync: 0, context: null };
   tempSeq = 0; qidSeq = 0;
   for (const t of TABLES) for (const id of data[t].keys()) if (id < 0) tempSeq = Math.max(tempSeq, -id);
   for (const o of outbox) { qidSeq = Math.max(qidSeq, o.qid); if (o.tempId < 0) tempSeq = Math.max(tempSeq, -o.tempId); }
@@ -144,12 +144,21 @@ export function newClientId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 3) | 8).toString(16); });
 }
+// Bill numbering lives in the saved meta so it survives restarts: a reserved block of server numbers, a provisional
+// counter for when the block runs out offline, and a short per-device code that keeps provisional numbers unique.
+export const getBillState = () => (meta.bills ||= { block: null, prov: 0, dev: '' });
+export const saveBillState = () => saveMeta();
+/** Ask the server for `n` consecutive bill numbers (not queued: it needs an answer now). Resolves null when offline. */
+export async function reserveBills(n, after = 0) {
+  if (!active) return null;
+  try { return await send('POST', '/api/c/bills/reserve', { n, after }); } catch { return null; }
+}
 export const getContext = () => meta.context;
 export function setContext(ctx) { meta.context = ctx; return saveMeta(); }
 export const needsFirstSync = () => !meta.synced;
 
 // ---------- writing (always local first) ----------
-const pathOf = { products: 'products', expense_categories: 'categories', purchases: 'purchases', expenses: 'expenses', collections: 'collections', payments: 'payments' };
+const pathOf = { products: 'products', expense_categories: 'categories', purchases: 'purchases', expenses: 'expenses', collections: 'collections', payments: 'payments', bills: 'bills' };
 
 function keyOf(table, id) { return `${table}:${id}`; }
 function pendingOps() { return outbox.filter((o) => o.status !== 'failed'); }
@@ -277,8 +286,8 @@ async function onSuccess(op, res, conflict = false) {
       if (op.table === 'products') remapProduct(op.tempId, res.id, put, del);
     }
     void conflict; // 409 = it already exists on the server; the next pull brings it and replaces our temporary row
-  } else if (res && res.id && op.method === 'PUT') {
-    const table = op.table || (op.url?.includes('/notes/') ? 'notes' : op.url?.includes('/closing') ? 'day_closings' : null);
+  } else if (res && res.id && (op.method === 'PUT' || op.url?.endsWith('/void'))) {
+    const table = op.table || (op.url?.endsWith('/void') ? 'bills' : op.url?.includes('/notes/') ? 'notes' : op.url?.includes('/closing') ? 'day_closings' : null);
     if (table && !outbox.some((o) => o.key === op.key)) {
       if (table === 'day_closings') for (const [id, r] of data.day_closings) if (r.entry_date === res.entry_date && id !== res.id) { data.day_closings.delete(id); del.push([table, id]); }
       if (table === 'notes') for (const [id, r] of data.notes) if (r.client_id === res.client_id && id !== res.id) { data.notes.delete(id); del.push([table, id]); }
@@ -321,7 +330,7 @@ function dirtyKeys() {
   }
   return s;
 }
-const isDirty = (set, t, r) => set.has(keyOf(t, r.id)) || (t === 'stock_counts' && set.has(`stock:${r.entry_date}:${r.product_id}`)) || (t === 'day_closings' && set.has(`closing:${r.entry_date}`)) || (t === 'notes' && set.has(`note:${r.client_id}`));
+const isDirty = (set, t, r) => set.has(keyOf(t, r.id)) || (t === 'stock_counts' && set.has(`stock:${r.entry_date}:${r.product_id}`)) || (t === 'day_closings' && set.has(`closing:${r.entry_date}`)) || (t === 'notes' && set.has(`note:${r.client_id}`)) || (t === 'bills' && set.has(`billvoid:${r.client_id}`));
 const sameRow = (a, b) => { if (!a) return false; for (const k of Object.keys(b)) if (k !== 'updated_at' && k !== 'created_at' && a[k] !== b[k]) return false; return true; };
 
 function applyPulled(res) {

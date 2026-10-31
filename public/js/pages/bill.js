@@ -3,9 +3,11 @@
 import { h, mount, money, toast, icon, busy, pageHead, confirmDialog } from '../ui.js';
 import { api, state, can, todayLocal } from '../api.js';
 import { amountToWords } from '../../../src/lib/words.ts';
+import { billLabel } from '../../../src/lib/bills.ts';
+import { peekBillNumber, warmBillNumbers } from '../localapi.js';
 
 const draftKey = () => `dk_bill_${state.company?.id || 0}`;
-const noKey = () => `dk_billno_${state.company?.id || 0}`;
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `b-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`);
 const ratesKey = () => `dk_billrates_${state.company?.id || 0}`; // last rate used per item, for items with no sale price in Products
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const keep = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } };
@@ -23,7 +25,10 @@ export async function billPage(main) {
     const p = products.find((x) => x.name.toLowerCase() === n);
     return p?.sale_price_paise ? p.sale_price_paise / 100 : rates[n]?.rate ?? null;
   };
-  const nextNo = () => load(noKey(), 0) + 1;
+  // the number the next bill will get (shared across devices; "P…" numbers are provisional while offline)
+  const nextNo = () => { const n = peekBillNumber(); return n ? billLabel(n.series, n.no) : ''; };
+  const noText = () => (nextNo() ? `Bill #${nextNo()}` : 'New bill');
+  warmBillNumbers();
 
   const subtotal = () => r2(bill.items.reduce((s, it) => s + num(it.qty) * num(it.rate), 0));
   const total = () => Math.max(0, r2(subtotal() - num(bill.discount)));
@@ -87,7 +92,7 @@ export async function billPage(main) {
     if (num(bill.discount)) lines.push({ label: 'Discount', value: '−' + money(Math.round(num(bill.discount) * 100)), negative: true });
     const who = [bill.customer.trim(), bill.phone.trim()].filter(Boolean).join(' · ');
     const paid = bill.mode === 'credit' ? 'Payment due (udhaar)' : `Paid by ${modes.find((m) => m[0] === bill.mode)[1]}`;
-    return { company: state.company, title: `Bill #${no}`, subtitle: who ? `To: ${who}` : null, lines, totalLabel: 'TOTAL', total: money(Math.round(total() * 100)),
+    return { company: state.company, title: no ? `Bill #${no}` : 'Bill', subtitle: who ? `To: ${who}` : null, lines, totalLabel: 'TOTAL', total: money(Math.round(total() * 100)),
       words: amountToWords(Math.round(total() * 100), 'en', true), footer: `${paid} · Thank you, visit again!`, phone: bill.phone, sheetTitle: 'Share bill' };
   };
   const valid = () => {
@@ -101,15 +106,21 @@ export async function billPage(main) {
   const saveBtn = h('button', { class: 'primary bsave' }, icon('check', 18), 'Save & share bill');
   saveBtn.addEventListener('click', busy(saveBtn, async () => {
     if (!valid()) return;
-    const no = nextNo();
+    const date = state.today || todayLocal();
+    const saleId = uid();
+    const items = bill.items.filter((it) => it.name.trim() && num(it.qty) && num(it.rate)).map((it) => ({ name: it.name.trim(), qty: num(it.qty), rate: num(it.rate) }));
+    // 1) the bill record (gets its number), 2) the sale it stands for; if the sale cannot be saved the bill is voided again
+    const rec = await api('/api/c/bills', { method: 'POST', body: { client_id: uid(), date, items, customer: bill.customer.trim(), phone: bill.phone.trim(), discount: String(num(bill.discount)), pay_mode: bill.mode, collection_client_id: saleId } });
+    const no = billLabel(rec.series, rec.bill_no);
     const opts = receiptOpts(no);
     const itemsText = opts.lines.filter((l) => l.label !== 'Discount').map((l) => `${l.label} ${l.note}`).join(', ');
-    await api('/api/c/collections', { method: 'POST', body: { date: state.today || todayLocal(), amount: String(total()), mode: bill.mode, customer: bill.customer.trim(), notes: `Bill #${no}: ${itemsText}`.slice(0, 500) } });
-    keep(noKey(), no);
+    try {
+      await api('/api/c/collections', { method: 'POST', body: { client_id: saleId, date, amount: String(total()), mode: bill.mode, customer: bill.customer.trim(), notes: `Bill #${no}: ${itemsText}`.slice(0, 500) } });
+    } catch (e) { await api(`/api/c/bills/${rec.client_id}/void`, { method: 'POST', body: {} }).catch(() => {}); throw e; }
     for (const it of bill.items) if (it.name.trim() && num(it.rate)) { const k = it.name.trim().toLowerCase(); rates[k] = { name: it.name.trim(), rate: num(it.rate), n: (rates[k]?.n || 0) + 1 }; }
     keep(ratesKey(), rates);
     paintPicks();
-    main.querySelector('.page-head .sub').textContent = `Bill #${nextNo()}`;
+    main.querySelector('.page-head .sub').textContent = noText();
     Object.assign(bill, blank()); keep(draftKey(), null);
     customer.value = ''; phone.value = ''; discount.value = ''; modeBtns.forEach((b, i) => b.classList.toggle('on', i === 0));
     paintRows(); paintTotals();
@@ -122,7 +133,7 @@ export async function billPage(main) {
     } } }, 'New bill');
 
   mount(main,
-    pageHead('Make a bill', `Bill #${nextNo()}`, clearBtn),
+    pageHead('Make a bill', noText(), clearBtn),
     h('datalist', { id: 'dk-bill-prods' }, products.map((p) => h('option', { value: p.name }))),
     h('div', { class: 'card bcard' }, h('div', { class: 'bcust' }, customer, phone)),
     h('div', { class: 'card bcard' },

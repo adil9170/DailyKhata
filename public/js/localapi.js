@@ -12,6 +12,7 @@ import { buildReportInput, categoryTotals, partyBalances } from '../../src/lib/l
 import { buildSummary } from '../../src/lib/summary.ts';
 import { parseText } from '../../src/lib/parser.ts';
 import { daysBetween, todayIST } from '../../src/lib/dates.ts';
+import { normalizeBill } from '../../src/lib/bills.ts';
 import { toPaise, optPaise, reqDate, isDate, reqStr, optStr, reqNum, oneOf } from '../../src/lib/util.ts';
 
 export const NOT_LOCAL = Symbol('not-local');
@@ -119,7 +120,7 @@ async function createEntry(table, b) {
   need(WRITE_PERM);
   const puts = [];
   const rec = BUILD[table](b, puts);
-  const clientId = S.newClientId();
+  const clientId = typeof b.client_id === 'string' && /^[\w-]{8,64}$/.test(b.client_id) && !S.rows(table).some((r) => r.client_id === b.client_id) ? b.client_id : S.newClientId();
   const row = baseRow({ id: S.nextTempId(), client_id: clientId, ...rec });
   await S.commit({ put: [...puts, [table, row]], queue: [S.q.create(table, row.id, wireBody(b, clientId, rec))] });
   return view(table, row);
@@ -330,6 +331,93 @@ async function deleteNote(clientId) {
   return { deleted: true };
 }
 
+// ---------- bills ----------
+// Numbers come from a block reserved from the server (series A, shared by every device). If the block runs out while
+// offline, the device falls back to its own provisional series "P<code>", which cannot collide with anyone else's.
+const BLOCK = 20, LOW = 5;
+let numLock = Promise.resolve();
+const withTimeout = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);
+const legacyCounter = () => { try { return Number(JSON.parse(localStorage.getItem(`dk_billno_${company()}`))) || 0; } catch { return 0; } };
+const remaining = (st) => (st.block ? Math.max(0, st.block.to - st.block.next + 1) : 0) + (st.spare ? st.spare.to - st.spare.from + 1 : 0);
+async function reserveBlock() {
+  const r = await S.reserveBills(BLOCK, legacyCounter());
+  return r && Number.isInteger(r.from) && Number.isInteger(r.to) && r.to >= r.from ? { from: r.from, to: r.to, next: r.from } : null;
+}
+function topUp() {
+  const st = S.getBillState();
+  if (st.reserving || remaining(st) > LOW || navigator.onLine === false) return;
+  st.reserving = true;
+  reserveBlock().then(async (b) => {
+    if (b) { if (!st.block || st.block.next > st.block.to) st.block = b; else st.spare = b; await S.saveBillState(); }
+  }).finally(() => { st.reserving = false; });
+}
+export function warmBillNumbers() { try { if (S.isActive() && !S.needsFirstSync()) topUp(); } catch { /* best effort */ } }
+/** The number the next bill will get, for display only (null until the device has one). */
+export function peekBillNumber() {
+  const st = S.getBillState();
+  if (st.block && st.block.next <= st.block.to) return { series: 'A', no: st.block.next };
+  if (st.spare) return { series: 'A', no: st.spare.from };
+  return st.dev ? { series: 'P' + st.dev, no: (st.prov || 0) + 1 } : null;
+}
+function takeBillNumber() {
+  const run = async () => {
+    const st = S.getBillState();
+    if (!st.dev) st.dev = Array.from(crypto.getRandomValues(new Uint8Array(4)), (x) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[x % 32]).join('');
+    if ((!st.block || st.block.next > st.block.to) && st.spare) { st.block = st.spare; st.spare = null; }
+    if ((!st.block || st.block.next > st.block.to) && navigator.onLine !== false) {
+      const b = await withTimeout(reserveBlock(), 2500);
+      if (b) st.block = b;
+    }
+    let out;
+    if (st.block && st.block.next <= st.block.to) out = { series: 'A', no: st.block.next++ };
+    else out = { series: 'P' + st.dev, no: ++st.prov };
+    await S.saveBillState();
+    topUp();
+    return out;
+  };
+  const p = numLock.then(run, run);
+  numLock = p.catch(() => {});
+  return p;
+}
+async function createBill(b) {
+  need(WRITE_PERM);
+  const rec = normalizeBill({ ...b, series: undefined, bill_no: undefined }, todayIST());
+  const { series, no } = await takeBillNumber();
+  const clientId = typeof b.client_id === 'string' && /^[\w-]{8,64}$/.test(b.client_id) ? b.client_id : S.newClientId();
+  const old = S.rows('bills').find((r) => r.client_id === clientId);
+  if (old) return old; // double-tap or retry
+  const row = baseRow({ id: S.nextTempId(), client_id: clientId, ...rec, series, bill_no: no, voided: 0 });
+  await S.commit({ put: [['bills', row]], queue: [S.q.create('bills', row.id, { ...b, client_id: clientId, series, bill_no: no })] });
+  return row;
+}
+function listBills(qs) {
+  need('entries.view');
+  const q = lc(qs.get('q') || '').trim().replace(/^#/, '').slice(0, 80);
+  const customer = lc(qs.get('customer') || '').trim();
+  const from = qs.get('from'), to = qs.get('to'), voided = qs.get('voided');
+  const limit = Math.min(200, Math.max(1, Math.floor(Number(qs.get('limit'))) || 50));
+  const offset = Math.max(0, Math.floor(Number(qs.get('offset'))) || 0);
+  const all = S.rows('bills').filter((r) =>
+    (!q || lc(r.customer).includes(q) || lc(r.phone).includes(q) || lc(`${r.series}-${r.bill_no}`).includes(q) || String(r.bill_no) === q)
+    && (!customer || lc(r.customer) === customer) && (!from || r.entry_date >= from) && (!to || r.entry_date <= to)
+    && (voided !== '0' && voided !== '1' || r.voided === Number(voided)))
+    .sort((a, b) => (a.entry_date < b.entry_date ? 1 : a.entry_date > b.entry_date ? -1 : ord(b.id) - ord(a.id)));
+  return { bills: all.slice(offset, offset + limit), total: all.length, limit, offset };
+}
+async function voidBill(clientId) {
+  need('entries.delete');
+  const old = S.rows('bills').find((r) => r.client_id === clientId);
+  if (!old) bad('Bill not found', 404);
+  if (old.voided) return old;
+  const row = { ...old, voided: 1, updated_at: nowSql() };
+  const sale = old.collection_client_id ? S.rows('collections').find((r) => r.client_id === old.collection_client_id) : null; // may already be deleted
+  const queue = [];
+  if (sale) queue.push(S.q.remove('collections', sale.id));
+  queue.push(S.q.upsert(`billvoid:${clientId}`, 'POST', `/api/c/bills/${clientId}/void`, {}));
+  await S.commit({ put: [['bills', row]], del: sale ? [['collections', sale.id]] : [], queue });
+  return row;
+}
+
 // ---------- router ----------
 const ENTRY = '(purchases|expenses|collections|payments)';
 function parseCtx(date) {
@@ -356,6 +444,8 @@ export async function localRequest(method, path, body) {
       if (p === '/categories') { need('entries.view'); return S.rows('expense_categories').sort(nameCmp); }
       if ((m = p.match(new RegExp(`^/${ENTRY}$`)))) return listEntries(m[1], qs);
       if ((m = p.match(/^\/day\/([^/]+)$/))) return dayView(m[1]);
+      if (p === '/bills') return listBills(qs);
+      if ((m = p.match(/^\/bills\/([^/]+)$/))) { need('entries.view'); return S.rows('bills').find((r) => r.client_id === m[1]) ?? bad('Bill not found', 404); }
       if (p === '/notes') { need('entries.view'); return S.rows('notes').sort((a, b) => (b.pinned - a.pinned) || (a.updated_at < b.updated_at ? 1 : -1)); }
       if (p === '/reports/summary') {
         need('reports.view');
@@ -376,6 +466,8 @@ export async function localRequest(method, path, body) {
     }
     if (method === 'POST') {
       if ((m = p.match(new RegExp(`^/${ENTRY}$`)))) return await createEntry(m[1], body || {});
+      if (p === '/bills') return await createBill(body || {});
+      if ((m = p.match(/^\/bills\/([^/]+)\/void$/))) return await voidBill(m[1]);
       if (p === '/products') return await saveProduct(0, body || {});
       if (p === '/categories') return await saveCategory(0, body || {});
       if (p === '/parse') { need(WRITE_PERM); return parseText(String(body?.text ?? '').slice(0, 20000), parseCtx(body?.date)); }
