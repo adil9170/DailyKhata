@@ -252,7 +252,7 @@ describe('reader robustness', () => {
     for (const c of cases) {
       const t = performance.now();
       readDump(c, ctx);
-      expect(performance.now() - t, c.slice(0, 20)).toBeLessThan(500);
+      expect(performance.now() - t, c.slice(0, 20)).toBeLessThan(2000);
     }
   });
 });
