@@ -122,7 +122,8 @@ export async function quickPage(main, params) {
     h('div', { class: 'list', style: { marginTop: '6px' } }, recent.map((r) => h('div', { class: 'li' }, h('div', { class: 'lead' }, icon(r.ic, 18)), h('div', { class: 'body' }, h('div', { class: 't' }, r.t), r.d ? h('div', { class: 'd' }, r.d) : null), h('div', { class: 'amt ' + (r.sign === '+' ? 'pos' : '') }, r.sign + money(r.amt)))))) : null;
 
   const tools = h('div', { class: 'qtools' },
-    h('a', { class: 'qtool', href: '#/dump' }, h('span', { class: 'dot' }, icon('type', 22)), h('span', null, h('b', null, 'Write or paste notes'), h('span', { class: 'd' }, 'Many entries at once'))),
+    h('a', { class: 'qtool', href: '#/bill' }, h('span', { class: 'dot' }, icon('receipt', 22)), h('span', null, h('b', null, 'Make a bill'), h('span', { class: 'd' }, 'For a customer'))),
+    h('a', { class: 'qtool', href: '#/dump' }, h('span', { class: 'dot' }, icon('type', 22)), h('span', null, h('b', null, 'Paste notes'), h('span', { class: 'd' }, 'Many at once'))),
     h('a', { class: 'qtool', href: '#/notes' }, h('span', { class: 'dot' }, icon('book', 22)), h('span', null, h('b', null, 'Notes'), h('span', { class: 'd' }, 'Jot lines, auto total'))));
   mount(main, greeting, startCard(data, isToday), summary, form, tools, recentCard);
 }

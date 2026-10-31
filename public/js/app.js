@@ -2,7 +2,7 @@ import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables
 import { api, netApi, state, loadContext, refreshContext, refreshLists, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
 import * as S from './store.js';
 import { getTheme, setTheme, effectiveTheme } from './theme.js';
-import { MODES, getMode, modeOrDefault, initMode, openModeSheet, welcomeModePicker } from './mode.js';
+import { MODES, getMode, modeOrDefault, initMode, openModeSheet } from './mode.js';
 import './device.js';
 
 // Pages load on demand (code-split by the bundler) so the first screen only downloads what it needs.
@@ -25,6 +25,7 @@ const adminBackupsPage = (...a) => import('./pages/admin.js').then((m) => m.admi
 
 const counterPage = (...a) => import('./pages/counter.js').then((m) => m.counterPage(...a));
 const notesPage = (...a) => import('./pages/notes.js').then((m) => m.notesPage(...a));
+const billPage = (...a) => import('./pages/bill.js').then((m) => m.billPage(...a));
 const dumpPage = (...a) => import('./pages/dump.js').then((m) => m.dumpPage(...a));
 
 const app = document.getElementById('app');
@@ -34,6 +35,7 @@ const ALL = ['layman', 'smart', 'nerdy'], SMART_UP = ['smart', 'nerdy'];
 const companyRoutes = [
   { path: 'quick', label: 'Home', short: 'Home', icon: 'home', page: quickPage, perm: 'entries.write', modes: ALL },
   { path: 'day', label: 'Today’s khata', short: 'Khata', laymanLabel: 'Today’s khata', icon: 'pen', page: dayPage, perm: 'entries.view', modes: ALL },
+  { path: 'bill', label: 'Make a bill', short: 'Bill', icon: 'receipt', page: billPage, perm: 'entries.write', modes: ALL },
   { path: 'dump', label: 'Write expenses', short: 'Write', icon: 'type', page: dumpPage, perm: 'entries.write', modes: ALL },
   { path: 'counter', label: 'Cash counter', short: 'Counter', icon: 'calculator', page: counterPage, perm: 'entries.view', modes: ALL },
   { path: 'notes', label: 'Notes', short: 'Notes', icon: 'book', page: notesPage, perm: 'entries.view', modes: ALL },
@@ -49,7 +51,7 @@ const companyRoutes = [
 /** Pages this person may open in the current mode. */
 const visibleCompanyRoutes = () => companyRoutes.filter((r) => (!r.perm || can(r.perm)) && r.modes.includes(modeOrDefault()));
 const routeLabel = (r) => (modeOrDefault() === 'layman' && r.laymanLabel) || r.label;
-/** Where "Home" goes: Quick add for Layman, the dashboard for everyone else who may see it. */
+/** Where "Home" goes: the simple add page, in every mode. */
 function homeRoute() {
   const rs = visibleCompanyRoutes();
   return rs.find((r) => r.path === 'quick') || rs.find((r) => r.path === 'day') || rs[0];
@@ -166,6 +168,7 @@ export function openQuickAdd() {
   const date = (location.hash.match(/date=(\d{4}-\d{2}-\d{2})/) || [])[1] || today;
   const quick = (type) => navigate(`#/quick?date=${date}&type=${type}`);
   actionSheet('Add', [
+    { icon: 'receipt', title: 'Bill for a customer', desc: 'Items, total, share on WhatsApp', onclick: () => navigate('#/bill') },
     { icon: 'rupee', title: 'Sale', desc: 'Money you received', onclick: () => quick('collection') },
     { icon: 'receipt', title: 'Expense', desc: 'Money you spent — gas, rent, tea…', onclick: () => quick('expense') },
     { icon: 'bag', title: 'Stock bought', desc: 'Items you bought to sell', onclick: () => quick('purchase') },
@@ -354,7 +357,6 @@ async function route(reloadUser = false) {
   const r = visibleCompanyRoutes().find((x) => x.path === seg) || companyRoutes.find((x) => x.path === seg && (!x.perm || can(x.perm))) || homeRoute();
   if (r.path !== seg) { location.hash = '#/' + r.path; return; }
   const main = layout(companyRoutes, r.path, { portalOf: state.viewCompanyId, title: routeLabel(r) });
-  if (!getMode() && !state.viewCompanyId) welcomeModePicker(() => route());
   try { await r.page(main, params, path.split('/').slice(1)); } catch (e) { toast(e.message, true); mount(main, h('div', { class: 'card empty' }, e.message)); }
 }
 

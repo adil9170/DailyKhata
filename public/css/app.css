@@ -676,3 +676,25 @@ details.fold h3 { font-size: .95rem; margin: 16px 0 6px; }
 /* Home: two tools side by side */
 .qtools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .qtool { flex-direction: row; align-items: center; }
+
+/* ---- Make a bill ---- */
+.bcard { padding: 14px; }
+.bcust { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+.blist { display: grid; margin-top: 8px; }
+.brow { padding: 10px 0; border-bottom: 1px solid var(--border); display: grid; gap: 6px; }
+.brow .bname { font-weight: 650; min-height: 44px; }
+.bnums { display: flex; align-items: center; gap: 6px; }
+.bnums .bqty { width: 64px; text-align: center; min-height: 44px; }
+.bnums .brate { width: 88px; text-align: right; min-height: 44px; }
+.bnums .bline { flex: 1; text-align: right; font-weight: 720; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bpicks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.bpicks .chip { min-height: 38px; padding: 0 12px; font-weight: 600; }
+.bdisc { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0 0; font-weight: 600; }
+.bdisc input { width: 110px; text-align: right; }
+.bbar { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) - 4px); z-index: 5; margin-top: 12px; padding: 12px 14px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow-lg); display: grid; gap: 4px; }
+.kb .bbar { bottom: 0; }
+.btotal { font-size: 1.9rem; font-weight: 800; letter-spacing: -.04em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bsave { min-height: 52px; border-radius: 16px; margin-top: 6px; font-size: 1rem; }
+@media (min-width: 861px) { .bbar { bottom: 16px; } }
+.qtools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.qtool { flex-direction: column; align-items: flex-start; }

@@ -141,13 +141,20 @@ function download(blob, name) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 8000);
 }
+/** A bill with the customer's phone: open their WhatsApp chat with the bill as text (WhatsApp links cannot carry a picture). */
+function waBtn(opts, text) {
+  const digits = String(opts.phone || '').replace(/\D/g, '').replace(/^0+/, '');
+  if (digits.length < 10) return null;
+  const to = digits.length === 10 ? '91' + digits : digits;
+  return h('a', { class: 'btn block', href: `https://wa.me/${to}?text=${encodeURIComponent(text)}`, target: '_blank', rel: 'noopener' }, icon('share', 18), 'Send to customer on WhatsApp');
+}
 const slug = (s) => String(s || 'receipt').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'receipt';
 
 /** Shows the receipt and lets the person share it as a picture, save it, or send it as text. */
 export function openReceiptSheet(opts) {
   opts = { ...opts, when: opts.when || new Date() }; // the picture and the message show the same time
   const body = h('div', null, h('div', { class: 'boot', style: { padding: '40px 0' } }, h('div', { class: 'spinner' }), h('div', { class: 'small muted', style: { marginTop: '12px' } }, 'Preparing receipt…')));
-  const m = modal('Share receipt', body);
+  const m = modal(opts.sheetTitle || 'Share receipt', body);
   const name = `${slug(opts.company?.name)}-${slug(opts.title)}.png`;
   const text = receiptText(opts);
   let url;
@@ -168,7 +175,7 @@ export function openReceiptSheet(opts) {
       catch (e) { if (e.name !== 'AbortError') toast('Could not open sharing', true); }
     } }, 'Send as text instead');
     mount(body, h('img', { class: 'receipt-preview', src: url, alt: `${opts.title} receipt` }),
-      h('div', { class: 'receipt-actions' }, canShareFile ? shareBtn : null, saveBtn, textBtn));
+      h('div', { class: 'receipt-actions' }, canShareFile ? shareBtn : null, waBtn(opts, text), saveBtn, textBtn));
   }).catch((e) => { mount(body, h('div', { class: 'alert error' }, e.message || 'Could not create the receipt')); });
   return m;
 }

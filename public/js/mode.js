@@ -5,9 +5,9 @@
 import { h, icon, modal } from './ui.js';
 
 export const MODES = [
-  { id: 'layman', label: 'Layman', icon: 'sparkles', tag: 'Super simple', desc: 'Big buttons. Add a sale, a purchase or an expense in seconds. Nothing else.' },
-  { id: 'smart', label: 'Smart', icon: 'chart', tag: 'Balanced', desc: 'Daily entry, dashboard, products, reports and udhaar — without the technical extras.' },
-  { id: 'nerdy', label: 'Nerdy', icon: 'code', tag: 'Everything', desc: 'All numbers and controls: stock counts, cash checks, profit workings, audit log.' },
+  { id: 'layman', label: 'Simple', icon: 'sparkles', tag: 'Recommended', desc: 'Add sales and expenses, make bills, count cash. Nothing else on screen.' },
+  { id: 'smart', label: 'Standard', icon: 'chart', tag: 'For owners', desc: 'Adds reports, udhaar, products, photos, stock and cash closing.' },
+  { id: 'nerdy', label: 'Pro', icon: 'code', tag: 'Everything', desc: 'All numbers and controls, including the audit log.' },
 ];
 
 let userKey = 'anon';
@@ -20,8 +20,8 @@ export function initMode(user) {
 export function getMode() {
   try { const m = localStorage.getItem(key()); return MODES.some((x) => x.id === m) ? m : null; } catch { return null; }
 }
-export const modeOrDefault = () => getMode() || 'smart';
-export function applyMode(m) { document.documentElement.dataset.mode = m || 'smart'; }
+export const modeOrDefault = () => getMode() || 'layman'; // new users start in Simple; Settings changes it
+export function applyMode(m) { document.documentElement.dataset.mode = m || 'layman'; }
 export function setMode(m) {
   try { localStorage.setItem(key(), m); } catch { /* storage blocked: mode lasts until reload */ }
   applyMode(m);
