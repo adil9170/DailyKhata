@@ -3,6 +3,8 @@
 // Runs automatically before `wrangler dev` / `wrangler deploy` (see [build] in wrangler.toml); output is git-ignored.
 import { build } from 'esbuild';
 import { rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { buildHindi } from './seo.mjs';
+import { EN, HI } from '../public/js/landing-i18n.js';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +29,10 @@ const result = await build({
   metafile: true,
   logLevel: 'warning',
 });
+
+// Hindi landing page at /hi/ (generated, git-ignored): the same page with the Hindi text already in the HTML for search engines.
+mkdirSync(`${root}public/hi`, { recursive: true });
+writeFileSync(`${root}public/hi/index.html`, buildHindi(readFileSync(`${root}public/index.html`, 'utf8'), HI, EN));
 
 const files = Object.keys(result.metafile.outputs).filter((f) => !f.endsWith('.map')).map((f) => '/' + f.replace(/^public\//, ''));
 const hash = createHash('sha1').update(files.map((f) => readFileSync(root + 'public' + f)).join('')).digest('hex').slice(0, 10);

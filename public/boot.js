@@ -12,6 +12,7 @@
   if (!d.classList.contains('app-mode')) {
     var lg = ls && ls.getItem('dk_lang');
     if (lg !== 'en' && lg !== 'hi') lg = /^hi/i.test(navigator.language || '') ? 'hi' : 'en';
+    if (/^\/hi(\/|$)/.test(location.pathname)) lg = 'hi'; // the /hi/ page always opens in Hindi
     if (lg === 'hi') { d.lang = 'hi'; d.classList.add('lang-pending'); setTimeout(function () { d.classList.remove('lang-pending'); }, 2500); }
   }
   var perf = (ls && ls.getItem('dk_perf')) || 'auto';

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://jakcrew.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jakcrew.com/"/>
+    <xhtml:link rel="alternate" hreflang="hi" href="https://jakcrew.com/hi/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jakcrew.com/"/>
+  </url>
+  <url>
+    <loc>https://jakcrew.com/hi/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jakcrew.com/"/>
+    <xhtml:link rel="alternate" hreflang="hi" href="https://jakcrew.com/hi/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jakcrew.com/"/>
+  </url>
+</urlset>

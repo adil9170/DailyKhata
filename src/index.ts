@@ -5,8 +5,17 @@ import auth from './routes/auth';
 import company from './routes/company';
 import admin from './routes/admin';
 import { runScheduledBackups } from './lib/backup';
+import { wwwRedirectTarget } from './lib/www';
 
 const app = new Hono<AppEnv>();
+
+// www.<domain> -> <domain> (301, keyed on the Host header). Only runs for requests that reach the Worker (all of /api/*);
+// static pages are served by Workers Assets, so www pages redirect only once the owner adds the www hostname as a custom domain / redirect rule.
+app.use('*', async (c, next) => {
+  const to = wwwRedirectTarget(c.req.url, c.req.header('host'));
+  if (to) return c.redirect(to, 301);
+  await next();
+});
 
 // Security headers on every API response; never cache API data in shared caches.
 app.use('/api/*', async (c, next) => {

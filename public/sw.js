@@ -3,7 +3,7 @@
 //  - hashed chunks, fonts, icons   cache-first (they never change under the same URL)
 //  - index.html, app.js, css, manifest   network-first with a short timeout, cache as fallback, so a slow
 //    connection never blocks start-up but a good connection always picks up a new deploy
-const VERSION = 'v17';
+const VERSION = 'v18';
 const CORE = 'dk-core-' + VERSION;
 const STATIC = 'dk-static-' + VERSION;
 const PRECACHE = ['/', '/index.html', '/boot.js', '/css/app.css', '/css/landing.css', '/logo.svg', '/dist/app.js', '/favicon.svg', '/manifest.webmanifest',

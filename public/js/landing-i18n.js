@@ -198,6 +198,8 @@ export const DICT = { en: EN, hi: HI };
 const ok = (l) => (l === 'en' || l === 'hi' ? l : null);
 
 export function getLang() {
+  // the /hi/ page is the Hindi page: opening it always starts in Hindi (the switch still works after that)
+  if (typeof location !== 'undefined' && /^\/hi(\/|$)/.test(location.pathname)) return 'hi';
   let saved = null;
   try { saved = ok(localStorage.getItem('dk_lang')); } catch { /* storage blocked */ }
   if (saved) return saved;
