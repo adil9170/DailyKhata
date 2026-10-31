@@ -16,7 +16,17 @@ export async function settingsPage(main) {
   sections.push(h('div', { class: 'card' }, h('h2', null, 'Appearance'),
     h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Appearance' }, [['system', 'System', 'monitor'], ['light', 'Light', 'sun'], ['dark', 'Dark', 'moon']].map(([v, l, ic]) =>
       h('button', { class: cur0 === v ? 'on' : '', role: 'radio', 'aria-checked': cur0 === v ? 'true' : 'false', onclick: () => setTheme(v) }, icon(ic, 16), l))),
-    h('p', { class: 'small muted', style: { marginBottom: 0 } }, 'System follows your phone or computer setting. Saved on this device.')));
+    h('p', { class: 'small muted' }, 'System follows your phone or computer setting. Saved on this device.'),
+    h('h3', { style: { margin: '14px 0 8px', fontSize: '.95rem' } }, 'Style'),
+    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Style' }, [['clean', 'Clean'], ['soft', 'Soft']].map(([v, l]) => {
+      const cur = document.documentElement.dataset.style === 'soft' ? 'soft' : 'clean';
+      return h('button', { class: cur === v ? 'on' : '', role: 'radio', 'aria-checked': cur === v ? 'true' : 'false', onclick: () => {
+        try { if (v === 'soft') localStorage.setItem('dk_style', 'soft'); else localStorage.removeItem('dk_style'); } catch { /* storage blocked */ }
+        if (v === 'soft') document.documentElement.dataset.style = 'soft'; else delete document.documentElement.dataset.style;
+        window.dispatchEvent(new Event('themechange'));
+      } }, l);
+    })),
+    h('p', { class: 'small muted', style: { marginBottom: 0 } }, 'Soft: raised, pillow-like buttons and cards (neumorphism). Clean: flat and sharp.')));
 
   if (S) {
     const f = {

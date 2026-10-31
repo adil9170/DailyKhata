@@ -4,6 +4,7 @@
   try { ls = localStorage; } catch (e) { ls = null; }
   var t = ls && ls.getItem('dk_theme');
   if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
+  if (ls && ls.getItem('dk_style') === 'soft') d.setAttribute('data-style', 'soft');
   var perf = (ls && ls.getItem('dk_perf')) || 'auto';
   var mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8;
   var saveData = navigator.connection && navigator.connection.saveData;

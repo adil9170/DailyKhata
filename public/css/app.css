@@ -698,3 +698,60 @@ details.fold h3 { font-size: .95rem; margin: 16px 0 6px; }
 @media (min-width: 861px) { .bbar { bottom: 16px; } }
 .qtools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .qtool { flex-direction: column; align-items: flex-start; }
+
+/* ==== Soft style (neumorphism): Settings → Style → Soft. Everything sits on one colour; depth comes from light + shadow. ==== */
+:root[data-style="soft"] {
+  --bg: #e6e9ef; --surface: #e6e9ef; --surface-2: #e6e9ef; --surface-3: #c9cfda;
+  --border: rgba(30,40,70,.07); --border-strong: rgba(30,40,70,.12);
+  --neu-hi: rgba(255,255,255,.95); --neu-lo: rgba(150,160,182,.6);
+}
+@media (prefers-color-scheme: dark) { :root[data-style="soft"]:not([data-theme="light"]) {
+  --bg: #1d2027; --surface: #1d2027; --surface-2: #1d2027; --surface-3: #3b404c;
+  --border: rgba(255,255,255,.05); --border-strong: rgba(255,255,255,.1);
+  --neu-hi: rgba(255,255,255,.05); --neu-lo: rgba(0,0,0,.55);
+} }
+:root[data-style="soft"][data-theme="dark"] {
+  --bg: #1d2027; --surface: #1d2027; --surface-2: #1d2027; --surface-3: #3b404c;
+  --border: rgba(255,255,255,.05); --border-strong: rgba(255,255,255,.1);
+  --neu-hi: rgba(255,255,255,.05); --neu-lo: rgba(0,0,0,.55);
+}
+:root[data-style="soft"] {
+  --raise: 7px 7px 16px var(--neu-lo), -7px -7px 16px var(--neu-hi);
+  --raise-sm: 4px 4px 9px var(--neu-lo), -4px -4px 9px var(--neu-hi);
+  --press: inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
+}
+[data-style="soft"] body, [data-style="soft"] .main, [data-style="soft"] .topbar, [data-style="soft"] .side { background: var(--bg) !important; }
+[data-style="soft"] .topbar { border-bottom: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* raised surfaces */
+[data-style="soft"] :is(.card, .tile, .qtool, .notecard, .ctile, .cpanel, .qsum, .daysum, .bbar, .dbar, .cbar, .action, .tabbar, .modal, .qtype, .amtbox, .pastelink, details.fold, .datechip, .ddate) {
+  border-color: transparent !important; box-shadow: var(--raise) !important; background: var(--surface) !important;
+}
+[data-style="soft"] .modal { box-shadow: var(--raise), 0 -20px 60px -20px var(--neu-lo) !important; }
+[data-style="soft"] .pastelink { border-style: solid; }
+[data-style="soft"] .qsum, [data-style="soft"] .daysum { gap: 0; }
+[data-style="soft"] .qcell, [data-style="soft"] .daysum > div { background: transparent; border-color: var(--border) !important; }
+/* buttons: raised, pressed in when tapped or chosen */
+[data-style="soft"] :is(button, .btn):not(.ghost):not(.primary):not(.fab):not(.action):not(.qtype):not(.topmark):not(.tabbar button) { border-color: transparent; background: var(--surface); box-shadow: var(--raise-sm); }
+[data-style="soft"] :is(button, .btn):not(.ghost):not(.fab):active { box-shadow: var(--press) !important; transform: none; }
+[data-style="soft"] :is(button, .btn).primary { box-shadow: var(--raise-sm), inset 0 1px 0 rgba(255,255,255,.18); border-color: transparent; background-image: none; }
+[data-style="soft"] .chip.on, [data-style="soft"] .seg button.on, [data-style="soft"] .qtype.on, [data-style="soft"] .nav a.active, [data-style="soft"] .tabbar a.active {
+  box-shadow: var(--press) !important; background: var(--surface) !important; color: var(--brand-fg) !important; border-color: transparent !important;
+}
+[data-style="soft"] .seg { background: var(--surface); box-shadow: var(--press); border: 0; padding: 5px; }
+[data-style="soft"] .seg button { box-shadow: none !important; background: transparent; }
+[data-style="soft"] .seg button.on { box-shadow: var(--raise-sm) !important; color: var(--brand-fg) !important; }
+/* fields are wells pressed into the surface */
+[data-style="soft"] :where(input:not([type=checkbox]):not([type=radio]):not([type=date]), select, textarea) { background: var(--surface) !important; border-color: transparent !important; box-shadow: var(--press) !important; }
+[data-style="soft"] :is(.bigamt, .cqty, .ntitle, .nta, .dump-ta) { box-shadow: none !important; }
+[data-style="soft"] .dcard, [data-style="soft"] .ncard .nwrap { box-shadow: var(--press) !important; }
+[data-style="soft"] .dcard { background: var(--surface) !important; }
+/* icon dots and badges: small raised discs */
+[data-style="soft"] :is(.action .dot, .qtool .dot, .sec-head .dot, .li .lead) { background: var(--surface); box-shadow: var(--raise-sm); color: var(--brand-fg); }
+[data-style="soft"] .ctile.has { box-shadow: var(--press) !important; }
+[data-style="soft"] .cminus { box-shadow: var(--raise-sm); }
+[data-style="soft"] .tabbar { border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+[data-style="soft"] .fab .ring { box-shadow: var(--raise); }
+[data-style="soft"] .toast { box-shadow: var(--raise); }
+html.lite[data-style="soft"] { --raise: 4px 4px 8px var(--neu-lo), -4px -4px 8px var(--neu-hi); }
+[data-style="soft"] .cplus { color: var(--brand-fg) !important; }
+[data-style="soft"] .tabbar button:not(.fab), [data-style="soft"] .topmark { box-shadow: none; background: transparent; }
