@@ -5,6 +5,9 @@
   var t = ls && ls.getItem('dk_theme');
   if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
   if (ls && ls.getItem('dk_style') === 'soft') d.setAttribute('data-style', 'soft');
+  // signed-in people (or anyone opening an app link) go straight to the app; everyone else sees the landing page
+  var sess = null; try { sess = ls && JSON.parse(ls.getItem('dk_session') || 'null'); } catch (e) { sess = null; }
+  if ((sess && sess.user) || /^#\/./.test(location.hash)) d.classList.add('app-mode');
   var perf = (ls && ls.getItem('dk_perf')) || 'auto';
   var mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8;
   var saveData = navigator.connection && navigator.connection.saveData;

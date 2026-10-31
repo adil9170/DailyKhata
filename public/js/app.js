@@ -259,7 +259,7 @@ function layout(routes, active, { portalOf, title } = {}) {
 function authShell(title, sub, form) {
   mount(app, h('div', { class: 'auth' },
     h('section', { class: 'auth-hero' }, h('div', { class: 'mesh' }),
-      h('div', { class: 'logo' }, h('div', { class: 'brandmark', style: { background: 'rgba(255,255,255,.18)' } }, 'D'), 'DailyKhata'),
+      h('a', { class: 'logo', href: '/', style: { color: 'inherit', textDecoration: 'none' } }, h('img', { src: '/logo.svg', alt: '', width: 34, height: 34, style: { borderRadius: '9px', boxShadow: '0 0 0 2px rgba(255,255,255,.35)' } }), 'DailyKhata'),
       h('div', null,
         h('h1', null, 'Your daily hisaab, done in minutes.'),
         h('p', null, 'Purchases, expenses, collections and stock — with profit and cash checks calculated for you.'),
@@ -297,11 +297,22 @@ function setupPage() {
 }
 
 let ctxLoadedFor = null;
+let landingReady = false;
+function showLanding() {
+  document.documentElement.classList.remove('app-mode');
+  document.title = 'DailyKhata — the shop khata you can write like you talk';
+  if (!landingReady) { landingReady = true; import('./landing.js').then((m) => m.initLanding()).catch(() => {}); }
+}
+
 async function route(reloadUser = false) {
   const hash = location.hash.replace(/^#\/?/, '') || '';
   const [path, query] = hash.split('?');
   const params = new URLSearchParams(query || '');
   document.querySelectorAll('.modal-bg').forEach((m) => m.remove());
+
+  // visitors who are not signed in get the landing page (plain HTML in index.html); '#try' etc. are its own anchors
+  if (!/^#\/./.test(location.hash) && !state.user && !loadSession()?.user) { showLanding(); return; }
+  document.documentElement.classList.add('app-mode');
 
   if (path === 'setup') return setupPage();
   if (path === 'login' && !reloadUser) {

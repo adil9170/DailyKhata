@@ -246,7 +246,9 @@ export function readDump(text: string, ctx: DumpContext): DumpResult {
     if (hasAny(w, SKIP)) { out.skipped.push(source); continue; }
 
     const collected = hasAny(w, COLLECT) || /\bgot\b.*\bfrom\b/i.test(s) || /\bpaid\s+(?:me|us)\b/i.test(s)
-      || /\b[a-z]+\s+ne\s+(?:\S+\s+){0,3}(?:diye|diya|di)\b/i.test(s);
+      || /\b[a-z]+\s+ne\s+(?:\S+\s+){0,3}(?:diye|diya|di)\b/i.test(s)
+      // "Raju udhaar 450": a name on udhaar is a sale on credit, unless it is plainly stock or a bill we paid
+      || (hasAny(w, CREDIT) && !hasAny(w, BUY) && !STOCK_RE.test(s) && !/\b(?:paid|pay|diya|diye|gave)\b/i.test(s));
     if (collected) {
       const amount = amountOf(s);
       const mode = collectMode(w);

@@ -54,6 +54,12 @@ Sharma se 3000 mila`, ctx);
     expect(r.collections.map((c) => [c.amount, c.mode, c.customer])).toEqual([[500, 'cash', 'Verma'], [300, 'credit', 'Raju']]);
   });
 
+  it('treats "<name> udhaar <amount>" as a sale on credit', () => {
+    const r = readDump('Raju udhaar 450\nudhaar diya supplier ko 2000', ctx);
+    expect(r.collections.map((c) => [c.amount, c.mode, c.customer])).toEqual([[450, 'credit', 'Raju']]);
+    expect(r.expenses.map((e) => e.payment_mode)).toEqual(['credit']);
+  });
+
   it('uses the words as the category when nothing matches, and ignores plain text', () => {
     const r = readDump('Dear diary, busy day today.\nnew board for shop 750\nsign painter 1200', ctx);
     expect(ex(r)).toEqual([['Board Shop', 750], ['Sign Painter', 1200]]);

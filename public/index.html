@@ -3,9 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>DailyKhata</title>
-  <meta name="description" content="Daily accounts and inventory for your business">
-  <meta name="theme-color" content="#635bff">
+  <title>DailyKhata — the shop khata you can write like you talk</title>
+  <meta name="description" content="Type or say “gas 820, chai 40, Sharma se 3000 mila” and DailyKhata turns it into a clean daily account: sales, expenses, stock and udhaar. Works offline, reads Hindi and Hinglish, makes WhatsApp bills.">
+  <meta property="og:title" content="DailyKhata — write it like you talk, we keep the khata">
+  <meta property="og:description" content="Sales, expenses, stock and udhaar for small shops. Works offline. Hindi and Hinglish.">
+  <meta property="og:image" content="https://jakcrew.com/logo.svg">
+  <link rel="canonical" href="https://jakcrew.com/">
+  <meta name="theme-color" content="#0e5a4a">
   <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -16,10 +20,137 @@
   <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/inter-latin-ext-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/landing.css">
   <script src="/boot.js"></script>
   <script type="module" src="/dist/app.js"></script>
 </head>
 <body>
+  <div id="landing" class="lp">
+    <header class="lp-nav">
+      <a class="lp-brand" href="/" aria-label="DailyKhata home"><img src="/logo.svg" alt="" width="36" height="36"><span>Daily<b>Khata</b></span></a>
+      <nav aria-label="Page">
+        <a href="#try">Try it</a>
+        <a href="#day">How it works</a>
+        <a href="#faq">Questions</a>
+      </nav>
+      <a class="lp-btn lp-btn-ghost" href="#/login">Sign in</a>
+    </header>
+
+    <main>
+      <section class="lp-hero">
+        <div class="lp-hero-copy">
+          <p class="lp-hand">for kirana, chai stalls, cold drink &amp; general stores</p>
+          <h1>Write it the way you say it. <span class="lp-mark">We keep the khata.</span></h1>
+          <p class="lp-lede">Type “gas 820, chai 40, Sharma se 3000 mila” — or just say it. DailyKhata sorts it into sales, expenses, stock and udhaar, adds it all up, and tells you how much cash should be in the drawer tonight.</p>
+          <div class="lp-cta">
+            <a class="lp-btn lp-btn-main" href="#/login">Sign in to your shop</a>
+            <a class="lp-btn lp-btn-line" href="#try">Try it right here ↓</a>
+          </div>
+          <ul class="lp-facts">
+            <li>Works without internet</li>
+            <li>Hindi, Hinglish, English</li>
+            <li>Bills on WhatsApp</li>
+          </ul>
+        </div>
+
+        <div class="lp-demo" id="try">
+          <div class="lp-page">
+            <div class="lp-page-head"><span class="lp-hand">aaj ka hisaab</span><span class="lp-date" id="lp-date">today</span></div>
+            <label class="sr-only" for="lp-note">Write your day here</label>
+            <textarea id="lp-note" class="lp-note" spellcheck="false" rows="6">gas 820 diya, chai 40, auto 120
+Ramesh salary 5000 gpay
+Sting 2 box 1020
+Sharma se 3000 mila
+Raju udhaar 450</textarea>
+            <div class="lp-samples" aria-label="Try another example">
+              <span class="lp-hand">try:</span>
+              <button type="button" data-sample="Paid 500 for gas. Milk 60, 4 cups tea for 40. Got 1500 from Gupta via UPI">English</button>
+              <button type="button" data-sample="चाय ४०&#10;बिजली १२००&#10;Verma ne 500 diye">हिंदी</button>
+              <button type="button" data-sample="rent 15,000/-&#10;labour 1.5k&#10;petrol 300rs&#10;samosa 20 + 30&#10;Total 16880">Messy</button>
+            </div>
+          </div>
+          <div class="lp-out" aria-live="polite">
+            <div class="lp-out-head"><b>In your khata</b><span id="lp-count">7 entries</span></div>
+            <ol class="lp-rows" id="lp-rows">
+              <li class="ex"><span class="t">Expense</span><span class="n">Gas</span><b>−₹820</b></li>
+              <li class="ex"><span class="t">Expense</span><span class="n">Tea</span><b>−₹40</b></li>
+              <li class="ex"><span class="t">Expense</span><span class="n">Transport</span><b>−₹120</b></li>
+              <li class="ex"><span class="t">Expense</span><span class="n">Salary · Ramesh · UPI</span><b>−₹5,000</b></li>
+              <li class="st"><span class="t">Stock</span><span class="n">Sting · 2 box</span><b>−₹1,020</b></li>
+              <li class="in"><span class="t">Sale</span><span class="n">Sharma</span><b>+₹3,000</b></li>
+              <li class="ud"><span class="t">Udhaar</span><span class="n">Raju</span><b>+₹450</b></li>
+            </ol>
+            <div class="lp-tot"><div><span>Money in</span><b id="lp-in">₹3,450</b></div><div><span>Money out</span><b id="lp-outv">₹7,000</b></div></div>
+            <p class="lp-small">This is the real reader inside the app, running on your phone — change the note and watch.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="lp-day" id="day">
+        <h2>A day at the counter</h2>
+        <p class="lp-sub">Nothing to learn. Each part of the day has one screen.</p>
+        <div class="lp-timeline">
+          <article>
+            <time class="lp-hand">7:30 am</time>
+            <h3>Shutter up</h3>
+            <p>Tap the notes in the drawer — ₹500 ×2, ₹100 ×4. The total and the amount in words add themselves.</p>
+            <div class="lp-mini lp-cash"><span>₹500 <b>×2</b></span><span>₹200 <b>×0</b></span><span>₹100 <b>×4</b></span><span>₹50 <b>×3</b></span><span>₹20 <b>×5</b></span><span>₹10 <b>×6</b></span><em>₹1,710 · One Thousand Seven Hundred Ten</em></div>
+          </article>
+          <article>
+            <time class="lp-hand">11:00 am</time>
+            <h3>Stock arrives</h3>
+            <p>Take a photo of the supplier's handwritten bill. It's read for you; check it and save.</p>
+            <div class="lp-mini lp-photo"><div class="lp-scrawl lp-hand">Maida 10kg — 450<br>Sugar 5kg — 220<br>Oil 1 tin — 1980</div><div class="lp-arrow">→</div><ul><li>Maida <b>₹450</b></li><li>Sugar <b>₹220</b></li><li>Oil <b>₹1,980</b></li></ul></div>
+          </article>
+          <article>
+            <time class="lp-hand">4:15 pm</time>
+            <h3>“Kal de dunga”</h3>
+            <p>Make a bill, mark it udhaar, send it to the customer's WhatsApp. It's on their tab until they pay.</p>
+            <div class="lp-mini lp-bill"><div><span>Bill #48 · Mehta</span><span>4:15 pm</span></div><div><span>Sting 6 × ₹20</span><b>₹120</b></div><div><span>Chips 3 × ₹10</span><b>₹30</b></div><div class="lp-bill-tot"><span>Udhaar</span><b>₹150</b></div></div>
+          </article>
+          <article>
+            <time class="lp-hand">9:30 pm</time>
+            <h3>Closing</h3>
+            <p>Count what's left on the shelf and in the drawer. You see the day's profit, and if the cash is short, by how much.</p>
+            <div class="lp-mini lp-close"><div><span>Sales</span><b>₹7,920</b></div><div><span>Profit</span><b class="g">₹1,212</b></div><div class="lp-short"><span>Cash short</span><b>₹249</b></div></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="lp-ledger">
+        <h2>Also in the book</h2>
+        <ul class="lp-lines">
+          <li><span class="lp-hand">staff</span><p>Give your helper a login that can add sales but can't see profit or delete anything.</p></li>
+          <li><span class="lp-hand">many shops</span><p>Own two or three shops? Each has its own khata; you see all of them from one login.</p></li>
+          <li><span class="lp-hand">your CA</span><p>Download any month as Excel or PDF — purchases, expenses, sales, stock.</p></li>
+          <li><span class="lp-hand">udhaar</span><p>One list of who owes you and whom you owe, with every payment against their name.</p></li>
+          <li><span class="lp-hand">safety</span><p>Every change is logged with who made it. A copy of everything is saved every night.</p></li>
+          <li><span class="lp-hand">your name</span><p>Your logo and colours on the app, on bills and on your phone's home screen.</p></li>
+        </ul>
+      </section>
+
+      <section class="lp-faq" id="faq">
+        <h2>Questions shopkeepers ask</h2>
+        <details><summary>Do I have to type in English?</summary><p>No. Write the way you write in your register — “chai 40”, “bijli bill 1450”, “चाय ४०”, “Verma ne 500 diye”. Numbers can be 1,500, 1.5k or 1500/-.</p></details>
+        <details><summary>What if the internet goes?</summary><p>Keep working. Everything is saved on the phone first and goes up quietly when the connection is back.</p></details>
+        <details><summary>Can my staff see my profit?</summary><p>Only if you let them. Each person gets their own login and you choose what they can see and do.</p></details>
+        <details><summary>Is it a phone app?</summary><p>It opens in the browser on any phone or computer. Tap “Add to Home screen” and it sits there like any other app, with your shop's logo.</p></details>
+        <details><summary>Who can see my numbers?</summary><p>Only the people you add to your shop. Each shop's data is kept separate.</p></details>
+      </section>
+
+      <section class="lp-end">
+        <p class="lp-hand">the register stays at the counter.</p>
+        <h2>The khata goes home with you.</h2>
+        <div class="lp-cta"><a class="lp-btn lp-btn-main" href="#/login">Sign in</a><a class="lp-btn lp-btn-line" href="https://adilshaikh.in">Get your shop set up</a></div>
+      </section>
+    </main>
+
+    <footer class="lp-foot">
+      <a class="lp-brand" href="/"><img src="/logo.svg" alt="" width="28" height="28"><span>Daily<b>Khata</b></span></a>
+      <p>Designed and built by <a href="https://adilshaikh.in">Adil Shaikh</a></p>
+      <p class="lp-small">© <span id="lp-year">2026</span> DailyKhata</p>
+    </footer>
+  </div>
   <div id="app"><div class="boot">Loading…</div></div>
   <div id="toasts" aria-live="polite"></div>
 </body>
