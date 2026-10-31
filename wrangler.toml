@@ -3,6 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Live address. Kept here so every deploy keeps the domain attached; the workers.dev address keeps working too.
+routes = [{ pattern = "jakcrew.com", custom_domain = true }]
+workers_dev = true
+
 # The browser app is bundled before every dev/deploy run (see scripts/build-client.mjs). Output: public/dist (git-ignored).
 [build]
 command = "node scripts/build-client.mjs"

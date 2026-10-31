@@ -4,7 +4,7 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 
 ## Quick facts
 - Repo: https://github.com/adil9170/DailyKhata (`main` = deployed code; branch `claude/daily-accounts-inventory-app-8gfhbd` mirrors it)
-- Live: https://dailykhata.adilshaikh.workers.dev  (Cloudflare account `ece0e93a89a4c641a032eea0f0cdf5aa`)
+- Live: https://jakcrew.com (also https://dailykhata.adilshaikh.workers.dev)  (Cloudflare account `ece0e93a89a4c641a032eea0f0cdf5aa`)
 - Stack: Cloudflare Worker (Hono) + D1 `dailykhata-db` + R2 `dailykhata-files` + Workers AI; SPA source in `public/js` (vanilla JS), bundled by esbuild via `scripts/build-client.mjs` into git-ignored `public/dist` (runs automatically before wrangler dev/deploy); local-first data in IndexedDB (store.js/localapi.js)
 - Local path: `C:\Users\Asif Shaikh\Downloads\novus\claude\adil\daily-khata\DailyKhata`
 - Deploy by hand: `npx wrangler deploy` (secrets persist). Full: `SETUP_TOKEN=... ./scripts/provision.sh --deploy`
