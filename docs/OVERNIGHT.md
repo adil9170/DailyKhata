@@ -72,7 +72,7 @@ Real shopkeeper testing (10 real notes and a real bill photo through the live AI
 ## Ledger (each slot updates its own row)
 | Slot | Planned start (IST) | Status | Commit | Note |
 |---|---|---|---|---|
-| 1 Reader hardening | 20:30 | pending | | |
+| 1 Reader hardening | 20:30 | done | PENDING_SHA | 168-note corpus: 97.6% -> 99.4% (167/168). Fixed: spaced +91 phone, "<name> ne udhaar liya", "X ne 400 diye Y ne 300 diye", cleanDump null rows, 20k digit run (1.4 s -> 0.5 ms), 20k note 60 -> 15 ms. Limits in docs/READER.md. Leftover: name written after the amount. |
 | 2 Landing Hindi switch | 21:30 | pending | | |
 | 3 Landing CTA + mic | 22:30 | pending | | |
 | 4 Landing screenshots + scroll | 23:30 | pending | | |

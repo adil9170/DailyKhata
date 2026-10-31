@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from '../types';
 import { parseText, type ParsedEntries, type ParseContext } from './parser';
-import { readDump, type DumpContext, type DumpResult } from './dump';
+import { readDump, type DumpContext, type DumpResult, type PayMode } from './dump';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -211,16 +211,18 @@ ${text}
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const amt = (v: unknown) => { const n = Math.round(Number(v) * 100) / 100; return Number.isFinite(n) && n > 0 ? n : 0; };
 const day = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
-const pay = (v: unknown) => (v === 'bank' || v === 'credit' ? v : 'cash');
+const pay = (v: unknown): PayMode => (v === 'bank' || v === 'credit' ? v : 'cash');
 
 /** Clean whatever the model sent back into the same shape the on-phone reader produces. */
-function cleanDump(data: any): DumpResult {
+const rows = (v: unknown): any[] => (Array.isArray(v) ? v.slice(0, 2000).filter((x) => x && typeof x === 'object') : []);
+
+export function cleanDump(data: any): DumpResult {
   return {
-    expenses: (Array.isArray(data?.expenses) ? data.expenses : []).map((e: any) => ({ category: str(e.category, 60) || 'Other', amount: amt(e.amount), notes: str(e.notes, 200), payment_mode: pay(e.payment_mode), date: day(e.date), source: str(e.source, 200) }))
+    expenses: rows(data?.expenses).map((e: any) => ({ category: str(e.category, 60) || 'Other', amount: amt(e.amount), notes: str(e.notes, 200), payment_mode: pay(e.payment_mode), date: day(e.date), source: str(e.source, 200) }))
       .filter((e: { amount: number }) => e.amount > 0).slice(0, 300),
-    purchases: (Array.isArray(data?.purchases) ? data.purchases : []).map((p: any) => ({ item: str(p.item, 80), product_id: null, qty: amt(p.qty) || 1, unit: str(p.unit, 20) || 'box', pieces: Number.isInteger(p.pieces) && p.pieces > 0 ? p.pieces : null, total: amt(p.total), payment_mode: pay(p.payment_mode), date: day(p.date), source: str(p.source, 200) }))
+    purchases: rows(data?.purchases).map((p: any) => ({ item: str(p.item, 80), product_id: null, qty: amt(p.qty) || 1, unit: str(p.unit, 20) || 'box', pieces: Number.isInteger(p.pieces) && p.pieces > 0 ? p.pieces : null, total: amt(p.total), payment_mode: pay(p.payment_mode), date: day(p.date), source: str(p.source, 200) }))
       .filter((p: { item: string; total: number }) => p.item && p.total > 0).slice(0, 300),
-    collections: (Array.isArray(data?.collections) ? data.collections : []).map((c: any) => ({ amount: amt(c.amount), mode: ['upi', 'card', 'credit'].includes(c.mode) ? c.mode : 'cash', customer: str(c.customer, 80), date: day(c.date), source: str(c.source, 200) }))
+    collections: rows(data?.collections).map((c: any) => ({ amount: amt(c.amount), mode: ['upi', 'card', 'credit'].includes(c.mode) ? c.mode : 'cash', customer: str(c.customer, 80), date: day(c.date), source: str(c.source, 200) }))
       .filter((c: { amount: number }) => c.amount > 0).slice(0, 300),
     skipped: [],
   };

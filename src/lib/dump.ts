@@ -87,6 +87,7 @@ function normalise(text: string): string {
     .replace(/[​-‍﻿]/g, '')
     .replace(/[−–—]/g, '-')
     .replace(/\|/g, ' ')
+    .replace(/\d{13,}/g, ' ')                                                                   // not money; long digit runs also slow the scans
     .replace(/(\d),(?=\d{2,3}\b)/g, '$1')                                                      // 1,020 and 1,00,000
     .replace(/(?:₹|\brs\.?|\binr\b|\brupees?\b|रु\.?)\s*(?=\d)/gi, '₹')                         // ₹ 500, Rs. 500, INR 500
     .replace(new RegExp(`(${NUM})\\s*(?:\\/-|₹|rs\\b|rupees?\\b|rupaye\\b|rupay\\b|rupaiye\\b|rupiya\\b|rupiye\\b|रुपये|रुपए)`, 'gi'), '₹$1') // 500/-, 500rs, 500 rupees
@@ -106,6 +107,7 @@ function isFragment(part: string): boolean {
 const isLabelWord = (t: string) => /[a-zऀ-ॿ]/i.test(t) && !STOP.has(t.toLowerCase()) && !COUNT.has(t.toLowerCase());
 const isNumTok = (t: string) => /^₹?\d/.test(t);
 
+const AFTER = set('diya diye di mila mile mili aaya aaye paid');
 /** "gas 820 chai 40 auto 120" → three clauses. Anything that is not a clean label-amount list stays whole. */
 function splitPairs(part: string): string[] {
   const toks = part.match(/₹?\d+(?:[.․]\d+)?|[^\s\d₹]+/g) ?? [];
@@ -113,7 +115,10 @@ function splitPairs(part: string): string[] {
   let cur: string[] = [], labelled = false;
   for (let i = 0; i < toks.length; i++) {
     const t = toks[i];
-    if (!isNumTok(t)) { cur.push(t); if (isLabelWord(t)) labelled = true; continue; }
+    if (!isNumTok(t)) {
+      if (!cur.length && groups.length && AFTER.has(t.toLowerCase())) { groups[groups.length - 1].push(t); continue; } // "400 diye Pappu ne 300"
+      cur.push(t); if (isLabelWord(t)) labelled = true; continue;
+    }
     const next = (toks[i + 1] ?? '').toLowerCase(), prev = (toks[i - 1] ?? '').toLowerCase();
     if (COUNT.has(next) || /^[x×*=]/.test(next) || /[x×*=]$/.test(prev) || !labelled) return [part];
     cur.push(t); groups.push(cur); cur = []; labelled = false;
@@ -164,29 +169,36 @@ function labelWords(s: string): string[] {
   return (cleaned.match(/[A-Za-zऀ-ॿ]+/g) ?? []).filter((w) => w.length > 1 && !STOP.has(w.toLowerCase()) && !COUNT.has(w.toLowerCase()));
 }
 
+// Compacted once: resolveCategory runs for every clause of a long note.
+const GROUPS_C = GROUPS.map(([name, keys]) => ({ name, keys, entries: keys.map((key) => ({ kk: compact(key), len: key.split(' ').length })), names: new Set([name, ...keys].map(compact)) }));
+const compactCache = new Map<string, string>();
+const compactC = (s: string) => { let v = compactCache.get(s); if (v === undefined) { v = compact(s); if (compactCache.size > 500) compactCache.clear(); compactCache.set(s, v); } return v; };
+
+let lastCats: string[] | null = null, lastSorted: string[] = [];
+const sortedCategories = (cats: string[]) => (cats === lastCats ? lastSorted : (lastCats = cats, lastSorted = [...cats].sort((a, b) => b.length - a.length)));
+
 /** Pick the category: one the shop already has, else a common one by keyword, else the words themselves. */
 function resolveCategory(label: string[], categories: string[]): { category: string; notes: string } {
   const low = label.map((w) => w.toLowerCase());
   const windows: { from: number; len: number; key: string }[] = [];
-  for (let i = 0; i < low.length; i++) for (let n = 1; n <= 3 && i + n <= low.length; n++) windows.push({ from: i, len: n, key: compact(low.slice(i, i + n).join('')) });
+  for (let i = 0; i < low.length; i++) for (let n = 1; n <= 3 && i + n <= low.length; n++) windows.push({ from: i, len: n, key: compactC(low.slice(i, i + n).join('')) });
   const rest = (from: number, len: number) => label.filter((w, i) => (i < from || i >= from + len) && !GENERIC.has(w.toLowerCase())).join(' ');
 
-  for (const c of [...categories].sort((a, b) => b.length - a.length)) {
-    const k = compact(c); if (k.length < 2) continue;
+  for (const c of sortedCategories(categories)) {
+    const k = compactC(c); if (k.length < 2) continue;
     const hit = windows.find((w) => w.key === k);
     if (hit) return { category: c, notes: rest(hit.from, hit.len) };
   }
   let best: { name: string; keys: string[]; from: number; len: number } | null = null;
-  for (const [name, keys] of GROUPS) {
-    for (const key of keys) {
-      const kk = compact(key), len = key.split(' ').length;
+  for (const { name, keys, entries } of GROUPS_C) {
+    for (const { kk, len } of entries) {
       const hit = windows.find((w) => w.len === len && w.key === kk);
       if (hit && (!best || hit.from < best.from || (hit.from === best.from && hit.len > best.len))) best = { name, keys, from: hit.from, len: hit.len };
     }
   }
   if (best) {
-    const names = new Set([best.name, ...best.keys].map(compact));
-    const known = categories.find((c) => names.has(compact(c)));
+    const names = GROUPS_C.find((g) => g.name === best!.name)!.names;
+    const known = categories.find((c) => names.has(compactC(c)));
     return { category: known ?? best.name, notes: rest(best.from, best.len) };
   }
   const meaningful = label.filter((w) => !GENERIC.has(w.toLowerCase()));
@@ -236,7 +248,7 @@ export function readDump(text: string, ctx: DumpContext): DumpResult {
     if (w0.includes('today') || w0.includes('aaj') || w0.includes('आज')) { if (!d) date = carried = null; }
     if ((w0.includes('yesterday') || w0.includes('kal') || w0.includes('कल')) && ctx.today && !d) date = addDays(ctx.today, -1);
     s = s
-      .replace(/\+91[\s-]?\d{10}\b|\b\d{10,}\b/g, ' ')                                                     // phone numbers
+      .replace(/\+91[\s-]?\d{5}[\s-]?\d{5}\b|\b\d{10,}\b/g, ' ')                                                     // phone numbers
       .replace(/\b\d{1,2}:\d{2}(?:\s*(?:am|pm))?\b|\b\d{1,2}(?:\.\d{2})?\s*(?:am|pm)\b/gi, ' ')            // times
       .replace(/\d+(?:\.\d+)?\s*%/g, ' ')                                                                  // percentages
       .replace(/\b\d+(?:st|nd|rd|th)\b/gi, ' ');                                                           // 2nd, 3rd
@@ -245,7 +257,7 @@ export function readDump(text: string, ctx: DumpContext): DumpResult {
 
     if (hasAny(w, SKIP)) { out.skipped.push(source); continue; }
 
-    const collected = hasAny(w, COLLECT) || /\bgot\b.*\bfrom\b/i.test(s) || /\bpaid\s+(?:me|us)\b/i.test(s)
+    const collected = hasAny(w, COLLECT) || /\bne\s+(?:udhaar|udhar|udhari)\b/i.test(s) || /\bgot\b.*\bfrom\b/i.test(s) || /\bpaid\s+(?:me|us)\b/i.test(s)
       || /\b[a-z]+\s+ne\s+(?:\S+\s+){0,3}(?:diye|diya|di)\b/i.test(s)
       // "Raju udhaar 450": a name on udhaar is a sale on credit, unless it is plainly stock or a bill we paid
       || (hasAny(w, CREDIT) && !hasAny(w, BUY) && !STOCK_RE.test(s) && !/\b(?:paid|pay|diya|diye|gave)\b/i.test(s));
