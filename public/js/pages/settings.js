@@ -26,7 +26,16 @@ export async function settingsPage(main) {
         window.dispatchEvent(new Event('themechange'));
       } }, l);
     })),
-    h('p', { class: 'small muted', style: { marginBottom: 0 } }, 'Soft: raised, pillow-like buttons and cards (neumorphism). Clean: flat and sharp.')));
+    h('p', { class: 'small muted' }, 'Soft: raised, pillow-like buttons and cards (neumorphism). Clean: flat and sharp.'),
+    h('h3', { style: { margin: '14px 0 8px', fontSize: '.95rem' } }, 'Home screen'),
+    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Home screen' }, [['classic', 'Buttons'], ['chat', 'Chat']].map(([v, l]) => {
+      let cur = 'classic'; try { cur = localStorage.getItem('dk_layout') === 'chat' ? 'chat' : 'classic'; } catch { /* storage blocked */ }
+      return h('button', { class: cur === v ? 'on' : '', role: 'radio', 'aria-checked': cur === v ? 'true' : 'false', onclick: () => {
+        try { if (v === 'chat') localStorage.setItem('dk_layout', 'chat'); else localStorage.removeItem('dk_layout'); } catch { /* storage blocked */ }
+        location.hash = '#/'; window.dispatchEvent(new Event('themechange'));
+      } }, l);
+    })),
+    h('p', { class: 'small muted', style: { marginBottom: 0 } }, 'Chat: type or speak what happened, like messaging a friend — it goes straight into your khata.')));
 
   if (S) {
     const f = {

@@ -755,3 +755,46 @@ details.fold h3 { font-size: .95rem; margin: 16px 0 6px; }
 html.lite[data-style="soft"] { --raise: 4px 4px 8px var(--neu-lo), -4px -4px 8px var(--neu-hi); }
 [data-style="soft"] .cplus { color: var(--brand-fg) !important; }
 [data-style="soft"] .tabbar button:not(.fab), [data-style="soft"] .topmark { box-shadow: none; background: transparent; }
+
+/* ==== Chat khata (Settings → Home screen → Chat) ==== */
+.chat { display: flex; flex-direction: column; min-height: calc(100dvh - 140px); max-width: 640px; margin: 0 auto; }
+.chatlog { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; }
+.bub { max-width: 86%; padding: 11px 14px; border-radius: 20px; line-height: 1.45; font-size: .97rem; animation: bubin .22s var(--ease); }
+@keyframes bubin { from { opacity: 0; transform: translateY(6px); } }
+.bub.bub-bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 6px; }
+.bub.bub-me { align-self: flex-end; background: var(--brand); color: var(--on-brand); border-bottom-right-radius: 6px; }
+.bub ul { margin: 6px 0 4px; padding-left: 18px; } .bub li { margin: 2px 0; }
+.bub i { font-style: normal; font-weight: 650; }
+.bub .bt { font-size: .74rem; opacity: .75; margin-top: 6px; text-align: right; }
+.bub .mt { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ent { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(127,127,127,.18); }
+.ent:last-of-type { border-bottom: 0; }
+.ent .et { min-width: 0; overflow-wrap: anywhere; }
+.ent .ek { display: inline-block; font-size: .68rem; font-weight: 700; padding: 1px 7px; border-radius: 99px; margin-right: 6px; vertical-align: 1px; background: rgba(127,127,127,.16); }
+.bub.bub-bot .ent.collections .ea { color: var(--good); }
+.bub.bub-me .ent .ek { background: rgba(255,255,255,.2); }
+.ent .ea { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sumcard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; padding: 10px; border-radius: 14px; background: var(--surface-2); }
+.sumcard > div { display: grid; gap: 2px; min-width: 0; }
+.sumcard span { font-size: .74rem; color: var(--muted); }
+.sumcard b { font-size: 1.02rem; overflow-wrap: anywhere; }
+.bubchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.bubchips .chip { min-height: 36px; padding: 0 14px; }
+.composer { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) - 4px); z-index: 6; padding: 8px 0 6px; background: linear-gradient(to top, var(--bg) 75%, transparent); }
+.kb .composer { bottom: 0; }
+.chatquick { display: flex; gap: 6px; overflow-x: auto; padding: 0 0 8px; scrollbar-width: none; }
+.chatquick::-webkit-scrollbar { display: none; }
+.chatquick .chip { flex: none; min-height: 34px; padding: 0 13px; font-size: .84rem; }
+.cbox { display: flex; align-items: flex-end; gap: 6px; padding: 6px; background: var(--surface); border: 1px solid var(--border-strong, var(--border)); border-radius: 26px; }
+.cbox textarea { flex: 1; min-height: 44px; max-height: 140px; resize: none; border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 11px 8px !important; font-size: 1rem; line-height: 1.35; }
+.cbox .send, .cbox .mic { flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; display: grid; place-items: center; }
+.cbox .send { background: var(--brand); color: var(--on-brand); border-color: transparent; }
+.cbox .mic { background: transparent; border: 0; box-shadow: none; color: var(--muted); }
+.cbox .mic.on { color: #fff; background: var(--bad, #d13b3b); animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(209,59,59,.15); } }
+@media (min-width: 861px) { .composer { bottom: 0; } .chat { min-height: calc(100dvh - 100px); } }
+[data-style="soft"] .bub.bub-bot { border: 0; box-shadow: var(--raise-sm); }
+[data-style="soft"] .cbox { border: 0; box-shadow: var(--press); }
+[data-style="soft"] .sumcard { box-shadow: var(--press); background: var(--surface); }
+.bub { scroll-margin-bottom: calc(var(--tabbar-h) + 150px); }
+@media (min-width: 861px) { .bub { scroll-margin-bottom: 140px; } }

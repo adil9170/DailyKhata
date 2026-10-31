@@ -25,6 +25,7 @@ const adminBackupsPage = (...a) => import('./pages/admin.js').then((m) => m.admi
 
 const counterPage = (...a) => import('./pages/counter.js').then((m) => m.counterPage(...a));
 const notesPage = (...a) => import('./pages/notes.js').then((m) => m.notesPage(...a));
+const chatPage = (...a) => import('./pages/chat.js').then((m) => m.chatPage(...a));
 const billPage = (...a) => import('./pages/bill.js').then((m) => m.billPage(...a));
 const dumpPage = (...a) => import('./pages/dump.js').then((m) => m.dumpPage(...a));
 
@@ -35,6 +36,7 @@ const ALL = ['layman', 'smart', 'nerdy'], SMART_UP = ['smart', 'nerdy'];
 const companyRoutes = [
   { path: 'quick', label: 'Home', short: 'Home', icon: 'home', page: quickPage, perm: 'entries.write', modes: ALL },
   { path: 'day', label: 'Today’s khata', short: 'Khata', laymanLabel: 'Today’s khata', icon: 'pen', page: dayPage, perm: 'entries.view', modes: ALL },
+  { path: 'chat', label: 'Chat khata', short: 'Chat', icon: 'chat', page: chatPage, perm: 'entries.write', modes: ALL },
   { path: 'bill', label: 'Make a bill', short: 'Bill', icon: 'receipt', page: billPage, perm: 'entries.write', modes: ALL },
   { path: 'dump', label: 'Write expenses', short: 'Write', icon: 'type', page: dumpPage, perm: 'entries.write', modes: ALL },
   { path: 'counter', label: 'Cash counter', short: 'Counter', icon: 'calculator', page: counterPage, perm: 'entries.view', modes: ALL },
@@ -54,7 +56,8 @@ const routeLabel = (r) => (modeOrDefault() === 'layman' && r.laymanLabel) || r.l
 /** Where "Home" goes: the simple add page, in every mode. */
 function homeRoute() {
   const rs = visibleCompanyRoutes();
-  return rs.find((r) => r.path === 'quick') || rs.find((r) => r.path === 'day') || rs[0];
+  let chat = false; try { chat = localStorage.getItem('dk_layout') === 'chat'; } catch { /* storage blocked */ }
+  return (chat && rs.find((r) => r.path === 'chat')) || rs.find((r) => r.path === 'quick') || rs.find((r) => r.path === 'day') || rs[0];
 }
 const adminRoutes = [
   { path: 'admin', label: 'Overview', icon: 'chart', page: adminOverviewPage },
@@ -231,7 +234,7 @@ function layout(routes, active, { portalOf, title } = {}) {
     const pick = (p) => vis.find((r) => r.path === p);
     const third = pick('counter') || (lay ? pick('settings') : pick('uploads')); // cash counter is used all day, so it gets a tab
     const tabRoutes = [home, home.path === 'day' ? null : pick('day'), third].filter(Boolean);
-    const isHome = (r) => r.path === 'quick';
+    const isHome = (r) => r === home;
     const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(isHome(r) ? 'home' : r.icon), isHome(r) ? 'Home' : r.short || r.label);
     tabs = h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
       link(tabRoutes[0]),
