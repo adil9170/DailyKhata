@@ -158,8 +158,8 @@ function day() {
     else for (let k = shown; k > s; k--) ol.querySelectorAll(`[data-s="${k}"]`).forEach((e) => e.remove());
     shown = s;
     tween(drawer, cashAt(s));
-    const last = DAY[s].lines[DAY[s].lines.length - 1];
-    mini.firstChild.textContent = s === 4 ? t('d_match') : t(last.n); tween(mini.lastChild, cashAt(s));
+    
+    mini.firstChild.textContent = t(['m0_h', 'm1_h', 'm2_h', 'm3_h', 'm4_h'][s]); tween(mini.lastChild, cashAt(s));
   };
   show(0);
   // language switch: reprint the lines that are already on the strip, in the new language
