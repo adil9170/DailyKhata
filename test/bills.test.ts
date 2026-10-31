@@ -66,3 +66,29 @@ describe('numbering helpers', () => {
     expect(err(() => reserveCount(0))).toMatch(/at least 1/); expect(err(() => reserveCount('x'))).toMatch(/at least 1/);
   });
 });
+
+import { waNumber, reminderText, billPaidTag, isBillPaidNote } from '../src/lib/bills';
+describe('bill reminders', () => {
+  it('builds WhatsApp numbers', () => {
+    expect(waNumber('98765 43210')).toBe('919876543210');
+    expect(waNumber('+91 98765-43210')).toBe('919876543210');
+    expect(waNumber('09876543210')).toBe('919876543210');
+    expect(waNumber('12345')).toBeNull();
+    expect(waNumber('')).toBeNull();
+    expect(waNumber(null)).toBeNull();
+    expect(waNumber('1'.repeat(30))).toBeNull();
+  });
+  it('writes the reminder with name, bill and amount', () => {
+    const t = reminderText({ shop: 'Sharma Cold Drinks', customer: 'Mehta ji', label: 'P-3', paise: 23050 });
+    expect(t).toContain('Mehta ji'); expect(t).toContain('₹230.50'); expect(t).toContain('#P-3'); expect(t).toContain('Sharma Cold Drinks');
+    expect(reminderText({ label: '7', paise: 100000 })).toContain('₹1,00,000'.replace('1,00,000', '1,000'));
+    expect(decodeURIComponent(encodeURIComponent(reminderText({ customer: 'राम & "सोनू" 50%', label: '1', paise: 5000 })))).toContain('राम & "सोनू" 50%');
+  });
+  it('recognises the paid tag exactly', () => {
+    expect(isBillPaidNote(billPaidTag('12'), '12')).toBe(true);
+    expect(isBillPaidNote(billPaidTag('12') + ' (UPI)', '12')).toBe(true);
+    expect(isBillPaidNote(billPaidTag('12'), '1')).toBe(false);
+    expect(isBillPaidNote('Bill #123 paid', '12')).toBe(false);
+    expect(isBillPaidNote(null, '12')).toBe(false);
+  });
+});

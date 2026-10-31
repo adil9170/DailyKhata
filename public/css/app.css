@@ -820,3 +820,27 @@ html.lite[data-style="soft"] { --raise: 4px 4px 8px var(--neu-lo), -4px -4px 8px
 .daysum .v, .qcell .v { font-size: 1.4rem; }
 .tile .v { font-size: 1.6rem; }
 .bname, .nav a, .tabbar a, .tabbar button, button, .chip, input, select, textarea, th, td { letter-spacing: 0; }
+
+/* ---- Past bills ---- */
+.bh-search { width: 100%; min-height: 44px; margin: 0 0 10px; }
+.bh-chips { margin-bottom: 8px; }
+.bh-sum { margin: 0 2px 8px; min-height: 1.2em; }
+.bh-list { display: grid; gap: 8px; }
+.bh-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px; text-align: left; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); color: var(--text); box-shadow: var(--shadow); }
+.bh-row.voided { opacity: .6; } .bh-row.voided .bh-amt { text-decoration: line-through; }
+.bh-no { font-weight: 750; font-variant-numeric: tabular-nums; color: var(--brand-fg); flex: none; max-width: 5.5em; overflow: hidden; text-overflow: ellipsis; }
+.bh-main { display: grid; min-width: 0; flex: 1; }
+.bh-who, .bh-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bh-who { font-weight: 650; } .bh-sub { font-size: .8rem; color: var(--text-2); }
+.bh-side { display: grid; justify-items: end; gap: 4px; flex: none; }
+.bh-amt { font-weight: 750; font-variant-numeric: tabular-nums; }
+.bh-more { margin: 12px 0; }
+.bh-owed { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; text-decoration: none; color: var(--text); }
+.bh-owed > span:first-child { display: grid; } .bh-owed-amt { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.bh-total { display: flex; align-items: center; gap: 10px; font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.bh-kv { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; overflow-wrap: anywhere; }
+.bh-items { margin: 8px 0; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); padding: 6px 0; max-height: 34vh; overflow: auto; }
+.bh-it { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 4px 0; overflow-wrap: anywhere; }
+@media (max-width: 380px) { .bh-it { grid-template-columns: minmax(0, 1fr) auto; } .bh-it > .muted { grid-column: 1; font-size: .8rem; } }
+
+.qtools { grid-template-columns: repeat(2, minmax(0, 1fr)); }

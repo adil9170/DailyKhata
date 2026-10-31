@@ -64,3 +64,21 @@ export function reserveCount(v: unknown): number {
   if (!Number.isFinite(n) || n < 1) fail(422, 'n must be at least 1');
   return Math.min(n, MAX_RESERVE);
 }
+
+/** WhatsApp wants digits only with the country code: 10 digits get +91; null when the number cannot be a phone. */
+export function waNumber(phone: unknown): string | null {
+  const d = String(phone ?? '').replace(/\D/g, '').replace(/^0+/, '');
+  if (d.length === 10) return '91' + d;
+  return d.length >= 11 && d.length <= 15 ? d : null;
+}
+
+/** Polite udhaar reminder; the caller URL-encodes it. Amount is integer paise. */
+export function reminderText(o: { shop?: string | null; customer?: string | null; label: string; paise: number }): string {
+  const rupees = (o.paise / 100).toLocaleString('en-IN', { minimumFractionDigits: o.paise % 100 ? 2 : 0, maximumFractionDigits: 2 });
+  const who = String(o.customer || '').trim();
+  return `Namaste${who ? ' ' + who : ''}, a gentle reminder: ₹${rupees} is pending for bill #${o.label}${o.shop ? ' at ' + o.shop : ''}. Please pay when you can. Thank you!`;
+}
+
+/** Tag written on the payment that settles a bill, so the bill list can tell it is paid. */
+export const billPaidTag = (label: string) => `Bill #${label} paid`;
+export const isBillPaidNote = (notes: unknown, label: string) => typeof notes === 'string' && (notes === billPaidTag(label) || notes.startsWith(billPaidTag(label) + ' '));
