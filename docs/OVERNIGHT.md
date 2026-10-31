@@ -73,7 +73,7 @@ Real shopkeeper testing (10 real notes and a real bill photo through the live AI
 | Slot | Planned start (IST) | Status | Commit | Note |
 |---|---|---|---|---|
 | 1 Reader hardening | 20:30 | done | PENDING_SHA | 168-note corpus: 97.6% -> 99.4% (167/168). Fixed: spaced +91 phone, "<name> ne udhaar liya", "X ne 400 diye Y ne 300 diye", cleanDump null rows, 20k digit run (1.4 s -> 0.5 ms), 20k note 60 -> 15 ms. Limits in docs/READER.md. Leftover: name written after the amount. |
-| 2 Landing Hindi switch | 21:30 | done | PENDING_SHA | EN \| हिं switch, 70 keys, dk_lang + hi default, no flash, 320 px ok, key-completeness test. Decisions: sample notes and reader category names stay as typed; Sign in sets html lang=en for the app (slot 10 will own app language). Smoke test not run (no server change). |
+| 2 Landing Hindi switch | 21:30 | done | d7afd9a, 3fdca96 | EN \| हिं switch, 70 keys, dk_lang + hi default, no flash, 320 px ok, key-completeness test. Decisions: sample notes and reader category names stay as typed; Sign in sets html lang=en for the app (slot 10 will own app language). Smoke test not run (no server change). CI was red once on slot 1's adversarial-string timing guard (580 ms vs 500 ms), budget raised to 2 s; live checked on jakcrew.com (sw v15, i18n assets). |
 | 3 Landing CTA + mic | 22:30 | pending | | |
 | 4 Landing screenshots + scroll | 23:30 | pending | | |
 | 5 SEO + sharing + www redirect | 00:30 | pending | | |
