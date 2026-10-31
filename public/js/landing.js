@@ -2,6 +2,7 @@
 // reader as the app (src/lib/dump.ts), and the receipt strip is built from what it understood.
 import { readDump } from '../../src/lib/dump.ts';
 import { t, lang, initLangSwitch } from './landing-i18n.js';
+import { SITE } from './site-config.js';
 
 const loc = () => (lang() === 'hi' ? 'hi-IN' : 'en-IN');
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
@@ -23,7 +24,69 @@ const line = (x) => `<li class="${x.c}"><span class="n">${esc(x.n)}</span><i cla
 export function initLanding() {
   const yr = document.getElementById('lp-year'); if (yr) yr.textContent = String(today.getFullYear());
   initLangSwitch(); // paints the page in the chosen language first, then the live parts read it
-  writing(); day(); words();
+  setup(); writing(); day(); words();
+}
+
+// "Get your shop set up": a wa.me link with a prefilled message when the owner has set a number, otherwise the owner's site.
+// The price line is shown only when it is set.
+function setup() {
+  const digits = String(SITE.whatsapp || '').replace(/\D/g, '');
+  const href = () => (digits.length >= 8 ? `https://wa.me/${digits}?text=${encodeURIComponent(t('wa_msg'))}` : 'https://adilshaikh.in');
+  const paint = () => document.querySelectorAll('[data-setup]').forEach((a) => { a.href = href(); a.target = '_blank'; a.rel = 'noopener'; });
+  paint(); window.addEventListener('dk:lang', paint);
+  const price = document.getElementById('lp-price'), line = String(SITE.price_line || '').trim().slice(0, 140);
+  if (price && line) { price.textContent = line; price.hidden = false; }
+}
+
+// "Say it": the browser's speech service (Web Speech API) fills the writing box. Hidden where it is not supported.
+const MAX_SPOKEN = 600;
+function mic(note, touch) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const row = document.getElementById('lp-mic-row'), btn = document.getElementById('lp-mic');
+  if (!SR || !row || !btn) return;
+  const label = document.getElementById('lp-mic-label'), status = document.getElementById('lp-mic-status');
+  row.hidden = false;
+  let rec = null, on = false, heard = false, failed = false, base = '', finals = '';
+  const say = (key) => { status.textContent = key ? t(key) : ''; status.dataset.k = key || ''; };
+  const idle = () => { on = false; btn.classList.remove('on'); btn.setAttribute('aria-pressed', 'false'); label.textContent = t('mic_start'); if (!failed && !heard && status.dataset.k === 'mic_listening') say('mic_none'); else if (status.dataset.k === 'mic_listening') say('mic_priv'); };
+  const stop = () => { if (rec) { try { rec.stop(); } catch (e) { /* already stopped */ } } };
+  const put = (interim) => {
+    let v = (base + finals + interim).slice(0, MAX_SPOKEN);
+    note.value = v; note.dispatchEvent(new Event('input'));
+    if ((base + finals).length >= MAX_SPOKEN) { say('mic_full'); failed = true; stop(); }
+  };
+  const start = () => {
+    touch(); // the auto-typing demo yields to the visitor
+    base = note.value && !/\s$/.test(note.value) ? note.value + ' ' : note.value; finals = ''; heard = false; failed = false;
+    rec = new SR(); rec.lang = loc(); rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i], tx = r[0] ? r[0].transcript : '';
+        if (r.isFinal) finals += tx.trim() + ' '; else interim += tx;
+      }
+      if (finals || interim) heard = true;
+      put(interim);
+    };
+    rec.onerror = (e) => {
+      const k = e.error;
+      if (k === 'aborted') return;
+      failed = true;
+      say(k === 'not-allowed' || k === 'service-not-allowed' ? 'mic_denied' : k === 'network' ? 'mic_offline' : k === 'no-speech' ? 'mic_none' : 'mic_fail');
+    };
+    rec.onend = () => { rec = null; idle(); };
+    try { rec.start(); } catch (e) { rec = null; say('mic_fail'); return; }
+    on = true; btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true'); label.textContent = t('mic_stop'); say('mic_listening');
+  };
+  // a tap while it is starting or stopping is ignored, so a double tap cannot throw or open two sessions
+  let busy = false;
+  btn.addEventListener('click', () => { if (busy) return; busy = true; setTimeout(() => { busy = false; }, 350); if (on) stop(); else start(); });
+  note.addEventListener('blur', stop);
+  window.addEventListener('pagehide', stop);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+  const words = () => { label.textContent = t(on ? 'mic_stop' : 'mic_start'); const k = status.dataset.k; if (k) say(k); };
+  window.addEventListener('dk:lang', () => { if (on) stop(); words(); });
+  label.textContent = t('mic_start'); say('mic_priv');
 }
 
 // Hero: a writing box that types a few lines by itself until the visitor touches it; the strip fills in as it reads.
@@ -47,6 +110,7 @@ function writing() {
   note.addEventListener('input', () => { grow(); clearTimeout(timer); timer = setTimeout(paint, 100); });
   document.querySelectorAll('.lp-try button').forEach((b) => b.addEventListener('click', () => { touched = true; note.value = b.dataset.sample; grow(); paint(); }));
   window.addEventListener('dk:lang', paint);
+  mic(note, touch);
   grow(); paint();
   const script = ['gas 820, chai 40', 'Sharma se 3000 mila upi', 'Sting 2 box 1020', 'Raju udhaar 450'];
   (async () => {

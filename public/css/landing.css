@@ -165,3 +165,19 @@ html.lang-pending #landing { visibility: hidden; }
 
 @media (prefers-reduced-motion: reduce) { .lp-lines li { animation: none; } .lp-moments li, .lp-words-in, .lp-words-out { transition: none; } }
 html.lite .lp-lines li { animation: none; }
+
+/* get-started button and the "say it" mic */
+.lp-setup { padding: 8px 16px; border-radius: 10px; background: var(--ink); color: var(--oat) !important; text-decoration: none; font-weight: 600; font-size: .95rem; white-space: nowrap; }
+.lp-setup:hover { background: #2c2942; }
+.lp-price { margin-top: 12px; color: var(--ink-2); font-size: .98rem; }
+.lp-mic-row { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.lp-mic-row[hidden], .lp-price[hidden] { display: none; }
+.lp-mic { display: inline-flex; align-items: center; gap: 8px; flex: none; min-height: 48px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; box-shadow: inset 0 0 0 1.5px var(--ink); touch-action: manipulation; }
+.lp-mic:hover { background: rgba(28,26,43,.07); }
+.lp-mic.on { background: var(--brick); color: #fff; box-shadow: none; animation: lp-pulse 1.4s ease-in-out infinite; }
+.lp-mic:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.lp-mic-status { margin: 0; min-width: 0; font-size: .88rem; line-height: 1.4; color: var(--ink-2); overflow-wrap: anywhere; }
+@keyframes lp-pulse { 50% { box-shadow: 0 0 0 7px rgba(180,60,40,.18); } }
+@media (prefers-reduced-motion: reduce) { .lp-mic.on { animation: none; } }
+html.lite .lp-mic.on { animation: none; }
+@media (max-width: 520px) { .lp-setup { display: none; } .lp-mic-row { flex-wrap: wrap; gap: 8px; } .lp-btn { width: 100%; } }

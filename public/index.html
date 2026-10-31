@@ -31,6 +31,7 @@
       <a class="lp-brand" href="/" data-i18n-aria="brand_aria" aria-label="DailyKhata home"><img src="/logo.svg" alt="" width="32" height="32"><span>DailyKhata</span></a>
       <nav data-i18n-aria="nav_aria" aria-label="Page"><a href="#day" data-i18n="nav_day">One day</a><a href="#faq" data-i18n="nav_faq">Questions</a></nav>
       <div class="lp-lang" role="group" data-i18n-aria="lang_aria" aria-label="Language"><button type="button" data-lang="en" aria-pressed="true">EN</button><button type="button" data-lang="hi" lang="hi" aria-pressed="false">हिं</button></div>
+      <a class="lp-setup" href="https://adilshaikh.in" data-setup data-i18n="nav_setup">Get set up</a>
       <a class="lp-signin" href="#/login" data-i18n="signin">Sign in</a>
     </header>
 
@@ -42,12 +43,17 @@
             <p class="lp-lead" data-i18n="lead">Type what happened in your shop, or say it. DailyKhata sorts it, adds it up and keeps your khata. It works without internet.</p>
             <label class="sr-only" for="lp-note" data-i18n="note_label">Write what happened in your shop</label>
             <textarea id="lp-note" class="lp-note" spellcheck="false" rows="5" data-i18n-placeholder="note_ph" placeholder="gas 820, chai 40&#10;Sharma se 3000 mila"></textarea>
+            <div class="lp-mic-row" id="lp-mic-row" hidden>
+              <button type="button" class="lp-mic" id="lp-mic" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 0 0-7 0v5.5A3.5 3.5 0 0 0 12 15Zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.59A6 6 0 0 0 18 11.5Z"/></svg><span id="lp-mic-label">Say it</span></button>
+              <p class="lp-mic-status" id="lp-mic-status" role="status"></p>
+            </div>
             <p class="lp-try"><span data-i18n="try_lead">Go on, write something. Or try</span>
               <button type="button" data-sample="Paid 500 for gas. Milk 60, 4 cups tea for 40. Got 1500 from Gupta via UPI" data-i18n="try_en">English</button>
               <button type="button" data-sample="चाय ४०&#10;बिजली १२००&#10;Verma ne 500 diye" data-i18n="try_hi">हिंदी</button>
               <button type="button" data-sample="rent 15,000/-&#10;labour 1.5k&#10;petrol 300rs&#10;samosa 20 + 30&#10;Total 16880" data-i18n="try_mess">a messy one</button>
             </p>
-            <div class="lp-cta"><a class="lp-btn" href="#/login" data-i18n="cta_signin">Sign in to your shop</a></div>
+            <div class="lp-cta"><a class="lp-btn" href="https://adilshaikh.in" data-setup data-i18n="cta_setup">Get your shop set up</a><a class="lp-link" href="#/login" data-i18n="cta_signin">Sign in to your shop</a></div>
+            <p class="lp-price" id="lp-price" hidden></p>
           </div>
           <div class="lp-tapewrap">
             <div class="lp-tape" aria-live="polite">
@@ -101,7 +107,7 @@
       <section class="lp-finale">
         <h2><span class="hi" lang="hi" data-i18n="fin_h1">दुकान बंद।</span> <span class="hi" lang="hi" data-i18n="fin_h2">हिसाब पूरा।</span></h2>
         <p class="lp-finale-sub" data-i18n="fin_sub">Shop's shut. Books are done.</p>
-        <div class="lp-cta"><a class="lp-btn lp-btn-light" href="#/login" data-i18n="fin_signin">Sign in</a><a class="lp-link" href="https://adilshaikh.in" data-i18n="fin_setup">Want your shop set up? Talk to Adil →</a></div>
+        <div class="lp-cta"><a class="lp-btn lp-btn-light" href="#/login" data-i18n="fin_signin">Sign in</a><a class="lp-link" href="https://adilshaikh.in" data-setup data-i18n="fin_setup">Want your shop set up? Talk to Adil →</a></div>
       </section>
     </main>
 
