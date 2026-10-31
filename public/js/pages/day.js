@@ -34,48 +34,49 @@ export async function dayPage(main, params) {
     rep.discrepancies.map((d) => h('div', { class: 'alert ' + d.severity }, icon(d.severity === 'info' ? 'info' : 'alert'), d.message))) : null;
 
   const pasteLink = W ? h('a', { class: 'pastelink', href: '#/dump' }, icon('type', 18), h('span', null, h('b', null, 'Write or paste notes'), h('span', { class: 'muted' }, ' — add many entries at once')), icon('right', 16)) : null;
-  const secHead = (ic, title, btn) => h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon(ic)), title), btn);
   const addBtn = (label, fn) => (W ? h('button', { class: 'small', onclick: fn }, icon('plus', 16), label) : null);
 
-  // ---------- entry lists (tap a row to edit) ----------
-  const initials = (t) => (t || '?').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
-  const li = ({ lead, title, sub, amt, amtSub, onEdit, kind, e }) => h('div', { class: 'li' + (W ? ' tap' : ''), onclick: W ? (ev) => { if (!ev.target.closest('button,a')) onEdit(); } : null, role: W ? 'button' : null, tabindex: W ? '0' : null,
-      onkeydown: W ? (ev) => { if (ev.key === 'Enter') onEdit(); } : null },
-    h('div', { class: 'lead' }, lead), h('div', { class: 'body' }, h('div', { class: 't' }, title), sub ? h('div', { class: 'd' }, sub) : null),
-    h('div', { class: 'amt' }, amt, amtSub ? h('div', { class: 'd' }, amtSub) : null),
-    DEL ? h('div', { class: 'acts' }, delBtn(kind, e)) : null);
-  const list = (rows, empty, total) => h('div', null, h('div', { class: 'list' }, rows.length ? rows : h('div', { class: 'empty' }, empty)), rows.length && total ? total : null);
-  const totalRow = (label, value, extra) => h('div', { class: 'li-total' }, h('span', null, label, extra ? h('span', { class: 'muted small' }, ` · ${extra}`) : null), h('span', null, value));
+  // ---------- the strip: today's khata as a printed slip (tap a line to edit) ----------
   const modeTxt = (m) => (m === 'credit' ? 'udhaar' : m === 'upi' ? 'UPI' : m);
-
-  const purchasesCard = h('div', { class: 'card', id: 'sec-purchases' },
-    secHead('bag', 'Stock bought', addBtn('Add', () => purchaseForm(date, null, reload))),
-    list(data.purchases.map((e) => li({ kind: 'purchases', e, lead: initials(e.product_name), title: e.product_name,
-      sub: `${num(e.qty_units)} ${e.unit} · ${num(e.pieces)} pcs · ${money(Math.round(e.cost_per_piece_paise))}/pc${e.payment_mode !== 'cash' ? ' · ' + modeTxt(e.payment_mode) : ''}${e.supplier ? ' · ' + e.supplier : ''}`,
-      amt: money(e.total_cost_paise), onEdit: () => purchaseForm(date, e, reload) })), 'No purchases yet',
-      totalRow('Total', money(rep.purchases.total), `${num(rep.purchases.units)} units · ${num(rep.purchases.pieces)} pcs`)));
-
-  const expensesCard = h('div', { class: 'card', id: 'sec-expenses' },
-    secHead('receipt', 'Expenses', addBtn('Add', () => expenseForm(date, null, reload))),
-    list(data.expenses.map((e) => li({ kind: 'expenses', e, lead: icon('receipt', 18), title: e.category,
-      sub: [modeTxt(e.payment_mode), e.notes].filter(Boolean).join(' · '),
-      amt: money(e.amount_paise), amtSub: e.document_id ? h('a', { href: companyUrl(`/api/c/documents/${e.document_id}/file`), target: '_blank', rel: 'noopener' }, 'Receipt') : null,
-      onEdit: () => expenseForm(date, e, reload) })), 'No expenses yet', totalRow('Total', money(rep.expenses.total))));
-
-  const collectionsCard = h('div', { class: 'card', id: 'sec-collections' },
-    secHead('rupee', 'Sales', addBtn('Add', () => collectionForm(date, null, reload))),
-    list(data.collections.map((e) => li({ kind: 'collections', e, lead: icon(e.mode === 'credit' ? 'wallet' : 'rupee', 18), title: e.mode === 'credit' ? `Udhaar${e.customer ? ' — ' + e.customer : ''}` : `${modeTxt(e.mode).replace(/^./, (c) => c.toUpperCase())}${e.customer ? ' — ' + e.customer : ''}`,
-      sub: e.notes || null, amt: money(e.amount_paise), onEdit: () => collectionForm(date, e, reload) })), 'No sales yet', totalRow('Total', money(rep.collections.total))));
-
+  const cap = (s) => s.replace(/^./, (c) => c.toUpperCase());
+  const lines = [
+    ...data.collections.map((e) => ({ kind: 'collections', e, dir: e.mode === 'credit' ? 'ud' : 'in', amt: e.amount_paise, sign: '+',
+      name: e.mode === 'credit' ? `Udhaar${e.customer ? ' — ' + e.customer : ''}` : `${cap(modeTxt(e.mode))}${e.customer ? ' — ' + e.customer : ''}`,
+      sub: e.notes || '', edit: () => collectionForm(date, e, reload) })),
+    ...data.expenses.map((e) => ({ kind: 'expenses', e, dir: e.payment_mode === 'credit' ? 'ud' : 'out', amt: e.amount_paise, sign: '−',
+      name: e.category, sub: [e.payment_mode !== 'cash' ? modeTxt(e.payment_mode) : '', e.notes].filter(Boolean).join(' · '),
+      doc: e.document_id, edit: () => expenseForm(date, e, reload) })),
+    ...data.purchases.map((e) => ({ kind: 'purchases', e, dir: e.payment_mode === 'credit' ? 'ud' : 'out', amt: e.total_cost_paise, sign: '−',
+      name: e.product_name, sub: `${num(e.qty_units)} ${e.unit}${e.payment_mode !== 'cash' ? ' · ' + modeTxt(e.payment_mode) : ''}${e.supplier ? ' · ' + e.supplier : ''}`,
+      edit: () => purchaseForm(date, e, reload) })),
+  ].sort((a, b) => String(a.e.created_at || '').localeCompare(String(b.e.created_at || '')) || (a.e.id > b.e.id) - (a.e.id < b.e.id));
+  const stripLine = (l, i) => h('li', { class: `sl ${l.dir}` + (W ? ' tap' : '') + (i < 30 ? ' anim' : ''), style: i < 30 ? { animationDelay: `${i * 25}ms` } : null,
+      onclick: W ? (ev) => { if (!ev.target.closest('button,a')) l.edit(); } : null, role: W ? 'button' : null, tabindex: W ? '0' : null,
+      'aria-label': W ? `Edit ${l.name} ${money(l.amt)}` : null,
+      onkeydown: W ? (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) { ev.preventDefault(); l.edit(); } } : null },
+    h('span', { class: 'n' }, l.name, l.sub ? h('span', { class: 'sub' }, l.sub) : null),
+    h('span', { class: 'dots', 'aria-hidden': 'true' }),
+    h('b', null, `${l.sign}${money(l.amt)}`),
+    l.doc ? h('a', { class: 'rc', href: companyUrl(`/api/c/documents/${l.doc}/file`), target: '_blank', rel: 'noopener' }, 'Receipt') : null,
+    DEL ? delBtn(l.kind, l.e) : null);
+  const outTotal = rep.purchases.total + rep.expenses.total;
+  const stripCard = h('section', { class: 'strip', id: 'sec-strip', 'aria-label': 'Day strip' },
+    h('div', { class: 'strip-top' }, h('b', null, 'KHATA'), h('span', null, fmtDate(date, { day: 'numeric', month: 'short' }))),
+    h('ul', { class: 'strip-lines' }, lines.length ? lines.map(stripLine) : h('li', { class: 'sl empty' }, W ? 'Nothing written yet. Tap + Sale to start the strip.' : 'Nothing written yet.')),
+    h('div', { class: 'strip-sum' },
+      h('div', null, h('span', null, 'In'), h('b', { class: 'pos' }, money(rep.collections.total))),
+      h('div', null, h('span', null, 'Out'), h('b', null, money(outTotal))),
+      h('div', null, h('span', null, 'Cash in drawer'), h('b', null, rep.cash.expected === null ? '—' : money(rep.cash.expected)))),
+    W ? h('div', { class: 'strip-add' }, addBtn('Sale', () => collectionForm(date, null, reload)), addBtn('Expense', () => expenseForm(date, null, reload)), addBtn('Stock bought', () => purchaseForm(date, null, reload))) : null);
   const stockCard = stockCountCard(date, rep, W, reload);
   const cashCard = cashCloseCard(date, rep, data.closing, can('cash.close'), reload);
   const profitCard = p && p.status === 'actual' ? h('div', { class: 'card smart-up' }, h('h2', null, 'Profit for the day'),
     h('div', { class: 'kv' }, h('div', null, 'Sales'), h('div', null, money(p.revenue)), h('div', null, '− Cost of stock sold'), h('div', null, money(p.cogs)),
       h('div', null, '− Expenses'), h('div', null, money(p.expenses)), h('div', { class: 'tot' }, 'Net profit'), h('div', { class: 'tot ' + cls(p.net) }, money(p.net)))) : null;
 
-  const closeHead = h('div', { class: 'closehead smart-up' }, h('h2', null, 'Close the day'), h('div', { class: 'small muted' }, 'At night: count the stock left and the cash in the drawer. This gives your profit.'));
+  const closeHead = h('div', { class: 'closehead smart-up' }, h('h2', null, 'Close the day'), h('div', { class: 'small muted' }, 'At night: count the stock left and the cash in the drawer. The strip tells you if the books match.'));
   mount(main, header, hero, pasteLink, issues,
-    h('div', { class: 'grid g2' }, h('div', null, collectionsCard, expensesCard), h('div', null, purchasesCard)),
+    stripCard,
     closeHead, stockCard, h('div', { class: 'grid g2' }, h('div', null, cashCard), h('div', null, profitCard)));
 
 
@@ -261,6 +262,7 @@ function cashCloseCard(date, rep, closing, canClose, done) {
   return h('div', { class: 'card smart-up', id: 'sec-cash' },
     h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('lock')), 'Cash in drawer')),
     h('div', { class: 'grid' },
+      tallyResult(c),
       h('div', { class: 'kv' },
         h('div', null, 'Opening cash'), h('div', null, money(c.opening)),
         h('div', null, '+ Cash collected'), h('div', null, money(c.cash_in)),
@@ -272,6 +274,14 @@ function cashCloseCard(date, rep, closing, canClose, done) {
         h('div', { class: 'fields' }, lab('Opening cash ₹', opening), lab('Cash counted now ₹', counted)), lab('Notes', notes),
         h('div', { class: 'small muted', style: { marginBottom: '8px' } }, 'Leave opening empty to carry forward the previous counted cash. UPI/card/bank do not affect the drawer.'),
         btn) : null));
+}
+
+// the tally moment: calm when it matches, plain when it does not
+function tallyResult(c) {
+  if (c.difference === null || c.difference === undefined) return null;
+  const ok = c.difference === 0;
+  return h('div', { class: 'tally ' + (ok ? 'ok' : 'off'), role: 'status' }, ok ? 'Books match ✓' : c.difference < 0 ? 'Short by ' + money(-c.difference) : 'Over by ' + money(c.difference),
+    h('span', null, 'Expected ' + money(c.expected) + ' · Counted ' + money(c.counted)));
 }
 
 function lab(text, el) { return h('div', { class: 'field' }, h('label', null, text, el)); }
