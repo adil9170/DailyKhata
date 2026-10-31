@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+// @ts-ignore node types are not part of this project's tsconfig
 import { readFileSync, statSync } from 'node:fs';
 
 const css = readFileSync('public/css/app.css', 'utf8');
@@ -20,8 +21,8 @@ describe('landing font subsets', () => {
     expect(pre).not.toMatch(/deva/);
   });
   it('the Palanquin Devanagari faces no longer claim the rupee sign (the font has no glyph for it)', () => {
-    const lines = css.split('\n').filter((l) => /font-family: "Palanquin"/.test(l) && /deva/.test(l));
+    const lines = css.split('\n').filter((l: string) => /font-family: "Palanquin"/.test(l) && /deva/.test(l));
     expect(lines.length).toBe(2);
-    for (const l of lines) expect(l).not.toMatch(/20B9/);
+    for (const l of lines as string[]) expect(l).not.toMatch(/20B9/);
   });
 });
