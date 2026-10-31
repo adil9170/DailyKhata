@@ -32,19 +32,19 @@ const app = document.getElementById('app');
 const ALL = ['layman', 'smart', 'nerdy'], SMART_UP = ['smart', 'nerdy'];
 // `modes` = which experience modes show the page. `laymanLabel` is the friendlier name used in Layman mode.
 const companyRoutes = [
-  { path: 'quick', label: 'Quick add', short: 'Home', laymanLabel: 'Home', icon: 'zap', page: quickPage, perm: 'entries.write', modes: ALL },
-  { path: 'notes', label: 'Notes', short: 'Notes', laymanLabel: 'Notes', icon: 'book', page: notesPage, perm: 'entries.view', modes: ALL },
-  { path: 'dump', label: 'Write expenses', short: 'Write', laymanLabel: 'Write expenses', icon: 'type', page: dumpPage, perm: 'entries.write', modes: ALL },
-  { path: 'counter', label: 'Cash counter', short: 'Counter', laymanLabel: 'Count cash', icon: 'calculator', page: counterPage, perm: 'entries.view', modes: ALL },
-  { path: 'dashboard', label: 'Dashboard', icon: 'chart', page: dashboardPage, perm: 'reports.view', modes: SMART_UP },
-  { path: 'day', label: 'Daily Entry', short: 'Entry', laymanLabel: 'My day', icon: 'pen', page: dayPage, perm: 'entries.view', modes: ALL },
-  { path: 'uploads', label: 'Photos & Bills', short: 'Photos', icon: 'camera', page: uploadsPage, perm: 'entries.view', modes: SMART_UP },
+  { path: 'quick', label: 'Home', short: 'Home', icon: 'home', page: quickPage, perm: 'entries.write', modes: ALL },
+  { path: 'day', label: 'Today’s khata', short: 'Khata', laymanLabel: 'Today’s khata', icon: 'pen', page: dayPage, perm: 'entries.view', modes: ALL },
+  { path: 'dump', label: 'Write expenses', short: 'Write', icon: 'type', page: dumpPage, perm: 'entries.write', modes: ALL },
+  { path: 'counter', label: 'Cash counter', short: 'Counter', icon: 'calculator', page: counterPage, perm: 'entries.view', modes: ALL },
+  { path: 'notes', label: 'Notes', short: 'Notes', icon: 'book', page: notesPage, perm: 'entries.view', modes: ALL },
+  { path: 'dashboard', label: 'Reports', icon: 'chart', page: dashboardPage, perm: 'reports.view', sep: 'Business', modes: SMART_UP },
+  { path: 'ledger', label: 'Udhaar', icon: 'wallet', page: ledgerPage, perm: 'entries.view', modes: SMART_UP },
   { path: 'products', label: 'Products', icon: 'box', page: productsPage, perm: 'entries.view', modes: SMART_UP },
-  { path: 'reports', label: 'Reports & Export', icon: 'file', page: reportsPage, perm: 'reports.view', modes: SMART_UP },
-  { path: 'ledger', label: 'Udhaar / Outstanding', icon: 'wallet', page: ledgerPage, perm: 'entries.view', modes: SMART_UP },
-  { path: 'team', label: 'Team', icon: 'users', page: teamPage, perm: 'team.manage', sep: true, modes: SMART_UP },
-  { path: 'settings', label: 'Settings', icon: 'sliders', page: settingsPage, perm: null, modes: ALL },
-  { path: 'audit', label: 'Audit Log', icon: 'clock', page: auditPage, perm: 'audit.view', modes: ['nerdy'] },
+  { path: 'uploads', label: 'Photos & bills', short: 'Photos', icon: 'camera', page: uploadsPage, perm: 'entries.view', modes: SMART_UP },
+  { path: 'reports', label: 'Download (Excel/PDF)', short: 'Download', icon: 'download', page: reportsPage, perm: 'reports.view', modes: SMART_UP },
+  { path: 'team', label: 'Team', icon: 'users', page: teamPage, perm: 'team.manage', sep: 'Account', modes: SMART_UP },
+  { path: 'settings', label: 'Settings', icon: 'sliders', page: settingsPage, perm: null, sep: 'Account', modes: ALL },
+  { path: 'audit', label: 'Audit log', icon: 'clock', page: auditPage, perm: 'audit.view', modes: ['nerdy'] },
 ];
 /** Pages this person may open in the current mode. */
 const visibleCompanyRoutes = () => companyRoutes.filter((r) => (!r.perm || can(r.perm)) && r.modes.includes(modeOrDefault()));
@@ -52,7 +52,7 @@ const routeLabel = (r) => (modeOrDefault() === 'layman' && r.laymanLabel) || r.l
 /** Where "Home" goes: Quick add for Layman, the dashboard for everyone else who may see it. */
 function homeRoute() {
   const rs = visibleCompanyRoutes();
-  return (modeOrDefault() !== 'layman' && rs.find((r) => r.path === 'dashboard')) || rs.find((r) => r.path === 'quick') || rs[0];
+  return rs.find((r) => r.path === 'quick') || rs.find((r) => r.path === 'day') || rs[0];
 }
 const adminRoutes = [
   { path: 'admin', label: 'Overview', icon: 'chart', page: adminOverviewPage },
@@ -164,17 +164,13 @@ function modeChip() {
 export function openQuickAdd() {
   const today = state.today || todayLocal();
   const date = (location.hash.match(/date=(\d{4}-\d{2}-\d{2})/) || [])[1] || today;
-  if (modeOrDefault() === 'layman') return navigate(`#/quick?date=${date}`);
-  const go = (what) => navigate(`#/day?date=${date}&add=${what}`);
-  actionSheet('Add to today’s khata', [
-    { icon: 'calculator', title: 'Count cash', desc: 'Tap notes — total adds itself, share as receipt', onclick: () => navigate('#/counter') },
-    { icon: 'type', title: 'Write expenses', desc: 'Type or paste anything — the money is picked out', onclick: () => navigate('#/dump') },
-    { icon: 'zap', title: 'Quick add', desc: 'Big-button entry: amount, then tap', onclick: () => navigate(`#/quick?date=${date}`) },
-    { icon: 'bag', title: 'Purchase', desc: 'Stock you bought — boxes, pieces, cost', onclick: () => go('purchase') },
-    { icon: 'receipt', title: 'Expense', desc: 'Gas, Wi-Fi, water, rent…', onclick: () => go('expense') },
-    { icon: 'rupee', title: 'Collection', desc: 'Money from sales — cash, UPI, udhaar', onclick: () => go('collection') },
-    { icon: 'book', title: 'Smart note', desc: 'Jot lines — they add up as you type', onclick: () => navigate(`#/notes?id=${crypto.randomUUID()}&new=1`) },
-    ...(can('uploads.write') ? [{ icon: 'camera', title: 'Scan a photo', desc: 'We read your handwritten page for you', onclick: () => pickPhoto(date) }] : []),
+  const quick = (type) => navigate(`#/quick?date=${date}&type=${type}`);
+  actionSheet('Add', [
+    { icon: 'rupee', title: 'Sale', desc: 'Money you received', onclick: () => quick('collection') },
+    { icon: 'receipt', title: 'Expense', desc: 'Money you spent — gas, rent, tea…', onclick: () => quick('expense') },
+    { icon: 'bag', title: 'Stock bought', desc: 'Items you bought to sell', onclick: () => quick('purchase') },
+    { icon: 'type', title: 'Write or paste notes', desc: 'Many entries at once, the way you talk', onclick: () => navigate('#/dump') },
+    ...(can('uploads.write') ? [{ icon: 'camera', title: 'Photo of a bill or page', desc: 'We read it for you', onclick: () => pickPhoto(date) }] : []),
   ]);
 }
 function pickPhoto(date) {
@@ -202,8 +198,9 @@ function layout(routes, active, { portalOf, title } = {}) {
     h('div', { style: { minWidth: 0 } }, h('div', { class: 'bname' }, showCompany ? company?.name || 'DailyKhata' : 'DailyKhata'),
       h('div', { class: 'small muted' }, showCompany ? (company?.plan_name ? `${company.plan_name} plan` : 'Daily khata') : 'Super admin')));
   const visible = showCompany ? visibleCompanyRoutes() : routes.filter((r) => !r.perm || can(r.perm));
+  const heads = new Set();
   const nav = h('nav', { class: 'nav', 'aria-label': 'Main' }, visible.map((r) => [
-    r.sep ? h('div', { class: 'sep' }) : null,
+    r.sep && !heads.has(r.sep) ? (heads.add(r.sep), h('div', { class: 'sep' }, typeof r.sep === 'string' ? r.sep : '')) : null,
     h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '', 'aria-current': active === r.path ? 'page' : null, onclick: closeMenu }, icon(r.icon), showCompany ? routeLabel(r) : r.label),
   ]));
   const initials = (state.user.name || '?').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
@@ -220,7 +217,7 @@ function layout(routes, active, { portalOf, title } = {}) {
   const top = h('header', { class: 'topbar' },
     h('button', { class: 'topmark', 'aria-label': 'Open menu', onclick: openMenu }, showCompany && company?.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), alt: '' }) : h('div', { class: 'brandmark' }, ((showCompany ? company?.name : 'D') || 'D')[0].toUpperCase())),
     h('div', { class: 'title' }, title || (showCompany ? company?.name : 'DailyKhata Admin') || 'DailyKhata'),
-    showCompany ? [syncChip('bar'), modeChip()] : themeButton());
+    showCompany ? syncChip('bar') : themeButton());
 
   // bottom tab bar (phones)
   let tabs;
@@ -231,8 +228,8 @@ function layout(routes, active, { portalOf, title } = {}) {
     const pick = (p) => vis.find((r) => r.path === p);
     const third = pick('counter') || (lay ? pick('settings') : pick('uploads')); // cash counter is used all day, so it gets a tab
     const tabRoutes = [home, home.path === 'day' ? null : pick('day'), third].filter(Boolean);
-    const isHome = (r) => r.path === 'dashboard' || r.path === 'quick';
-    const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(isHome(r) ? 'home' : r.icon), isHome(r) ? 'Home' : (lay && r.laymanLabel) || r.short || r.label);
+    const isHome = (r) => r.path === 'quick';
+    const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(isHome(r) ? 'home' : r.icon), isHome(r) ? 'Home' : r.short || r.label);
     tabs = h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
       link(tabRoutes[0]),
       tabRoutes[1] ? link(tabRoutes[1]) : null,

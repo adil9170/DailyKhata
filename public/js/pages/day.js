@@ -24,40 +24,16 @@ export async function dayPage(main, params) {
 
   // ---------- hero: the one number that matters ----------
   const p = rep.profit;
-  const profitPill = !p || p.status === 'no_activity' ? null
-    : p.status === 'actual' ? h('span', { class: 'pill' }, icon('sparkles', 14), `Profit ${money(p.net)}`)
-    : h('span', { class: 'pill' }, icon('info', 14), 'Count stock to see profit');
-  const hero = h('div', { class: 'hero' },
-    h('div', { class: 'spread' }, h('div', { class: 'label' }, 'Collection'), profitPill),
-    h('div', { class: 'big', dataset: { paise: String(rep.collections.total) } }, money(rep.collections.total)),
-    h('div', { class: 'stats' },
-      h('div', null, h('div', { class: 'k' }, 'Purchases'), h('div', { class: 'v' }, money(rep.purchases.total))),
-      h('div', null, h('div', { class: 'k' }, 'Expenses'), h('div', { class: 'v' }, money(rep.expenses.total))),
-      h('div', null, h('div', { class: 'k' }, 'Net cash'), h('div', { class: 'v' }, money(rep.net_cash_flow, { sign: true })))));
-
-  // ---------- step checklist ----------
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const needCount = rep.stock.products_needing_count;
-  const steps = [
-    { id: 'sec-purchases', ic: 'bag', t: 'Stock bought', d: data.purchases.length ? `${data.purchases.length} items · ${num(rep.purchases.pieces)} pieces` : 'Add what you purchased', amt: data.purchases.length ? money(rep.purchases.total) : null, done: data.purchases.length > 0, add: () => purchaseForm(date, null, reload) },
-    { id: 'sec-expenses', ic: 'receipt', t: 'Expenses', d: data.expenses.length ? `${data.expenses.length} entries` : 'Gas, Wi-Fi, water…', amt: data.expenses.length ? money(rep.expenses.total) : null, done: data.expenses.length > 0, add: () => expenseForm(date, null, reload) },
-    { id: 'sec-collections', ic: 'rupee', t: 'Collection', d: data.collections.length ? (rep.collections.credit ? `incl. ${money(rep.collections.credit)} udhaar` : 'Money from sales') : 'Add today’s sales money', amt: data.collections.length ? money(rep.collections.total) : null, done: data.collections.length > 0, add: () => collectionForm(date, null, reload) },
-    { id: 'sec-stock', ic: 'box', t: 'Count stock left', d: needCount ? `${rep.stock.counted_products} of ${needCount} products counted` : 'Nothing in stock to count', amt: null, done: needCount > 0 && rep.stock.counted_products >= needCount },
-    { id: 'sec-cash', ic: 'lock', t: 'Count cash & close day', d: rep.cash.counted === null ? 'Check cash in the drawer' : rep.cash.difference === null ? 'Counted' : rep.cash.difference === 0 ? 'Cash matches' : `${rep.cash.difference < 0 ? 'Short' : 'Excess'} ${money(Math.abs(rep.cash.difference))}`, amt: null, done: rep.cash.counted !== null },
-  ];
-  const lay = document.documentElement.dataset.mode === 'layman';
-  const shownSteps = lay ? steps.filter((s) => s.id !== 'sec-stock' && s.id !== 'sec-cash') : steps;
-  const doneCount = shownSteps.filter((s) => s.done).length;
-  const stepsCard = h('div', { class: 'card' },
-    h('div', { class: 'spread', style: { marginBottom: '4px' } }, h('h2', { style: { margin: 0 } }, 'Close your day'), badge(`${doneCount}/${shownSteps.length} done`, doneCount === shownSteps.length ? 'good' : '')),
-    h('div', { class: 'steps' }, steps.map((s) => h('button', { class: 'step' + (s.done ? ' done' : '') + (s.id === 'sec-stock' || s.id === 'sec-cash' ? ' smart-up' : ''), onclick: () => (!s.done && s.add && W ? s.add() : scrollTo(s.id)) },
-      h('span', { class: 'dot' }, icon(s.done ? 'check' : s.ic)), h('span', null, h('span', { class: 't', style: { display: 'block' } }, s.t), h('span', { class: 'd', style: { display: 'block' } }, s.d)),
-      s.amt ? h('span', { class: 'amt' }, s.amt) : h('span', { class: 'amt' }), h('span', { class: 'chev' }, icon(!s.done && s.add && W ? 'plus' : 'right', 18))))));
+  const hasProfit = p && p.status === 'actual';
+  const hero = h('div', { class: 'daysum' },
+    h('div', null, h('div', { class: 'k' }, 'Sales'), h('div', { class: 'v pos' }, money(rep.collections.total))),
+    h('div', null, h('div', { class: 'k' }, 'Spent'), h('div', { class: 'v' }, money(rep.purchases.total + rep.expenses.total))),
+    h('div', null, h('div', { class: 'k' }, hasProfit ? 'Profit' : 'Cash left'), h('div', { class: 'v ' + cls(hasProfit ? p.net : rep.net_cash_flow) }, money(hasProfit ? p.net : rep.net_cash_flow))));
 
   const issues = rep.discrepancies.filter((d) => d.severity !== 'info').length || rep.discrepancies.length ? h('div', { class: 'card smart-up' }, h('h2', null, 'Checks'),
     rep.discrepancies.map((d) => h('div', { class: 'alert ' + d.severity }, icon(d.severity === 'info' ? 'info' : 'alert'), d.message))) : null;
 
-  const quick = W ? quickEntryCard(date, reload) : null;
+  const pasteLink = W ? h('a', { class: 'pastelink', href: '#/dump' }, icon('type', 18), h('span', null, h('b', null, 'Write or paste notes'), h('span', { class: 'muted' }, ' — add many entries at once')), icon('right', 16)) : null;
   const secHead = (ic, title, btn) => h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon(ic)), title), btn);
   const addBtn = (label, fn) => (W ? h('button', { class: 'small', onclick: fn }, icon('plus', 16), label) : null);
 
@@ -87,9 +63,9 @@ export async function dayPage(main, params) {
       onEdit: () => expenseForm(date, e, reload) })), 'No expenses yet', totalRow('Total', money(rep.expenses.total))));
 
   const collectionsCard = h('div', { class: 'card', id: 'sec-collections' },
-    secHead('rupee', 'Collection', addBtn('Add', () => collectionForm(date, null, reload))),
+    secHead('rupee', 'Sales', addBtn('Add', () => collectionForm(date, null, reload))),
     list(data.collections.map((e) => li({ kind: 'collections', e, lead: icon(e.mode === 'credit' ? 'wallet' : 'rupee', 18), title: e.mode === 'credit' ? `Udhaar${e.customer ? ' — ' + e.customer : ''}` : `${modeTxt(e.mode).replace(/^./, (c) => c.toUpperCase())}${e.customer ? ' — ' + e.customer : ''}`,
-      sub: e.notes || null, amt: money(e.amount_paise), onEdit: () => collectionForm(date, e, reload) })), 'No collection yet', totalRow('Total', money(rep.collections.total))));
+      sub: e.notes || null, amt: money(e.amount_paise), onEdit: () => collectionForm(date, e, reload) })), 'No sales yet', totalRow('Total', money(rep.collections.total))));
 
   const stockCard = stockCountCard(date, rep, W, reload);
   const cashCard = cashCloseCard(date, rep, data.closing, can('cash.close'), reload);
@@ -97,10 +73,11 @@ export async function dayPage(main, params) {
     h('div', { class: 'kv' }, h('div', null, 'Sales'), h('div', null, money(p.revenue)), h('div', null, '− Cost of stock sold'), h('div', null, money(p.cogs)),
       h('div', null, '− Expenses'), h('div', null, money(p.expenses)), h('div', { class: 'tot' }, 'Net profit'), h('div', { class: 'tot ' + cls(p.net) }, money(p.net)))) : null;
 
-  mount(main, header, h('div', { class: 'grid g2' }, h('div', null, hero, issues), h('div', null, stepsCard)), quick,
-    h('div', { class: 'grid g2' }, h('div', null, purchasesCard), h('div', null, expensesCard, collectionsCard)), stockCard, h('div', { class: 'grid g2' }, h('div', null, cashCard), h('div', null, profitCard)));
+  const closeHead = h('div', { class: 'closehead smart-up' }, h('h2', null, 'Close the day'), h('div', { class: 'small muted' }, 'At night: count the stock left and the cash in the drawer. This gives your profit.'));
+  mount(main, header, hero, pasteLink, issues,
+    h('div', { class: 'grid g2' }, h('div', null, collectionsCard, expensesCard), h('div', null, purchasesCard)),
+    closeHead, stockCard, h('div', { class: 'grid g2' }, h('div', null, cashCard), h('div', null, profitCard)));
 
-  const bigEl = main.querySelector('.hero .big'); if (bigEl) countUp(bigEl, rep.collections.total);
 
   // deep links from the "+" sheet
   const add = params.get('add');
@@ -109,7 +86,7 @@ export async function dayPage(main, params) {
     if (add === 'purchase') purchaseForm(date, null, reload);
     else if (add === 'expense') expenseForm(date, null, reload);
     else if (add === 'collection') collectionForm(date, null, reload);
-    else if (add === 'text') { const ta = main.querySelector('textarea'); if (ta && params.get('text')) ta.value = params.get('text'); ta?.scrollIntoView({ behavior: 'smooth', block: 'center' }); ta?.focus(); }
+    else if (add === 'text') navigate('#/dump');
   }
 
   function delBtn(kind, e) {
