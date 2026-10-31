@@ -1,120 +1,118 @@
-// Landing page behaviour: the live note demo (the app's real reader, src/lib/dump.ts), the hero phone that
-// types and answers by itself, scroll reveals, the journey phone that follows the steps, and the small bento animations.
+// Landing page behaviour. Everything the page shows is real: the writing box and the "becomes" line use the same text
+// reader as the app (src/lib/dump.ts), and the receipt strip is built from what it understood.
 import { readDump } from '../../src/lib/dump.ts';
 
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
 const rs = (n) => '₹' + inr.format(n);
+const sgn = (v) => (v < 0 ? '−' : '+') + rs(Math.abs(v));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('lite');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const today = new Date();
 const iso = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const read = (text) => readDump(text, { defaultYear: today.getFullYear(), today: iso, products: [], categories: [] });
-const rowsOf = (r) => [
-  ...r.expenses.map((e) => ({ c: 'ex', t: 'Expense', n: [e.category, e.notes, e.payment_mode === 'bank' ? 'UPI' : ''].filter(Boolean).join(' · '), v: -e.amount })),
-  ...r.purchases.map((p) => ({ c: 'st', t: 'Stock', n: `${p.item} · ${p.qty} ${p.unit}`, v: -p.total })),
-  ...r.collections.map((c) => ({ c: c.mode === 'credit' ? 'ud' : 'in', t: c.mode === 'credit' ? 'Udhaar' : 'Sale', n: [c.customer, c.mode === 'upi' ? 'UPI' : ''].filter(Boolean).join(' · ') || 'Cash sale', v: c.amount })),
+const entries = (r) => [
+  ...r.expenses.map((e) => ({ c: 'ex', n: [e.category, e.notes, e.payment_mode === 'bank' ? 'UPI' : ''].filter(Boolean).join(' · '), v: -e.amount })),
+  ...r.purchases.map((p) => ({ c: 'ex', n: `${p.item} · ${p.qty} ${p.unit}`, v: -p.total })),
+  ...r.collections.map((c) => ({ c: c.mode === 'credit' ? 'ud' : 'in', n: [c.customer || (c.mode === 'credit' ? '' : 'Sale'), c.mode === 'credit' ? 'udhaar' : c.mode === 'upi' ? 'UPI' : ''].filter(Boolean).join(' · '), v: c.amount })),
 ];
-const visible = (el, fn, opts = { threshold: 0.3 }) => { const io = new IntersectionObserver((es) => es.forEach((e) => fn(e, io)), opts); io.observe(el); return io; };
+const line = (x) => `<li class="${x.c}"><span class="n">${esc(x.n)}</span><i class="d"></i><b>${sgn(x.v)}</b></li>`;
 
 export function initLanding() {
   const yr = document.getElementById('lp-year'); if (yr) yr.textContent = String(today.getFullYear());
-  noteDemo(); heroPhone(); reveals(); journey(); bento();
+  writing(); day(); words();
 }
 
-function noteDemo() {
+// Hero: a writing box that types a few lines by itself until the visitor touches it; the strip fills in as it reads.
+function writing() {
   const note = document.getElementById('lp-note'), rows = document.getElementById('lp-rows');
   if (!note || !rows) return;
   const count = document.getElementById('lp-count'), inEl = document.getElementById('lp-in'), outEl = document.getElementById('lp-outv');
   document.getElementById('lp-date').textContent = today.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  const grow = () => { note.style.height = 'auto'; note.style.height = Math.max(192, note.scrollHeight) + 'px'; };
+  const grow = () => { note.style.height = 'auto'; note.style.height = Math.max(200, note.scrollHeight + 4) + 'px'; };
   const paint = () => {
-    const r = read(note.value), list = rowsOf(r);
-    rows.innerHTML = list.length
-      ? list.map((x) => `<li class="${x.c}"><span class="t">${x.t}</span><span class="n">${esc(x.n)}</span><b>${x.v < 0 ? '−' : '+'}${rs(Math.abs(x.v))}</b></li>`).join('')
-      : '<li class="empty">Write something with an amount, like “gas 820”.</li>';
-    count.textContent = `${list.length} ${list.length === 1 ? 'entry' : 'entries'}${r.skipped.length ? ` · ${r.skipped.length} total skipped` : ''}`;
+    const r = read(note.value), list = entries(r);
+    rows.innerHTML = list.length ? list.map(line).join('') : '<li class="empty">Your lines will print here.</li>';
     inEl.textContent = rs(list.filter((x) => x.v > 0).reduce((s, x) => s + x.v, 0));
     outEl.textContent = rs(-list.filter((x) => x.v < 0).reduce((s, x) => s + x.v, 0));
+    count.textContent = list.length ? `${list.length} ${list.length === 1 ? 'entry' : 'entries'}${r.skipped.length ? ` · ${r.skipped.length} total skipped` : ''}` : 'Nothing yet';
   };
-  let t;
-  note.addEventListener('input', () => { grow(); clearTimeout(t); t = setTimeout(paint, 120); });
-  document.querySelectorAll('.lp-samples button').forEach((b) => b.addEventListener('click', () => { note.value = b.dataset.sample; grow(); paint(); }));
+  let t, touched = false;
+  const touch = () => { touched = true; };
+  note.addEventListener('pointerdown', touch); note.addEventListener('keydown', touch); note.addEventListener('focus', touch);
+  note.addEventListener('input', () => { grow(); clearTimeout(t); t = setTimeout(paint, 100); });
+  document.querySelectorAll('.lp-try button').forEach((b) => b.addEventListener('click', () => { touched = true; note.value = b.dataset.sample; grow(); paint(); }));
   grow(); paint();
-}
-
-// Hero phone: types a line, "sends" it, and the khata answers with what it understood (read by the real reader).
-function heroPhone() {
-  const log = document.getElementById('lp-chatlog'), typing = document.getElementById('lp-typing');
-  if (!log || !typing) return;
-  const lines = ['gas 820, chai 40', 'Sharma se 3000 mila upi', 'Sting 2 box 1020', 'Raju udhaar 450', 'auto 120, samosa 60'];
-  let sales = 0, spent = 0, running = false, stop = false;
-  const add = (cls, html) => { const b = document.createElement('div'); b.className = `lp-b ${cls}`; b.innerHTML = html; log.append(b); while (log.children.length > 6) log.firstElementChild.remove(); };
-  async function loop() {
-    if (running) return; running = true;
-    for (let i = 0; !stop; i = (i + 1) % lines.length) {
-      const line = lines[i];
-      if (calm()) typing.textContent = line;
-      else for (let k = 1; k <= line.length && !stop; k++) { typing.textContent = line.slice(0, k); await wait(55 + Math.random() * 45); }
-      await wait(450);
-      typing.textContent = '';
-      add('me', esc(line));
-      await wait(650);
-      const list = rowsOf(read(line));
-      for (const x of list) { if (x.v > 0) sales += x.v; else spent -= x.v; }
-      add('bot', list.map((x) => `<div class="r${x.v > 0 ? ' g' : ''}"><span><i>${x.t}</i>${esc(x.n)}</span><b>${x.v < 0 ? '−' : '+'}${rs(Math.abs(x.v))}</b></div>`).join('')
-        + `<div class="s"><span>Sales <b>${rs(sales)}</b></span><span>Spent <b>${rs(spent)}</b></span></div>`);
-      await wait(calm() ? 4000 : 2200);
+  const script = ['gas 820, chai 40', 'Sharma se 3000 mila upi', 'Sting 2 box 1020', 'Raju udhaar 450'];
+  (async () => {
+    await wait(700);
+    for (const ln of script) {
+      if (touched) return;
+      const base = note.value ? note.value + '\n' : '';
+      if (calm()) note.value = base + ln;
+      else for (let k = 1; k <= ln.length && !touched; k++) { note.value = base + ln.slice(0, k); await wait(48 + Math.random() * 50); }
+      if (touched) return;
+      grow(); paint(); await wait(600);
     }
-    running = false;
-  }
-  visible(log.closest('.lp-phone'), (e) => { if (e.isIntersecting) { stop = false; loop(); } else stop = true; }, { threshold: 0.2 });
+  })();
 }
 
-function reveals() {
-  const els = document.querySelectorAll('#landing .reveal');
-  if (calm() || !('IntersectionObserver' in window)) { els.forEach((el) => el.classList.add('in')); return; }
-  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.2, rootMargin: '0px 0px -8% 0px' });
-  els.forEach((el) => io.observe(el));
-}
-
-// Journey: the step nearest the middle of the screen lights up, and the phone shows its screen.
-function journey() {
-  const steps = [...document.querySelectorAll('.lp-steps li')], shots = [...document.querySelectorAll('.lp-phone-shot img')];
-  if (!steps.length) return;
-  const show = (li) => {
-    steps.forEach((s) => s.classList.toggle('on', s === li));
-    shots.forEach((img) => img.classList.toggle('on', img.dataset.name === li.dataset.shot));
-  };
-  show(steps[0]);
-  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) show(e.target); }), { rootMargin: '-45% 0px -45% 0px' });
-  steps.forEach((s) => io.observe(s));
-}
-
-function bento() {
-  // cash total counts up once
-  const c = document.querySelector('.lp-cashtot .count');
-  if (c && !calm()) visible(c, (e, io) => {
-    if (!e.isIntersecting) return; io.disconnect();
-    const to = Number(c.dataset.to), t0 = performance.now();
-    const step = (t) => { const k = Math.min(1, (t - t0) / 1100); c.textContent = rs(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(step); };
+// One day: the step in the middle of the screen prints its lines on the strip; the drawer total follows.
+const DAY = [
+  { lines: [{ n: 'Opening cash', v: 3303, c: 'in', cash: 1 }] },
+  { lines: [{ n: 'Sting · 2 box', v: -1020, c: 'ex', cash: 1 }] },
+  { lines: [{ n: 'Gas', v: -820, c: 'ex', cash: 1 }, { n: 'Tea', v: -60, c: 'ex', cash: 1 }] },
+  { lines: [{ n: 'Mehta · udhaar', v: 230, c: 'ud', cash: 0 }] },
+  { lines: [{ n: 'Cash sales', v: 6290, c: 'in', cash: 1 }, { n: 'UPI sales', v: 1180, c: 'quiet', cash: 0 }], rule: true,
+    close: [{ n: 'Should be in drawer', v: '₹7,693', c: 'total' }, { n: 'You counted', v: '₹7,693', c: 'total' }] },
+];
+function day() {
+  const ol = document.getElementById('lp-day-lines'), drawer = document.getElementById('lp-drawer');
+  const moments = [...document.querySelectorAll('.lp-moments li')];
+  if (!ol || !moments.length) return;
+  const mini = document.createElement('div'); mini.className = 'lp-mini'; mini.innerHTML = '<span></span><b></b>';
+  document.getElementById('day').append(mini);
+  let shown = -1, cur = 0;
+  const html = (s) => DAY[s].lines.map((x) => `<li class="${x.c}" data-s="${s}"><span class="n">${x.n}</span><i class="d"></i><b>${sgn(x.v)}</b></li>`).join('')
+    + (DAY[s].rule ? `<li class="rule" data-s="${s}"></li>` + DAY[s].close.map((x) => `<li class="${x.c}" data-s="${s}"><span class="n">${x.n}</span><i class="d"></i><b>${x.v}</b></li>`).join('') + `<li class="ok" data-s="${s}">✓ Books match</li>` : '');
+  const cashAt = (s) => DAY.slice(0, s + 1).reduce((t, d) => t + d.lines.filter((x) => x.cash).reduce((a, x) => a + x.v, 0), 0);
+  const tween = (el, to) => {
+    const from = Number(el.dataset.v || 0); el.dataset.v = to;
+    if (calm()) { el.textContent = rs(to); return; }
+    const t0 = performance.now(); const step = (t) => { const k = Math.min(1, (t - t0) / 600); el.textContent = rs(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(step); };
     requestAnimationFrame(step);
-  });
-  // offline card: waiting → synced, over and over
-  const box = document.querySelector('.lp-sync'), a = document.getElementById('lp-sync'), b = document.getElementById('lp-sync2');
-  if (box && !calm()) {
-    let ok = false;
-    setInterval(() => {
-      ok = !ok; box.classList.toggle('ok', ok);
-      a.textContent = ok ? 'Back online · synced' : 'Saved on this phone';
-      b.textContent = ok ? 'All 3 entries are safe on the server' : '3 entries will sync when online';
-    }, 2600);
-  }
-  // language card: the same entry written three ways
-  const lang = document.getElementById('lp-lang');
-  if (lang && !calm()) {
-    const ways = ['चाय ४०', 'chai 40', 'tea 40', '4 cup chai 40'];
-    let i = 0;
-    setInterval(() => { lang.style.opacity = '0'; setTimeout(() => { i = (i + 1) % ways.length; lang.textContent = ways[i]; lang.style.opacity = '1'; }, 300); }, 2000);
-  }
+  };
+  const show = (s) => {
+    cur = s;
+    moments.forEach((m, i) => m.classList.toggle('on', i === s));
+    if (s > shown) for (let k = shown + 1; k <= s; k++) ol.insertAdjacentHTML('beforeend', html(k));
+    else for (let k = shown; k > s; k--) ol.querySelectorAll(`[data-s="${k}"]`).forEach((e) => e.remove());
+    shown = s;
+    tween(drawer, cashAt(s));
+    const last = DAY[s].lines[DAY[s].lines.length - 1];
+    mini.firstChild.textContent = s === 4 ? 'Books match' : last.n; tween(mini.lastChild, cashAt(s));
+  };
+  show(0);
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) show(moments.indexOf(e.target)); }), { rootMargin: '-42% 0px -42% 0px' });
+  moments.forEach((m) => io.observe(m));
+}
+
+// "Write how you write": real inputs, real output from the reader.
+function words() {
+  const inEl = document.getElementById('lp-w-in'), outEl = document.getElementById('lp-w-out');
+  if (!inEl) return;
+  const samples = ['चाय ४०', 'chai 40', 'bijli bill 1450', 'Sharma se 3000 mila', 'Raju udhaar 450', 'rent 15,000/-'];
+  const name = (s) => { const x = entries(read(s))[0]; return x ? `${x.n} · ${rs(Math.abs(x.v))}` : ''; };
+  const outs = samples.map(name);
+  let i = 0; inEl.textContent = samples[0]; outEl.textContent = outs[0];
+  if (calm()) return;
+  const wrap = outEl.parentElement;
+  const io = new IntersectionObserver((es) => { running = es[0].isIntersecting; }, { threshold: 0.4 });
+  let running = false; io.observe(inEl);
+  setInterval(() => {
+    if (!running) return;
+    inEl.classList.add('fade'); wrap.classList.add('fade');
+    setTimeout(() => { i = (i + 1) % samples.length; inEl.textContent = samples[i]; outEl.textContent = outs[i]; inEl.classList.remove('fade'); wrap.classList.remove('fade'); }, 450);
+  }, 3000);
 }

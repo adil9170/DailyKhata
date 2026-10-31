@@ -75,8 +75,8 @@ export async function billPage(main) {
     mount(picks, list.map((x) => h('button', { type: 'button', class: 'chip small', onclick: () => addItem(x.name, false) }, x.name, h('span', { class: 'muted' }, ` ${money(Math.round(x.rate * 100))}`))));
   }
 
-  const customer = h('input', { value: bill.customer, placeholder: 'Customer name (optional)', autocomplete: 'off', 'aria-label': 'Customer name', oninput: (e) => { bill.customer = e.target.value; save(); } });
-  const phone = h('input', { value: bill.phone, placeholder: 'Phone (optional)', inputmode: 'tel', autocomplete: 'off', 'aria-label': 'Customer phone', oninput: (e) => { bill.phone = e.target.value; save(); } });
+  const customer = h('input', { value: bill.customer, placeholder: 'Customer name', autocomplete: 'off', 'aria-label': 'Customer name', oninput: (e) => { bill.customer = e.target.value; save(); } });
+  const phone = h('input', { value: bill.phone, placeholder: 'Phone', inputmode: 'tel', autocomplete: 'off', 'aria-label': 'Customer phone', oninput: (e) => { bill.phone = e.target.value; save(); } });
   const discount = h('input', { value: bill.discount, inputmode: 'decimal', placeholder: '0', 'aria-label': 'Discount in rupees', oninput: (e) => { bill.discount = e.target.value; paintTotals(); } });
   const modes = [['cash', 'Cash'], ['upi', 'UPI'], ['card', 'Card'], ['credit', 'Udhaar']];
   const modeBtns = modes.map(([id, label]) => h('button', { type: 'button', class: 'chip' + (bill.mode === id ? ' on' : ''), onclick: () => { bill.mode = id; modeBtns.forEach((b, i) => b.classList.toggle('on', modes[i][0] === id)); save(); } }, label));
