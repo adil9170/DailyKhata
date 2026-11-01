@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - name: Migrations are additive only (no DROP / RENAME / DELETE FROM)
+        run: ./scripts/check-migrations.sh
       - run: npm run typecheck
       - run: npm test
       - name: End-to-end API smoke test (local D1 + R2)

@@ -5,6 +5,7 @@ import { hashPassword, verifyPassword, randomToken, sha256Hex, validatePassword 
 import { requireAuth, SESSION_COOKIE } from '../middleware';
 import { fail, reqStr } from '../lib/util';
 import { audit } from '../lib/audit';
+import { loginKey, loginBlockedFor, loginFailed, loginSucceeded } from '../lib/ratelimit';
 
 const auth = new Hono<AppEnv>();
 
@@ -48,6 +49,12 @@ auth.post('/login', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const email = String(body.email ?? '').trim().toLowerCase();
   const password = String(body.password ?? '');
+  const rlKey = loginKey(c.req.header('cf-connecting-ip'), email);
+  const wait = await loginBlockedFor(c.env.DB, rlKey);
+  if (wait > 0) {
+    c.header('Retry-After', String(wait));
+    return c.json({ error: `Too many failed attempts. Try again in ${Math.ceil(wait / 60)} minute(s).` }, 429);
+  }
   const user = await c.env.DB.prepare(
     `SELECT u.*, c.status AS company_status FROM users u LEFT JOIN companies c ON c.id = u.company_id WHERE u.email = ?`,
   ).bind(email).first<any>();
@@ -56,6 +63,7 @@ auth.post('/login', async (c) => {
   }
   const ok = user ? await verifyPassword(password, user.password_hash) : (await hashPassword(password), false);
   if (!user || !ok) {
+    await loginFailed(c.env.DB, rlKey);
     if (user) {
       const fails = user.failed_logins + 1;
       await c.env.DB.prepare(`UPDATE users SET failed_logins = ?, locked_until = CASE WHEN ? >= ? THEN datetime('now', ?) ELSE NULL END WHERE id = ?`)
@@ -65,6 +73,7 @@ auth.post('/login', async (c) => {
     }
     fail(401, 'Incorrect email or password');
   }
+  await loginSucceeded(c.env.DB, rlKey);
   if (user.status !== 'active') fail(403, 'Your account is disabled');
   if (user.role !== 'super_admin' && user.company_status !== 'active') fail(403, 'This company account is suspended. Contact support.');
   await c.env.DB.prepare(`UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = datetime('now') WHERE id = ?`).bind(user.id).run();

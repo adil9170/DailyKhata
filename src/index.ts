@@ -6,6 +6,7 @@ import company from './routes/company';
 import admin from './routes/admin';
 import { runScheduledBackups } from './lib/backup';
 import { wwwRedirectTarget } from './lib/www';
+import { BUILD_ID } from './lib/version';
 
 const app = new Hono<AppEnv>();
 
@@ -33,7 +34,7 @@ app.use('/api/*', async (c, next) => {
   c.header('x-frame-options', 'DENY');
 });
 
-app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME }));
+app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME, build: BUILD_ID }));
 app.route('/api/auth', auth);
 app.route('/api/c', company);
 app.route('/api/admin', admin);

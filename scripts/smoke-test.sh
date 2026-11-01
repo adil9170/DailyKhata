@@ -148,4 +148,9 @@ check bills-filter-voided "$(j -b $CA "$B/api/c/bills?voided=1" | js 'r.total')"
 check bills-void-keeps-number "$(j -b $CA -X POST $B/api/c/bills -d '{"client_id":"bill-test-000008","items":[{"name":"x","qty":1,"rate":1}]}' | js 'r.bill_no>4')" '^true$'
 check bills-staff-cannot-void "$(j -b $ST -X POST $B/api/c/bills/bill-test-000008/void -d '{}')" 'permission'
 
+check health-build "$(j $B/api/health)" '"ok":true,.*"build":"v'
+for i in $(seq 1 10); do j -X POST $B/api/auth/login -d '{"email":"ratelimit@nowhere.in","password":"nope"}' >/dev/null; done
+check login-ratelimit-429 "$(j -X POST $B/api/auth/login -d '{"email":"ratelimit@nowhere.in","password":"nope"}')" 'Too many failed attempts'
+check login-ratelimit-per-email "$(j -X POST $B/api/auth/login -d '{"email":"ravi@sharma.in","password":"RaviPass123"}')" '"ok":true'
+
 echo "All smoke tests passed"
