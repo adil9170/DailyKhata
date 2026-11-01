@@ -4,6 +4,7 @@
 import { h, mount, money, toast, icon, busy, fmtDate, pageHead } from '../ui.js';
 import { api, state, can, todayLocal, navigate } from '../api.js';
 import { readDump } from '../../../src/lib/dump.ts';
+import { t as tx } from '../i18n.js';
 
 const HANDOFF = 'dk_dump_in'; // Notes → "Find expenses" passes its text here
 const EXAMPLE = 'aaj gas 820, chai 40, auto 120\nRamesh salary 5000 gpay\nbijli bill 1450 paid\nSharma se 3000 mila';
@@ -18,7 +19,7 @@ export function openDumpWith(text) {
 }
 
 export async function dumpPage(main) {
-  if (!can('entries.write')) { mount(main, pageHead('Write expenses'), h('div', { class: 'card empty' }, 'You can view this shop but not add entries.')); return; }
+  if (!can('entries.write')) { mount(main, pageHead(tx('Write expenses')), h('div', { class: 'card empty' }, tx('You can view this shop but not add entries.'))); return; }
   const today = state.today || todayLocal();
   let date = today;
   let ai = null;              // { text, result } from "Read with AI"; dropped as soon as the text changes
@@ -26,15 +27,15 @@ export async function dumpPage(main) {
   const edits = new Map();    // key -> changed fields
   let items = [], skipped = [], timer = null;
 
-  const ta = h('textarea', { class: 'dump-ta', spellcheck: 'false', autocapitalize: 'sentences', 'aria-label': 'Your notes',
+  const ta = h('textarea', { class: 'dump-ta', spellcheck: 'false', autocapitalize: 'sentences', 'aria-label': tx('Your notes'),
     placeholder: `Type or paste anything…\n\n${EXAMPLE}` });
   ta.value = readDraft();
   const list = h('div', { class: 'dlist' });
   const head = h('div', { class: 'dhead' });
   const addBtn = h('button', { class: 'primary dadd' });
-  const dateInput = h('input', { type: 'date', value: date, max: today, 'aria-label': 'Date for these entries' });
+  const dateInput = h('input', { type: 'date', value: date, max: today, 'aria-label': tx('Date for these entries') });
   const dateLbl = h('span');
-  const paintDate = () => { dateLbl.textContent = date === today ? 'Today' : fmtDate(date, { day: 'numeric', month: 'short' }); };
+  const paintDate = () => { dateLbl.textContent = date === today ? tx('Today') : fmtDate(date, { day: 'numeric', month: 'short' }); };
   dateInput.addEventListener('change', () => { if (dateInput.value) { date = dateInput.value; paintDate(); paint(); } });
   paintDate();
 
@@ -62,18 +63,18 @@ export async function dumpPage(main) {
     const out = c.filter((i) => i.kind !== 'collection').reduce((s, i) => s + Number(i.amount), 0);
     const inn = c.filter((i) => i.kind === 'collection').reduce((s, i) => s + Number(i.amount), 0);
     mount(head,
-      h('div', null, h('div', { class: 'eyebrow muted' }, items.length ? `Found ${items.length}` : 'Found'),
+      h('div', null, h('div', { class: 'eyebrow muted' }, items.length ? `Found ${items.length}` : tx('Found')),
         h('div', { class: 'dsum' }, out ? h('span', null, 'Spent ', h('b', null, money(Math.round(out * 100)))) : null, inn ? h('span', { class: 'pos' }, 'Received ', h('b', null, money(Math.round(inn * 100)))) : null,
-          !out && !inn ? h('span', { class: 'muted' }, ta.value.trim() ? 'Nothing yet' : 'Start typing') : null)),
+          !out && !inn ? h('span', { class: 'muted' }, ta.value.trim() ? 'Nothing yet' : tx('Start typing')) : null)),
       aiButton());
     addBtn.disabled = !c.length;
-    addBtn.textContent = c.length ? `Add ${c.length} to khata` : 'Add to khata';
+    addBtn.textContent = c.length ? `Add ${c.length} to khata` : tx('Add to khata');
   }
 
   function aiButton() {
     if (!state.company?.ocr_enabled || !ta.value.trim()) return null;
-    if (ai && ai.text === ta.value) return h('button', { class: 'ghost small', type: 'button', onclick: () => { ai = null; edits.clear(); off.clear(); paint(); } }, 'Undo AI');
-    const b = h('button', { class: 'small dai', type: 'button' }, icon('sparkles', 16), 'Read with AI');
+    if (ai && ai.text === ta.value) return h('button', { class: 'ghost small', type: 'button', onclick: () => { ai = null; edits.clear(); off.clear(); paint(); } }, tx('Undo AI'));
+    const b = h('button', { class: 'small dai', type: 'button' }, icon('sparkles', 16), tx('Read with AI'));
     b.addEventListener('click', busy(b, async () => {
       if (!navigator.onLine) return toast('AI reading needs internet. The quick reader works offline.', true);
       const text = ta.value;
@@ -87,17 +88,17 @@ export async function dumpPage(main) {
   function row(it) {
     const isNew = it.kind === 'expense' && it.name && !known().has(it.name.toLowerCase());
     const set = (k, v) => { edits.set(it.key, { ...(edits.get(it.key) || {}), [k]: v }); it[k] = v; paintTotals(); };
-    const tick = h('input', { type: 'checkbox', checked: !off.has(it.key), 'aria-label': 'Include this' });
+    const tick = h('input', { type: 'checkbox', checked: !off.has(it.key), 'aria-label': tx('Include this') });
     const el = h('div', { class: 'ditem ' + it.kind + (off.has(it.key) ? ' off' : '') });
     tick.addEventListener('change', () => { if (tick.checked) off.delete(it.key); else off.add(it.key); el.classList.toggle('off', !tick.checked); paintTotals(); });
     const name = h('input', { class: 'dname', value: it.name || '', list: it.kind === 'expense' ? 'dk-cats' : it.kind === 'purchase' ? 'dk-prods' : null,
-      placeholder: it.kind === 'collection' ? 'Sale' : it.kind === 'purchase' ? 'Item' : 'What for', 'aria-label': it.kind === 'collection' ? 'Customer' : 'Name',
+      placeholder: it.kind === 'collection' ? tx('Sale') : it.kind === 'purchase' ? tx('Item') : tx('What for'), 'aria-label': it.kind === 'collection' ? tx('Customer') : tx('Name'),
       oninput: (e) => set('name', e.target.value) });
-    const amount = h('input', { class: 'damt', value: String(it.amount ?? ''), inputmode: 'decimal', 'aria-label': 'Amount in rupees',
+    const amount = h('input', { class: 'damt', value: String(it.amount ?? ''), inputmode: 'decimal', 'aria-label': tx('Amount in rupees'),
       oninput: (e) => set('amount', e.target.value.replace(/[^\d.]/g, '')) });
-    const tag = it.kind === 'collection' ? (it.mode === 'credit' ? 'Udhaar sale' : it.mode === 'upi' ? 'Money in · UPI' : it.mode === 'card' ? 'Money in · Card' : 'Money in')
-      : it.kind === 'purchase' ? `Stock · ${it.qty} ${it.unit}${it.pieces ? ` · ${it.pieces} pcs` : ''}`
-      : it.mode === 'bank' ? 'Expense · UPI/bank' : it.mode === 'credit' ? 'Expense · udhaar' : 'Expense';
+    const tag = it.kind === 'collection' ? (it.mode === 'credit' ? tx('Udhaar sale') : it.mode === 'upi' ? tx('Money in · UPI') : it.mode === 'card' ? tx('Money in · Card') : tx('Money in'))
+      : it.kind === 'purchase' ? `${tx('Stock')} · ${it.qty} ${it.unit}${it.pieces ? ` · ${it.pieces} ${tx('pcs')}` : ''}`
+      : it.mode === 'bank' ? tx('Expense · UPI/bank') : it.mode === 'credit' ? tx('Expense · udhaar') : tx('Expense');
     return mount(el,
       h('label', { class: 'dcheck' }, tick),
       h('div', { class: 'dmain' },
@@ -114,9 +115,9 @@ export async function dumpPage(main) {
     read();
     if (!ta.value.trim()) {
       mount(list, h('div', { class: 'dempty' },
-        h('div', { class: 'small muted' }, 'Write the way you talk. One thing per line, or all in one go:'),
+        h('div', { class: 'small muted' }, tx('Write the way you talk. One thing per line, or all in one go:')),
         h('ul', { class: 'small muted' }, h('li', null, '“gas 820, chai 40, auto 120”'), h('li', null, '“paid 500 for gas”, “Ramesh salary 5000 gpay”'), h('li', null, '“Sharma se 3000 mila” → money in'), h('li', null, '“Sting 2 box 1020” → stock bought')),
-        h('button', { class: 'small', type: 'button', onclick: () => { ta.value = EXAMPLE; onType(true); } }, 'Try an example')));
+        h('button', { class: 'small', type: 'button', onclick: () => { ta.value = EXAMPLE; onType(true); } }, tx('Try an example'))));
     } else if (!items.length) {
       mount(list, h('div', { class: 'dempty small muted' }, 'No amounts yet. Put the amount next to what it was for, like “gas 820”.'));
     } else {
@@ -137,7 +138,7 @@ export async function dumpPage(main) {
   addBtn.addEventListener('click', busy(addBtn, async () => {
     const pick = chosen();
     const bad = pick.find((i) => i.kind !== 'collection' && !String(i.name || '').trim());
-    if (bad) return toast('Give every ticked item a name', true);
+    if (bad) return toast(tx('Give every ticked item a name'), true);
     const groups = new Map();
     for (const it of pick) {
       const d = it.date || date;
@@ -153,13 +154,13 @@ export async function dumpPage(main) {
     ta.value = ''; ai = null; off.clear(); edits.clear(); writeDraft(''); grow();
     paint();
     mount(list, h('div', { class: 'dempty ddone' }, icon('check', 22),
-      h('div', null, h('b', null, `Added ${n} ${n === 1 ? 'entry' : 'entries'}`), h('div', { class: 'small muted' }, days.length === 1 ? `to ${days[0] === today ? 'today' : fmtDate(days[0], { day: 'numeric', month: 'short' })}` : `across ${days.length} days`)),
-      h('a', { class: 'small', href: `#/day?date=${days[days.length - 1]}` }, 'See khata →')));
-    toast(`Added ${n} ${n === 1 ? 'entry' : 'entries'}`);
+      h('div', null, h('b', null, tx('Added {n} entries', null, { n })), h('div', { class: 'small muted' }, days.length === 1 ? `to ${days[0] === today ? 'today' : fmtDate(days[0], { day: 'numeric', month: 'short' })}` : `across ${days.length} days`)),
+      h('a', { class: 'small', href: `#/day?date=${days[days.length - 1]}` }, tx('See khata →'))));
+    toast(tx('Added {n} entries', null, { n }));
   }));
 
   mount(main,
-    pageHead('Write expenses', 'Type or paste anything — the money is picked out for you'),
+    pageHead(tx('Write expenses'), tx('Type or paste anything — the money is picked out for you')),
     h('datalist', { id: 'dk-cats' }, (state.categories || []).map((c) => h('option', { value: c.name }))),
     h('datalist', { id: 'dk-prods' }, (state.products || []).filter((p) => p.active !== 0).map((p) => h('option', { value: p.name }))),
     h('div', { class: 'card dcard' }, ta),

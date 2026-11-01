@@ -1,5 +1,6 @@
 // Receipt images: draws a receipt on a canvas (company name/logo, lines, total, amount in words) and shares it
 // the way a phone expects: the share sheet (WhatsApp, Instagram, Messages…) with the picture attached.
+import { locale } from './i18n.js';
 import { h, mount, icon, modal, toast } from './ui.js';
 import { logoImage } from './brandicon.js';
 
@@ -119,7 +120,7 @@ export async function renderReceipt(opts) {
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not create the image'))), 'image/png'));
 }
 
-const whenText = (w) => (w ? new Date(w) : new Date()).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+const whenText = (w) => (w ? new Date(w) : new Date()).toLocaleString(locale(), { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 const totalLine = (opts) => `${titleCase(opts.totalLabel || 'Total')}: *${opts.total}*`;
 const titleCase = (s) => String(s).toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 

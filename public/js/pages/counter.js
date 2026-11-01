@@ -3,6 +3,7 @@
 import { h, mount, money, toast, icon, actionSheet, pageHead, confirmDialog } from '../ui.js';
 import { api, state, can, todayLocal } from '../api.js';
 import { amountToWords } from '../../../src/lib/words.ts';
+import { t as tx, lang as appLang } from '../i18n.js';
 
 // notes first, then coins - laid out left to right, top to bottom
 const DENOMS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
@@ -19,7 +20,7 @@ export async function counterPage(main) {
   const saved = load();
   const qty = Object.fromEntries(DENOMS.map((d) => [d, clampQty(saved.qty?.[d])]));
   if (saved.extra && !saved.migrated) qty[1] += clampQty(saved.extra); // old "loose change" box becomes ₹1 coins so no total is lost
-  let lang = saved.lang === 'hi' ? 'hi' : 'en';
+  let lang = saved.lang === 'hi' || saved.lang === 'en' ? saved.lang : appLang(); // the counter keeps its own toggle; first use follows the app language
 
   const totalEl = h('div', { class: 'ctotal' });
   const wordsEl = h('div', { class: 'cwords' });
@@ -31,7 +32,7 @@ export async function counterPage(main) {
   const paintTotals = () => {
     const t = total();
     totalEl.textContent = money(t * 100);
-    wordsEl.textContent = t ? amountToWords(t * 100, lang, true) : (lang === 'hi' ? 'हर नोट पर टैप करें' : 'Tap a note or coin to start');
+    wordsEl.textContent = t ? amountToWords(t * 100, lang, true) : (lang === 'hi' ? 'हर नोट पर टैप करें' : tx('Tap a note or coin to start'));
     const notes = DENOMS.reduce((s, d) => s + (COINS.has(d) ? 0 : qty[d]), 0), coins = DENOMS.reduce((s, d) => s + (COINS.has(d) ? qty[d] : 0), 0);
     countEl.textContent = [notes ? `${notes} note${notes === 1 ? '' : 's'}` : '', coins ? `${coins} coin${coins === 1 ? '' : 's'}` : ''].filter(Boolean).map((x) => ' · ' + x).join('');
     persist();
@@ -54,32 +55,32 @@ export async function counterPage(main) {
     tiles.set(d, { el, input, sum });
   }
 
-  const langBtn = h('button', { class: 'chip small cl', type: 'button', 'aria-label': 'Switch language' }, lang === 'hi' ? 'हिंदी' : 'EN');
+  const langBtn = h('button', { class: 'chip small cl', type: 'button', 'aria-label': tx('Switch language') }, lang === 'hi' ? 'हिंदी' : 'EN');
   langBtn.addEventListener('click', () => { lang = lang === 'hi' ? 'en' : 'hi'; langBtn.textContent = lang === 'hi' ? 'हिंदी' : 'EN'; paintTotals(); });
   const reset = () => { DENOMS.forEach((d) => { qty[d] = 0; }); paintAll(); };
 
   const share = async () => {
-    const t = total(); if (!t) return toast('Count some notes first', true);
+    const t = total(); if (!t) return toast(tx('Count some notes first'), true);
     const { openReceiptSheet } = await import('../receipt.js');
     const lines = DENOMS.filter((d) => qty[d]).map((d) => ({ label: `₹${d}  ×  ${qty[d]}`, value: money(d * qty[d] * 100) }));
-    openReceiptSheet({ company: state.company, title: 'Cash report', lines, totalLabel: 'TOTAL CASH', total: money(t * 100), words: amountToWords(t * 100, lang, true) });
+    openReceiptSheet({ company: state.company, title: tx('Cash report'), lines, totalLabel: tx('TOTAL CASH'), total: money(t * 100), words: amountToWords(t * 100, lang, true) });
   };
   const saveTo = () => {
-    const t = total(); if (!t) return toast('Count some notes first', true);
+    const t = total(); if (!t) return toast(tx('Count some notes first'), true);
     const date = state.today || todayLocal();
     actionSheet(`Save ${money(t * 100)}`, [
-      ...(can('entries.write') ? [{ icon: 'rupee', title: 'Add as today’s sale (cash)', desc: 'Money received in the shop', onclick: () => api('/api/c/collections', { method: 'POST', body: { date, amount: String(t), mode: 'cash', customer: '', notes: 'Cash counter' } }).then(() => toast('Added to today’s sales'), (e) => toast(e.message, true)) }] : []),
-      ...(can('cash.close') ? [{ icon: 'banknote', title: 'Use as closing cash', desc: 'Cash counted in the drawer today', onclick: () => api(`/api/c/day/${date}/closing`, { method: 'PUT', body: { opening_cash: null, counted_cash: String(t), notes: 'Cash counter' } }).then(() => toast('Saved as closing cash'), (e) => toast(e.message, true)) }] : []),
+      ...(can('entries.write') ? [{ icon: 'rupee', title: tx('Add as today’s sale (cash)'), desc: tx('Money received in the shop'), onclick: () => api('/api/c/collections', { method: 'POST', body: { date, amount: String(t), mode: 'cash', customer: '', notes: 'Cash counter' } }).then(() => toast('Added to today’s sales'), (e) => toast(e.message, true)) }] : []),
+      ...(can('cash.close') ? [{ icon: 'banknote', title: tx('Use as closing cash'), desc: tx('Cash counted in the drawer today'), onclick: () => api(`/api/c/day/${date}/closing`, { method: 'PUT', body: { opening_cash: null, counted_cash: String(t), notes: 'Cash counter' } }).then(() => toast('Saved as closing cash'), (e) => toast(e.message, true)) }] : []),
     ]);
   };
 
   mount(main, h('div', { class: 'cpage' },
-    h('div', { class: 'desk-only' }, pageHead('Cash counter', 'Tap a note or coin — the total adds itself')),
+    h('div', { class: 'desk-only' }, pageHead(tx('Cash counter'), tx('Tap a note or coin — the total adds itself'))),
     h('div', { class: 'cpanel' },
-      h('div', { class: 'cptop' }, h('div', null, h('div', { class: 'eyebrow muted' }, 'Total cash ', countEl), totalEl), h('div', { class: 'cpright' }, langBtn, h('button', { class: 'ghost icon small cclear', type: 'button', 'aria-label': 'Clear all', title: 'Clear all', onclick: async () => { if (total() && await confirmDialog('Clear the whole count?', { okText: 'Clear' })) reset(); } }, icon('trash', 18)))),
+      h('div', { class: 'cptop' }, h('div', null, h('div', { class: 'eyebrow muted' }, tx('Total cash '), countEl), totalEl), h('div', { class: 'cpright' }, langBtn, h('button', { class: 'ghost icon small cclear', type: 'button', 'aria-label': 'Clear all', title: 'Clear all', onclick: async () => { if (total() && await confirmDialog('Clear the whole count?', { okText: 'Clear' })) reset(); } }, icon('trash', 18)))),
       wordsEl),
     h('div', { class: 'cgrid' }, DENOMS.map((d) => tiles.get(d).el)),
-    h('div', { class: 'cbtns' }, h('button', { class: 'primary', onclick: share }, icon('share', 18), 'Share receipt'), h('button', { onclick: saveTo }, 'Save…'))));
+    h('div', { class: 'cbtns' }, h('button', { class: 'primary', onclick: share }, icon('share', 18), tx('Share receipt')), h('button', { onclick: saveTo }, tx('Save…')))));
   paintAll();
   fitToScreen(main);
 }

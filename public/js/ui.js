@@ -1,3 +1,4 @@
+import { locale } from './i18n.js';
 const ICONS = {
   home: 'M3 10.5 12 3l9 7.5 M5 9v11h5v-6h4v6h5V9',
   chart: 'M3 3v18h18 M7 16v-5 M12 16V7 M17 16v-8',
@@ -116,11 +117,11 @@ export const cls = (n) => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
 
 export function fmtDate(d, opts = { day: 'numeric', month: 'short', year: 'numeric' }) {
   if (!d) return '';
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', opts);
+  return new Date(d + 'T00:00:00').toLocaleDateString(locale(), opts);
 }
 export function fmtDateTime(s) {
   if (!s) return '';
-  return new Date(s.replace(' ', 'T') + 'Z').toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return new Date(s.replace(' ', 'T') + 'Z').toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 export function addDays(date, n) {
   const d = new Date(date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10);

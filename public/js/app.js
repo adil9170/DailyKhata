@@ -3,6 +3,7 @@ import { api, netApi, state, loadContext, refreshContext, refreshLists, applyBra
 import * as S from './store.js';
 import { getTheme, setTheme, effectiveTheme } from './theme.js';
 import { MODES, getMode, modeOrDefault, initMode, openModeSheet } from './mode.js';
+import { t as tx, applyLangAttr } from './i18n.js';
 import './device.js';
 
 // Pages load on demand (code-split by the bundler) so the first screen only downloads what it needs.
@@ -35,7 +36,7 @@ const app = document.getElementById('app');
 const ALL = ['layman', 'smart', 'nerdy'], SMART_UP = ['smart', 'nerdy'];
 // `modes` = which experience modes show the page. `laymanLabel` is the friendlier name used in Layman mode.
 const companyRoutes = [
-  { path: 'quick', label: 'Home', short: 'Home', icon: 'home', page: quickPage, perm: 'entries.write', modes: ALL },
+  { path: 'quick', label: tx('Home'), short: tx('Home'), icon: 'home', page: quickPage, perm: 'entries.write', modes: ALL },
   { path: 'day', label: 'Today’s khata', short: 'Khata', laymanLabel: 'Today’s khata', icon: 'pen', page: dayPage, perm: 'entries.view', modes: ALL },
   { path: 'chat', label: 'Chat khata', short: 'Chat', icon: 'chat', page: chatPage, perm: 'entries.write', modes: ALL },
   { path: 'bill', label: 'Make a bill', short: 'Bill', icon: 'receipt', page: billPage, perm: 'entries.write', modes: ALL },
@@ -43,18 +44,18 @@ const companyRoutes = [
   { path: 'dump', label: 'Write expenses', short: 'Write', icon: 'type', page: dumpPage, perm: 'entries.write', modes: ALL },
   { path: 'counter', label: 'Cash counter', short: 'Counter', icon: 'calculator', page: counterPage, perm: 'entries.view', modes: ALL },
   { path: 'notes', label: 'Notes', short: 'Notes', icon: 'book', page: notesPage, perm: 'entries.view', modes: ALL },
-  { path: 'dashboard', label: 'Reports', icon: 'chart', page: dashboardPage, perm: 'reports.view', sep: 'Business', modes: SMART_UP },
+  { path: 'dashboard', label: 'Reports', icon: 'chart', page: dashboardPage, perm: 'reports.view', sep: tx('Business'), modes: SMART_UP },
   { path: 'ledger', label: 'Udhaar', icon: 'wallet', page: ledgerPage, perm: 'entries.view', modes: SMART_UP },
   { path: 'products', label: 'Products', icon: 'box', page: productsPage, perm: 'entries.view', modes: SMART_UP },
   { path: 'uploads', label: 'Photos & bills', short: 'Photos', icon: 'camera', page: uploadsPage, perm: 'entries.view', modes: SMART_UP },
   { path: 'reports', label: 'Download (Excel/PDF)', short: 'Download', icon: 'download', page: reportsPage, perm: 'reports.view', modes: SMART_UP },
-  { path: 'team', label: 'Team', icon: 'users', page: teamPage, perm: 'team.manage', sep: 'Account', modes: SMART_UP },
-  { path: 'settings', label: 'Settings', icon: 'sliders', page: settingsPage, perm: null, sep: 'Account', modes: ALL },
+  { path: 'team', label: 'Team', icon: 'users', page: teamPage, perm: 'team.manage', sep: tx('Account'), modes: SMART_UP },
+  { path: 'settings', label: 'Settings', icon: 'sliders', page: settingsPage, perm: null, sep: tx('Account'), modes: ALL },
   { path: 'audit', label: 'Audit log', icon: 'clock', page: auditPage, perm: 'audit.view', modes: ['nerdy'] },
 ];
 /** Pages this person may open in the current mode. */
 const visibleCompanyRoutes = () => companyRoutes.filter((r) => (!r.perm || can(r.perm)) && r.modes.includes(modeOrDefault()));
-const routeLabel = (r) => (modeOrDefault() === 'layman' && r.laymanLabel) || r.label;
+const routeLabel = (r) => tx((modeOrDefault() === 'layman' && r.laymanLabel) || r.label);
 /** Where "Home" goes: the simple add page, in every mode. */
 function homeRoute() {
   const rs = visibleCompanyRoutes();
@@ -106,11 +107,11 @@ function paintChip(el, st) {
   const kind = el.dataset.kind;
   let label, cls;
   if (!st.active) { el.hidden = true; return; }
-  if (st.state === 'auth') { label = 'Sign in to sync'; cls = 'warn'; }
+  if (st.state === 'auth') { label = tx('Sign in to sync'); cls = 'warn'; }
   else if (st.failed) { label = `${st.failed} not saved`; cls = 'bad'; }
-  else if (st.state === 'offline') { label = st.pending ? `Offline · ${st.pending} waiting` : 'Offline'; cls = 'warn'; }
-  else if (st.state === 'syncing' || st.pending) { label = st.pending ? `Syncing ${st.pending}…` : 'Syncing…'; cls = 'busy'; }
-  else if (st.state === 'error') { label = 'Sync problem'; cls = 'bad'; }
+  else if (st.state === 'offline') { label = st.pending ? `Offline · ${st.pending} waiting` : tx('Offline'); cls = 'warn'; }
+  else if (st.state === 'syncing' || st.pending) { label = st.pending ? `Syncing ${st.pending}…` : tx('Syncing…'); cls = 'busy'; }
+  else if (st.state === 'error') { label = tx('Sync problem'); cls = 'bad'; }
   else { label = st.last ? `Synced ${timeAgo(st.last)}` : 'Synced'; cls = 'ok'; }
   el.className = `syncchip sync-${kind} ${cls}`; // not just "${kind}": a bare "side" class collided with the sidebar styles
   el.hidden = kind === 'bar' && cls === 'ok'; // the top bar only speaks up when something needs attention
@@ -122,7 +123,7 @@ function syncChip(kind) {
     const st = S.status();
     if (st.state === 'auth') return navigate('#/login');
     if (st.failed) return openSyncProblems();
-    toast('Syncing…'); S.syncNow();
+    toast(tx('Syncing…')); S.syncNow();
   } });
   chips.add(el); paintChip(el, S.status());
   return el;
@@ -172,13 +173,13 @@ export function openQuickAdd() {
   const today = state.today || todayLocal();
   const date = (location.hash.match(/date=(\d{4}-\d{2}-\d{2})/) || [])[1] || today;
   const quick = (type) => navigate(`#/quick?date=${date}&type=${type}`);
-  actionSheet('Add', [
-    { icon: 'receipt', title: 'Bill for a customer', desc: 'Items, total, share on WhatsApp', onclick: () => navigate('#/bill') },
-    { icon: 'rupee', title: 'Sale', desc: 'Money you received', onclick: () => quick('collection') },
-    { icon: 'receipt', title: 'Expense', desc: 'Money you spent — gas, rent, tea…', onclick: () => quick('expense') },
-    { icon: 'bag', title: 'Stock bought', desc: 'Items you bought to sell', onclick: () => quick('purchase') },
-    { icon: 'type', title: 'Write or paste notes', desc: 'Many entries at once, the way you talk', onclick: () => navigate('#/dump') },
-    ...(can('uploads.write') ? [{ icon: 'camera', title: 'Photo of a bill or page', desc: 'We read it for you', onclick: () => pickPhoto(date) }] : []),
+  actionSheet(tx('Add'), [
+    { icon: 'receipt', title: tx('Bill for a customer'), desc: tx('Items, total, share on WhatsApp'), onclick: () => navigate('#/bill') },
+    { icon: 'rupee', title: tx('Sale'), desc: tx('Money you received'), onclick: () => quick('collection') },
+    { icon: 'receipt', title: tx('Expense'), desc: tx('Money you spent — gas, rent, tea…'), onclick: () => quick('expense') },
+    { icon: 'bag', title: tx('Stock bought'), desc: tx('Items you bought to sell'), onclick: () => quick('purchase') },
+    { icon: 'type', title: tx('Write or paste notes'), desc: tx('Many entries at once, the way you talk'), onclick: () => navigate('#/dump') },
+    ...(can('uploads.write') ? [{ icon: 'camera', title: tx('Photo of a bill or page'), desc: tx('We read it for you'), onclick: () => pickPhoto(date) }] : []),
   ]);
 }
 function pickPhoto(date) {
@@ -186,7 +187,7 @@ function pickPhoto(date) {
   document.body.append(inp);
   inp.addEventListener('change', async () => {
     const f = inp.files[0]; inp.remove(); if (!f) return;
-    toast('Uploading photo…');
+    toast(tx('Uploading photo…'));
     try { const { uploadDoc } = await import('./pages/day.js'); const doc = await uploadDoc(f, 'hisaab', date); navigate(`#/uploads?review=${doc.id}`); } catch (e) { toast(e.message, true); }
   });
   inp.click();
@@ -207,7 +208,7 @@ function layout(routes, active, { portalOf, title } = {}) {
       h('div', { class: 'small muted' }, showCompany ? (company?.plan_name ? `${company.plan_name} plan` : 'Daily khata') : 'Super admin')));
   const visible = showCompany ? visibleCompanyRoutes() : routes.filter((r) => !r.perm || can(r.perm));
   const heads = new Set();
-  const nav = h('nav', { class: 'nav', 'aria-label': 'Main' }, visible.map((r) => [
+  const nav = h('nav', { class: 'nav', 'aria-label': tx('Main') }, visible.map((r) => [
     r.sep && !heads.has(r.sep) ? (heads.add(r.sep), h('div', { class: 'sep' }, typeof r.sep === 'string' ? r.sep : '')) : null,
     h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '', 'aria-current': active === r.path ? 'page' : null, onclick: closeMenu }, icon(r.icon), showCompany ? routeLabel(r) : r.label),
   ]));
@@ -220,10 +221,10 @@ function layout(routes, active, { portalOf, title } = {}) {
       h('div', { class: 'me' }, h('div', { class: 'avatar' }, initials),
         h('div', { style: { minWidth: 0, flex: 1 } }, h('div', { class: 'small', style: { fontWeight: 650 } }, state.user.name), h('div', { class: 'small muted', style: { overflow: 'hidden', textOverflow: 'ellipsis' } }, state.user.role.replace('_', ' '))),
         themeButton(),
-        h('button', { class: 'ghost icon small', title: 'Sign out', 'aria-label': 'Sign out', onclick: logout }, icon('logout', 18)))));
+        h('button', { class: 'ghost icon small', title: tx('Sign out'), 'aria-label': tx('Sign out'), onclick: logout }, icon('logout', 18)))));
 
   const top = h('header', { class: 'topbar' },
-    h('button', { class: 'topmark', 'aria-label': 'Open menu', onclick: openMenu }, showCompany && company?.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), alt: '' }) : h('div', { class: 'brandmark' }, ((showCompany ? company?.name : 'D') || 'D')[0].toUpperCase())),
+    h('button', { class: 'topmark', 'aria-label': tx('Open menu'), onclick: openMenu }, showCompany && company?.has_logo ? h('img', { src: companyUrl(`/api/c/logo?v=${encodeURIComponent(company.updated_at || '')}`), alt: '' }) : h('div', { class: 'brandmark' }, ((showCompany ? company?.name : 'D') || 'D')[0].toUpperCase())),
     h('div', { class: 'title' }, title || (showCompany ? company?.name : 'DailyKhata Admin') || 'DailyKhata'),
     showCompany ? syncChip('bar') : themeButton());
 
@@ -237,17 +238,17 @@ function layout(routes, active, { portalOf, title } = {}) {
     const third = pick('counter') || (lay ? pick('settings') : pick('uploads')); // cash counter is used all day, so it gets a tab
     const tabRoutes = [home, home.path === 'day' ? null : pick('day'), third].filter(Boolean);
     const isHome = (r) => r === home;
-    const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(isHome(r) ? 'home' : r.icon), isHome(r) ? 'Home' : r.short || r.label);
-    tabs = h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
+    const link = (r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(isHome(r) ? 'home' : r.icon), isHome(r) ? tx('Home') : tx(r.short || r.label));
+    tabs = h('nav', { class: 'tabbar', 'aria-label': tx('Quick navigation') },
       link(tabRoutes[0]),
       tabRoutes[1] ? link(tabRoutes[1]) : null,
-      can('entries.write') ? h('button', { class: 'fab', 'aria-label': 'Add entry', onclick: openQuickAdd }, h('span', { class: 'ring' }, icon('plus')), '') : null,
+      can('entries.write') ? h('button', { class: 'fab', 'aria-label': tx('Add entry'), onclick: openQuickAdd }, h('span', { class: 'ring' }, icon('plus')), '') : null,
       tabRoutes[2] && tabRoutes[2] !== tabRoutes[1] ? link(tabRoutes[2]) : null,
-      h('button', { onclick: openMenu, 'aria-label': 'More' }, icon('grid'), 'More'));
+      h('button', { onclick: openMenu, 'aria-label': tx('More') }, icon('grid'), tx('More')));
   } else {
-    tabs = h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
+    tabs = h('nav', { class: 'tabbar', 'aria-label': tx('Quick navigation') },
       routes.slice(0, 4).map((r) => h('a', { href: `#/${r.path}`, class: active === r.path ? 'active' : '' }, icon(r.icon), r.short || r.label)),
-      h('button', { onclick: openMenu, 'aria-label': 'More' }, icon('grid'), 'More'));
+      h('button', { onclick: openMenu, 'aria-label': tx('More') }, icon('grid'), tx('More')));
   }
 
   const main = h('main', { class: 'main', id: 'main' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton', style: { height: '260px' } }));
@@ -316,7 +317,7 @@ async function route(reloadUser = false) {
   // visitors who are not signed in get the landing page (plain HTML in index.html); '#try' etc. are its own anchors
   if (!/^#\/./.test(location.hash) && !state.user && !loadSession()?.user) { showLanding(); return; }
   document.documentElement.classList.add('app-mode');
-  document.documentElement.lang = 'en'; // the landing may have set Hindi; the app is English until slot 10
+  applyLangAttr(); // the app follows its own language setting (Settings > Language), not the landing's html lang
 
   if (path === 'setup') return setupPage();
   if (path === 'login' && !reloadUser) {
@@ -387,6 +388,8 @@ window.addEventListener('hashchange', () => {
 });
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 window.addEventListener('themechange', () => route());
+// Some labels are built once at load, so a language change reloads the page (fast: everything is cached).
+window.addEventListener('langchange', () => location.reload());
 // Switching mode lands on that mode's home so people are never left on a page their mode hides.
 window.addEventListener('modechange', () => { if (state.user && state.user.role !== 'super_admin') navigate('#/' + homeRoute().path); else route(); });
 window.addEventListener('dk:reload-context', async () => { try { await refreshContext(); } catch { await loadContext(); } route(); });

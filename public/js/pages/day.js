@@ -2,6 +2,7 @@
 import { countUp, h, mount, money, num, cls, fmtDate, addDays, toast, busy, modal, confirmDialog, table, rupees, compressImage, badge, icon, iconBtn } from '../ui.js';
 import { api, state, can, refreshLists, todayLocal, companyUrl, navigate } from '../api.js';
 import { reviewEditor } from './review.js';
+import { t as tx } from '../i18n.js';
 
 export async function dayPage(main, params) {
   const date = params.get('date') || state.today || todayLocal();
@@ -14,26 +15,26 @@ export async function dayPage(main, params) {
   const W = can('entries.write'), DEL = can('entries.delete');
 
   // ---------- header with date navigation ----------
-  const dateInput = h('input', { type: 'date', value: date, 'aria-label': 'Choose date', class: 'datepick', onchange: (e) => e.target.value && go(e.target.value) });
-  const rel = date === today ? 'Today' : date === addDays(today, -1) ? 'Yesterday' : fmtDate(date, { weekday: 'long' });
+  const dateInput = h('input', { type: 'date', value: date, 'aria-label': tx('Choose date'), class: 'datepick', onchange: (e) => e.target.value && go(e.target.value) });
+  const rel = date === today ? tx('Today') : date === addDays(today, -1) ? tx('Yesterday') : fmtDate(date, { weekday: 'long' });
   const header = h('div', { class: 'page-head' },
     h('div', null, h('h1', null, rel), h('div', { class: 'sub' }, fmtDate(date, { day: 'numeric', month: 'long', year: 'numeric' }))),
     h('div', { class: 'datebar' },
-      iconBtn('left', 'Previous day', () => go(addDays(date, -1)), ''), h('label', { class: 'datechip' }, icon('clock', 15), fmtDate(date, { day: 'numeric', month: 'short' }), dateInput), iconBtn('right', 'Next day', () => go(addDays(date, 1)), ''),
-      date !== today ? h('button', { class: 'small', onclick: () => go(today) }, 'Today') : null));
+      iconBtn('left', tx('Previous day'), () => go(addDays(date, -1)), ''), h('label', { class: 'datechip' }, icon('clock', 15), fmtDate(date, { day: 'numeric', month: 'short' }), dateInput), iconBtn('right', tx('Next day'), () => go(addDays(date, 1)), ''),
+      date !== today ? h('button', { class: 'small', onclick: () => go(today) }, tx('Today')) : null));
 
   // ---------- hero: the one number that matters ----------
   const p = rep.profit;
   const hasProfit = p && p.status === 'actual';
   const hero = h('div', { class: 'daysum' },
-    h('div', null, h('div', { class: 'k' }, 'Sales'), h('div', { class: 'v pos' }, money(rep.collections.total))),
-    h('div', null, h('div', { class: 'k' }, 'Spent'), h('div', { class: 'v' }, money(rep.purchases.total + rep.expenses.total))),
-    h('div', null, h('div', { class: 'k' }, hasProfit ? 'Profit' : 'Cash left'), h('div', { class: 'v ' + cls(hasProfit ? p.net : rep.net_cash_flow) }, money(hasProfit ? p.net : rep.net_cash_flow))));
+    h('div', null, h('div', { class: 'k' }, tx('Sales')), h('div', { class: 'v pos' }, money(rep.collections.total))),
+    h('div', null, h('div', { class: 'k' }, tx('Spent')), h('div', { class: 'v' }, money(rep.purchases.total + rep.expenses.total))),
+    h('div', null, h('div', { class: 'k' }, hasProfit ? 'Profit' : tx('Cash left')), h('div', { class: 'v ' + cls(hasProfit ? p.net : rep.net_cash_flow) }, money(hasProfit ? p.net : rep.net_cash_flow))));
 
-  const issues = rep.discrepancies.filter((d) => d.severity !== 'info').length || rep.discrepancies.length ? h('div', { class: 'card smart-up' }, h('h2', null, 'Checks'),
+  const issues = rep.discrepancies.filter((d) => d.severity !== 'info').length || rep.discrepancies.length ? h('div', { class: 'card smart-up' }, h('h2', null, tx('Checks')),
     rep.discrepancies.map((d) => h('div', { class: 'alert ' + d.severity }, icon(d.severity === 'info' ? 'info' : 'alert'), d.message))) : null;
 
-  const pasteLink = W ? h('a', { class: 'pastelink', href: '#/dump' }, icon('type', 18), h('span', null, h('b', null, 'Write or paste notes'), h('span', { class: 'muted' }, ' — add many entries at once')), icon('right', 16)) : null;
+  const pasteLink = W ? h('a', { class: 'pastelink', href: '#/dump' }, icon('type', 18), h('span', null, h('b', null, tx('Write or paste notes')), h('span', { class: 'muted' }, tx(' — add many entries at once'))), icon('right', 16)) : null;
   const addBtn = (label, fn) => (W ? h('button', { class: 'small', onclick: fn }, icon('plus', 16), label) : null);
 
   // ---------- the strip: today's khata as a printed slip (tap a line to edit) ----------
@@ -60,21 +61,21 @@ export async function dayPage(main, params) {
     l.doc ? h('a', { class: 'rc', href: companyUrl(`/api/c/documents/${l.doc}/file`), target: '_blank', rel: 'noopener' }, 'Receipt') : null,
     DEL ? delBtn(l.kind, l.e) : null);
   const outTotal = rep.purchases.total + rep.expenses.total;
-  const stripCard = h('section', { class: 'strip', id: 'sec-strip', 'aria-label': 'Day strip' },
-    h('div', { class: 'strip-top' }, h('b', null, 'KHATA'), h('span', null, fmtDate(date, { day: 'numeric', month: 'short' }))),
-    h('ul', { class: 'strip-lines' }, lines.length ? lines.map(stripLine) : h('li', { class: 'sl empty' }, W ? 'Nothing written yet. Tap + Sale to start the strip.' : 'Nothing written yet.')),
+  const stripCard = h('section', { class: 'strip', id: 'sec-strip', 'aria-label': tx('Day strip') },
+    h('div', { class: 'strip-top' }, h('b', null, tx('KHATA')), h('span', null, fmtDate(date, { day: 'numeric', month: 'short' }))),
+    h('ul', { class: 'strip-lines' }, lines.length ? lines.map(stripLine) : h('li', { class: 'sl empty' }, W ? 'Nothing written yet. Tap + Sale to start the strip.' : tx('Nothing written yet.'))),
     h('div', { class: 'strip-sum' },
       h('div', null, h('span', null, 'In'), h('b', { class: 'pos' }, money(rep.collections.total))),
-      h('div', null, h('span', null, 'Out'), h('b', null, money(outTotal))),
-      h('div', null, h('span', null, 'Cash in drawer'), h('b', null, rep.cash.expected === null ? '—' : money(rep.cash.expected)))),
-    W ? h('div', { class: 'strip-add' }, addBtn('Sale', () => collectionForm(date, null, reload)), addBtn('Expense', () => expenseForm(date, null, reload)), addBtn('Stock bought', () => purchaseForm(date, null, reload))) : null);
+      h('div', null, h('span', null, tx('Out')), h('b', null, money(outTotal))),
+      h('div', null, h('span', null, tx('Cash in drawer')), h('b', null, rep.cash.expected === null ? '—' : money(rep.cash.expected)))),
+    W ? h('div', { class: 'strip-add' }, addBtn(tx('Sale'), () => collectionForm(date, null, reload)), addBtn(tx('Expense'), () => expenseForm(date, null, reload)), addBtn(tx('Stock bought'), () => purchaseForm(date, null, reload))) : null);
   const stockCard = stockCountCard(date, rep, W, reload);
   const cashCard = cashCloseCard(date, rep, data.closing, can('cash.close'), reload);
-  const profitCard = p && p.status === 'actual' ? h('div', { class: 'card smart-up' }, h('h2', null, 'Profit for the day'),
-    h('div', { class: 'kv' }, h('div', null, 'Sales'), h('div', null, money(p.revenue)), h('div', null, '− Cost of stock sold'), h('div', null, money(p.cogs)),
-      h('div', null, '− Expenses'), h('div', null, money(p.expenses)), h('div', { class: 'tot' }, 'Net profit'), h('div', { class: 'tot ' + cls(p.net) }, money(p.net)))) : null;
+  const profitCard = p && p.status === 'actual' ? h('div', { class: 'card smart-up' }, h('h2', null, tx('Profit for the day')),
+    h('div', { class: 'kv' }, h('div', null, tx('Sales')), h('div', null, money(p.revenue)), h('div', null, '− Cost of stock sold'), h('div', null, money(p.cogs)),
+      h('div', null, '− Expenses'), h('div', null, money(p.expenses)), h('div', { class: 'tot' }, tx('Net profit')), h('div', { class: 'tot ' + cls(p.net) }, money(p.net)))) : null;
 
-  const closeHead = h('div', { class: 'closehead smart-up' }, h('h2', null, 'Close the day'), h('div', { class: 'small muted' }, 'At night: count the stock left and the cash in the drawer. The strip tells you if the books match.'));
+  const closeHead = h('div', { class: 'closehead smart-up' }, h('h2', null, tx('Close the day')), h('div', { class: 'small muted' }, 'At night: count the stock left and the cash in the drawer. The strip tells you if the books match.'));
   mount(main, header, hero, pasteLink, issues,
     stripCard,
     closeHead, stockCard, h('div', { class: 'grid g2' }, h('div', null, cashCard), h('div', null, profitCard)));
@@ -91,18 +92,18 @@ export async function dayPage(main, params) {
   }
 
   function delBtn(kind, e) {
-    return h('button', { class: 'ghost icon small danger', 'aria-label': 'Delete', title: 'Delete', onclick: async () => {
-      if (!(await confirmDialog('Delete this entry? This is recorded in the audit log.'))) return;
-      try { await api(`/api/c/${kind}/${e.id}`, { method: 'DELETE' }); toast('Deleted'); reload(); } catch (err) { toast(err.message, true); }
+    return h('button', { class: 'ghost icon small danger', 'aria-label': tx('Delete'), title: tx('Delete'), onclick: async () => {
+      if (!(await confirmDialog(tx('Delete this entry? This is recorded in the audit log.')))) return;
+      try { await api(`/api/c/${kind}/${e.id}`, { method: 'DELETE' }); toast(tx('Deleted')); reload(); } catch (err) { toast(err.message, true); }
     } }, icon('trash', 18));
   }
 }
 
 function formFoot(kind, e, getModal, done, saveBtn) {
   const del = e && can('entries.delete') ? h('button', { type: 'button', class: 'ghost danger', onclick: async () => {
-    if (!(await confirmDialog('Delete this entry? This is recorded in the audit log.'))) return;
-    try { await api(`/api/c/${kind}/${e.id}`, { method: 'DELETE' }); getModal().close(); toast('Deleted'); done(); } catch (err) { toast(err.message, true); }
-  } }, icon('trash', 17), 'Delete') : h('span');
+    if (!(await confirmDialog(tx('Delete this entry? This is recorded in the audit log.')))) return;
+    try { await api(`/api/c/${kind}/${e.id}`, { method: 'DELETE' }); getModal().close(); toast(tx('Deleted')); done(); } catch (err) { toast(err.message, true); }
+  } }, icon('trash', 17), tx('Delete')) : h('span');
   return h('div', { class: 'form-foot' }, del, saveBtn);
 }
 
@@ -110,8 +111,8 @@ function modeBadge(m) { return badge(m === 'credit' ? 'udhaar' : m, m === 'credi
 
 function quickEntryCard(date, done) {
   const out = h('div');
-  const ta = h('textarea', { placeholder: 'Type or paste your hisaab, one line each, e.g.\nSting 2 boxes 1020 60\nCampa Orange 1 box 240 30\nGas 820\nCollection 7544', 'aria-label': 'Hisaab text' });
-  const readBtn = h('button', { class: 'primary' }, icon('sparkles', 18), 'Read entries');
+  const ta = h('textarea', { placeholder: 'Type or paste your hisaab, one line each, e.g.\nSting 2 boxes 1020 60\nCampa Orange 1 box 240 30\nGas 820\nCollection 7544', 'aria-label': tx('Hisaab text') });
+  const readBtn = h('button', { class: 'primary' }, icon('sparkles', 18), tx('Read entries'));
   readBtn.addEventListener('click', busy(readBtn, async () => {
     if (!ta.value.trim()) return toast('Type some lines first', true);
     const parsed = await api('/api/c/parse', { method: 'POST', body: { text: ta.value, date } });
@@ -120,14 +121,14 @@ function quickEntryCard(date, done) {
       reviewEditor({ parsed, date, onSaved: (d) => { ta.value = ''; navigate(`#/day?date=${d}`); }, onCancel: () => mount(out) })));
   }));
   const fileIn = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'hidden' });
-  const photoBtn = h('button', { onclick: () => fileIn.click() }, icon('camera', 18), 'Scan photo');
+  const photoBtn = h('button', { onclick: () => fileIn.click() }, icon('camera', 18), tx('Scan photo'));
   fileIn.addEventListener('change', busy(photoBtn, async () => {
     const f = fileIn.files[0]; if (!f) return;
     const doc = await uploadDoc(f, 'hisaab', date);
     location.hash = `#/uploads?review=${doc.id}`;
   }));
   return h('div', { class: 'card smart-up' },
-    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('type')), 'Type or paste hisaab'), h('span', { class: 'small muted' }, 'Write it the way you write your register')),
+    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('type')), tx('Type or paste hisaab')), h('span', { class: 'small muted' }, 'Write it the way you write your register')),
     ta, h('div', { class: 'row', style: { marginTop: '8px' } }, readBtn, photoBtn, fileIn), out);
 }
 
@@ -161,18 +162,18 @@ function purchaseForm(date, e, done) {
   };
   item.addEventListener('change', () => { const p = byName(item.value); if (p) { unit.value = p.unit; if (!total.value && p.default_unit_cost_paise) total.value = rupees(Math.round(p.default_unit_cost_paise * (Number(qty.value) || 1))); } update(); });
   [item, qty, pieces, total, unit].forEach((el) => el.addEventListener('input', update));
-  const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : 'Add purchase');
+  const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : tx('Add purchase'));
   const form = h('form', null, h('datalist', { id: 'pf-products' }, prods.map((p) => h('option', { value: p.name }))),
-    h('div', { class: 'fields' }, lab('Item', item), lab('Quantity', qty), lab('Unit', unit), lab('Pieces', pieces), lab('Total cost ₹', total), lab('Paid by', mode), lab('Supplier', supplier), lab('Notes', notes)),
+    h('div', { class: 'fields' }, lab(tx('Item'), item), lab(tx('Quantity'), qty), lab(tx('Unit'), unit), lab('Pieces', pieces), lab(tx('Total cost ₹'), total), lab(tx('Paid by'), mode), lab(tx('Supplier'), supplier), lab(tx('Notes'), notes)),
     calc, formFoot('purchases', e, () => m, done, btn));
   update();
-  const m = modal(e ? 'Edit purchase' : 'Add purchase', form);
+  const m = modal(e ? 'Edit purchase' : tx('Add purchase'), form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     const p = byName(item.value);
     const body = { date, product_id: p?.id, product_name: item.value.trim(), qty: qty.value, unit: unit.value, pieces: pieces.value === '' ? null : pieces.value, total: total.value, payment_mode: mode.value, supplier: supplier.value, notes: notes.value };
     await api(e ? `/api/c/purchases/${e.id}` : '/api/c/purchases', { method: e ? 'PUT' : 'POST', body });
     if (!p) await refreshLists();
-    m.close(); toast('Saved'); done();
+    m.close(); toast(tx('Saved')); done();
   })(); });
 }
 
@@ -183,32 +184,32 @@ function expenseForm(date, e, done) {
   const notes = h('input', { value: e?.notes ?? '' });
   const d = h('input', { type: 'date', value: e?.entry_date ?? date });
   const photo = h('input', { type: 'file', accept: 'image/*,application/pdf' });
-  const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : 'Add expense');
+  const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : tx('Add expense'));
   const form = h('form', null, datalist('ef-cats', state.categories.map((c) => c.name)),
-    h('div', { class: 'fields' }, lab('Category', cat), lab('Amount ₹', amount), lab('Paid by', mode), lab('Date', d)), lab('Notes', notes),
+    h('div', { class: 'fields' }, lab(tx('Category'), cat), lab(tx('Amount ₹'), amount), lab(tx('Paid by'), mode), lab(tx('Date'), d)), lab(tx('Notes'), notes),
     can('uploads.write') ? lab('Receipt photo (optional)', photo) : null, formFoot('expenses', e, () => m, done, btn));
-  const m = modal(e ? 'Edit expense' : 'Add expense', form);
+  const m = modal(e ? 'Edit expense' : tx('Add expense'), form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     let document_id = e?.document_id ?? null;
     if (photo.files?.[0]) document_id = (await uploadDoc(photo.files[0], 'receipt', d.value)).id;
     await api(e ? `/api/c/expenses/${e.id}` : '/api/c/expenses', { method: e ? 'PUT' : 'POST', body: { date: d.value, category: cat.value.trim(), amount: amount.value, payment_mode: mode.value, notes: notes.value, document_id } });
-    await refreshLists(); m.close(); toast('Saved'); done();
+    await refreshLists(); m.close(); toast(tx('Saved')); done();
   })(); });
 }
 
 function collectionForm(date, e, done) {
   const amount = h('input', { inputmode: 'decimal', required: true, value: e ? rupees(e.amount_paise) : '' });
-  const mode = h('select', null, [['cash', 'Cash'], ['upi', 'UPI'], ['card', 'Card'], ['credit', 'Udhaar (credit sale)']].map(([v, l]) => h('option', { value: v, selected: (e?.mode ?? 'cash') === v ? 'selected' : null }, l)));
+  const mode = h('select', null, [['cash', tx('Cash')], ['upi', tx('UPI')], ['card', tx('Card')], ['credit', tx('Udhaar (credit sale)')]].map(([v, l]) => h('option', { value: v, selected: (e?.mode ?? 'cash') === v ? 'selected' : null }, l)));
   const customer = h('input', { value: e?.customer ?? '' });
   const notes = h('input', { value: e?.notes ?? '' });
-  const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : 'Add collection');
-  const form = h('form', null, h('div', { class: 'fields' }, lab('Amount ₹', amount), lab('Mode', mode), lab('Customer', customer)), lab('Notes', notes),
+  const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : tx('Add collection'));
+  const form = h('form', null, h('div', { class: 'fields' }, lab(tx('Amount ₹'), amount), lab(tx('Mode'), mode), lab(tx('Customer'), customer)), lab(tx('Notes'), notes),
     h('div', { class: 'small muted', style: { marginBottom: '10px' } }, 'Use “Udhaar” when goods were given on credit; record the money later under Udhaar / Outstanding.'),
     formFoot('collections', e, () => m, done, btn));
-  const m = modal(e ? 'Edit collection' : 'Add collection', form);
+  const m = modal(e ? 'Edit collection' : tx('Add collection'), form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     await api(e ? `/api/c/collections/${e.id}` : '/api/c/collections', { method: e ? 'PUT' : 'POST', body: { date, amount: amount.value, mode: mode.value, customer: customer.value, notes: notes.value } });
-    m.close(); toast('Saved'); done();
+    m.close(); toast(tx('Saved')); done();
   })(); });
 }
 
@@ -253,25 +254,25 @@ function cashCloseCard(date, rep, closing, canClose, done) {
   const opening = h('input', { inputmode: 'decimal', value: closing?.opening_cash_paise != null ? rupees(closing.opening_cash_paise) : '', placeholder: c.opening !== null && closing?.opening_cash_paise == null ? rupees(c.opening) + ' (carried forward)' : 'e.g. 2000' });
   const counted = h('input', { inputmode: 'decimal', value: closing ? rupees(closing.counted_cash_paise) : '' });
   const notes = h('input', { value: closing?.notes ?? '' });
-  const btn = h('button', { class: 'primary' }, closing ? 'Update cash count' : 'Close day');
+  const btn = h('button', { class: 'primary' }, closing ? 'Update cash count' : tx('Close day'));
   btn.addEventListener('click', busy(btn, async () => {
-    if (!counted.value) return toast('Enter the cash you counted', true);
+    if (!counted.value) return toast(tx('Enter the cash you counted'), true);
     await api(`/api/c/day/${date}/closing`, { method: 'PUT', body: { opening_cash: opening.value === '' ? null : opening.value, counted_cash: counted.value, notes: notes.value } });
-    toast('Cash closing saved'); done();
+    toast(tx('Cash closing saved')); done();
   }));
   return h('div', { class: 'card smart-up', id: 'sec-cash' },
-    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('lock')), 'Cash in drawer')),
+    h('div', { class: 'sec-head' }, h('h2', null, h('span', { class: 'dot' }, icon('lock')), tx('Cash in drawer'))),
     h('div', { class: 'grid' },
       tallyResult(c),
       h('div', { class: 'kv' },
-        h('div', null, 'Opening cash'), h('div', null, money(c.opening)),
+        h('div', null, tx('Opening cash')), h('div', null, money(c.opening)),
         h('div', null, '+ Cash collected'), h('div', null, money(c.cash_in)),
         h('div', null, '− Cash paid out'), h('div', null, money(c.cash_out)),
-        h('div', { class: 'tot' }, 'Expected in drawer'), h('div', { class: 'tot' }, money(c.expected)),
-        h('div', null, 'Counted'), h('div', null, money(c.counted)),
-        h('div', { class: 'tot' }, 'Difference'), h('div', { class: 'tot ' + cls(c.difference ?? 0) }, c.difference === null ? '—' : money(c.difference, { sign: true }))),
+        h('div', { class: 'tot' }, tx('Expected in drawer')), h('div', { class: 'tot' }, money(c.expected)),
+        h('div', null, tx('Counted')), h('div', null, money(c.counted)),
+        h('div', { class: 'tot' }, tx('Difference')), h('div', { class: 'tot ' + cls(c.difference ?? 0) }, c.difference === null ? '—' : money(c.difference, { sign: true }))),
       canClose ? h('div', null,
-        h('div', { class: 'fields' }, lab('Opening cash ₹', opening), lab('Cash counted now ₹', counted)), lab('Notes', notes),
+        h('div', { class: 'fields' }, lab(tx('Opening cash ₹'), opening), lab(tx('Cash counted now ₹'), counted)), lab(tx('Notes'), notes),
         h('div', { class: 'small muted', style: { marginBottom: '8px' } }, 'Leave opening empty to carry forward the previous counted cash. UPI/card/bank do not affect the drawer.'),
         btn) : null));
 }
@@ -280,8 +281,8 @@ function cashCloseCard(date, rep, closing, canClose, done) {
 function tallyResult(c) {
   if (c.difference === null || c.difference === undefined) return null;
   const ok = c.difference === 0;
-  return h('div', { class: 'tally ' + (ok ? 'ok' : 'off'), role: 'status' }, ok ? 'Books match ✓' : c.difference < 0 ? 'Short by ' + money(-c.difference) : 'Over by ' + money(c.difference),
-    h('span', null, 'Expected ' + money(c.expected) + ' · Counted ' + money(c.counted)));
+  return h('div', { class: 'tally ' + (ok ? 'ok' : 'off'), role: 'status' }, ok ? 'Books match ✓' : c.difference < 0 ? tx('Short by ') + money(-c.difference) : tx('Over by ') + money(c.difference),
+    h('span', null, tx('Expected ') + money(c.expected) + ' · Counted ' + money(c.counted)));
 }
 
 function lab(text, el) { return h('div', { class: 'field' }, h('label', null, text, el)); }

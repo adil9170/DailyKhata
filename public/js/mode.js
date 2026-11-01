@@ -3,11 +3,12 @@
 //   smart  - the everyday toolkit: dashboard, products, reports, udhaar
 //   nerdy  - everything: stock counts, cash checks, profit maths, audit log
 import { h, icon, modal } from './ui.js';
+import { t as tx } from './i18n.js';
 
 export const MODES = [
-  { id: 'layman', label: 'Simple', icon: 'sparkles', tag: 'Recommended', desc: 'Add sales and expenses, make bills, count cash. Nothing else on screen.' },
-  { id: 'smart', label: 'Standard', icon: 'chart', tag: 'For owners', desc: 'Adds reports, udhaar, products, photos, stock and cash closing.' },
-  { id: 'nerdy', label: 'Pro', icon: 'code', tag: 'Everything', desc: 'All numbers and controls, including the audit log.' },
+  { id: 'layman', label: tx('Simple'), icon: 'sparkles', tag: tx('Recommended'), desc: tx('Add sales and expenses, make bills, count cash. Nothing else on screen.') },
+  { id: 'smart', label: tx('Standard'), icon: 'chart', tag: tx('For owners'), desc: tx('Adds reports, udhaar, products, photos, stock and cash closing.') },
+  { id: 'nerdy', label: tx('Pro'), icon: 'code', tag: tx('Everything'), desc: tx('All numbers and controls, including the audit log.') },
 ];
 
 let userKey = 'anon';
@@ -30,7 +31,7 @@ export function setMode(m) {
 
 /** Mode picker cards. `onPick` runs after the mode is saved. */
 export function modeCards(current, onPick) {
-  return h('div', { class: 'modes', role: 'radiogroup', 'aria-label': 'Experience mode' }, MODES.map((m) =>
+  return h('div', { class: 'modes', role: 'radiogroup', 'aria-label': tx('Experience mode') }, MODES.map((m) =>
     h('button', { type: 'button', class: 'modecard' + (current === m.id ? ' on' : ''), role: 'radio', 'aria-checked': current === m.id ? 'true' : 'false', onclick: () => { setMode(m.id); onPick?.(m.id); } },
       h('span', { class: 'dot' }, icon(m.icon)),
       h('span', { class: 'txt' }, h('span', { class: 't' }, m.label, h('span', { class: 'tag' }, m.tag)), h('span', { class: 'd' }, m.desc)),
@@ -39,16 +40,16 @@ export function modeCards(current, onPick) {
 
 /** Bottom sheet to switch mode at any time. */
 export function openModeSheet() {
-  const m = modal('How do you want to use DailyKhata?', h('div', null,
-    h('p', { class: 'muted', style: { marginTop: 0 } }, 'You can change this any time. Your data is the same in every mode.'),
+  const m = modal(tx('How do you want to use DailyKhata?'), h('div', null,
+    h('p', { class: 'muted', style: { marginTop: 0 } }, tx('You can change this any time. Your data is the same in every mode.')),
     modeCards(getMode(), () => m.close())));
   return m;
 }
 
 /** First-run welcome: asks once, remembers the answer. */
 export function welcomeModePicker(onDone) {
-  const m = modal('Welcome! Pick your style', h('div', null,
-    h('p', { class: 'muted', style: { marginTop: 0 } }, 'New to apps like this? Choose Layman — you can switch later in Settings.'),
+  const m = modal(tx('Welcome! Pick your style'), h('div', null,
+    h('p', { class: 'muted', style: { marginTop: 0 } }, tx('New to apps like this? Choose Layman — you can switch later in Settings.')),
     modeCards(null, () => { m.close(); onDone?.(); })));
   return m;
 }

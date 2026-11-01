@@ -5,6 +5,7 @@ import { api, state, can, todayLocal } from '../api.js';
 import { amountToWords } from '../../../src/lib/words.ts';
 import { billLabel } from '../../../src/lib/bills.ts';
 import { peekBillNumber, warmBillNumbers } from '../localapi.js';
+import { t as tx, lang as appLang } from '../i18n.js';
 
 const draftKey = () => `dk_bill_${state.company?.id || 0}`;
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `b-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`);
@@ -16,7 +17,7 @@ const r2 = (n) => Math.round(n * 100) / 100;
 const blank = () => ({ customer: '', phone: '', items: [], discount: '', mode: 'cash' });
 
 export async function billPage(main) {
-  if (!can('entries.write')) { mount(main, pageHead('Make a bill'), h('div', { class: 'card empty' }, 'You can view this shop but not make bills.')); return; }
+  if (!can('entries.write')) { mount(main, pageHead(tx('Make a bill')), h('div', { class: 'card empty' }, tx('You can view this shop but not make bills.'))); return; }
   const bill = { ...blank(), ...load(draftKey(), {}) };
   const products = (state.products || []).filter((p) => p.active !== 0);
   const rates = load(ratesKey(), {});
@@ -27,7 +28,7 @@ export async function billPage(main) {
   };
   // the number the next bill will get (shared across devices; "P…" numbers are provisional while offline)
   const nextNo = () => { const n = peekBillNumber(); return n ? billLabel(n.series, n.no) : ''; };
-  const noText = () => (nextNo() ? `Bill #${nextNo()}` : 'New bill');
+  const noText = () => (nextNo() ? `Bill #${nextNo()}` : tx('New bill'));
   warmBillNumbers();
 
   const subtotal = () => r2(bill.items.reduce((s, it) => s + num(it.qty) * num(it.rate), 0));
@@ -42,23 +43,23 @@ export async function billPage(main) {
   function paintTotals() {
     const t = total();
     totalEl.textContent = money(Math.round(t * 100));
-    wordsEl.textContent = t ? amountToWords(Math.round(t * 100), 'en', true) : 'Add items to start';
+    wordsEl.textContent = t ? amountToWords(Math.round(t * 100), appLang(), true) : tx('Add items to start');
     subEl.textContent = num(bill.discount) ? `${money(Math.round(subtotal() * 100))} − ${money(Math.round(num(bill.discount) * 100))} discount` : '';
     save();
   }
   function itemRow(it) {
     const line = h('div', { class: 'bline' });
     const paintLine = () => { const v = num(it.qty) * num(it.rate); line.textContent = v ? money(Math.round(v * 100)) : ''; };
-    const name = h('input', { class: 'bname', value: it.name, list: 'dk-bill-prods', placeholder: 'Item', 'aria-label': 'Item name',
+    const name = h('input', { class: 'bname', value: it.name, list: 'dk-bill-prods', placeholder: tx('Item'), 'aria-label': tx('Item name'),
       oninput: (e) => { it.name = e.target.value; const p = priceOf(it.name); if (p !== null && !it.rateTouched) { it.rate = String(p); rate.value = it.rate; paintLine(); } paintTotals(); } });
-    const qty = h('input', { class: 'bqty', value: it.qty, inputmode: 'decimal', 'aria-label': 'Quantity', onfocus: (e) => e.target.select(), oninput: (e) => { it.qty = e.target.value; paintLine(); paintTotals(); } });
-    const rate = h('input', { class: 'brate', value: it.rate, inputmode: 'decimal', placeholder: 'Rate', 'aria-label': 'Rate in rupees', onfocus: (e) => e.target.select(), oninput: (e) => { it.rate = e.target.value; it.rateTouched = true; paintLine(); paintTotals(); } });
-    const rm = h('button', { class: 'ghost icon small', type: 'button', 'aria-label': 'Remove item', onclick: () => { bill.items.splice(bill.items.indexOf(it), 1); paintRows(); paintTotals(); } }, icon('x', 16));
+    const qty = h('input', { class: 'bqty', value: it.qty, inputmode: 'decimal', 'aria-label': tx('Quantity'), onfocus: (e) => e.target.select(), oninput: (e) => { it.qty = e.target.value; paintLine(); paintTotals(); } });
+    const rate = h('input', { class: 'brate', value: it.rate, inputmode: 'decimal', placeholder: tx('Rate'), 'aria-label': tx('Rate in rupees'), onfocus: (e) => e.target.select(), oninput: (e) => { it.rate = e.target.value; it.rateTouched = true; paintLine(); paintTotals(); } });
+    const rm = h('button', { class: 'ghost icon small', type: 'button', 'aria-label': tx('Remove item'), onclick: () => { bill.items.splice(bill.items.indexOf(it), 1); paintRows(); paintTotals(); } }, icon('x', 16));
     paintLine();
     return h('div', { class: 'brow' }, name, h('div', { class: 'bnums' }, qty, h('span', { class: 'muted' }, '×'), h('span', { class: 'muted' }, '₹'), rate, line, rm));
   }
   function paintRows() {
-    mount(rows, bill.items.length ? bill.items.map(itemRow) : h('div', { class: 'small muted', style: { padding: '6px 2px 10px' } }, 'Tap an item below, or add one.'));
+    mount(rows, bill.items.length ? bill.items.map(itemRow) : h('div', { class: 'small muted', style: { padding: '6px 2px 10px' } }, tx('Tap an item below, or add one.')));
   }
   const addItem = (name = '', focus = true) => {
     const existing = name && bill.items.find((x) => x.name.toLowerCase() === name.toLowerCase());
@@ -80,30 +81,30 @@ export async function billPage(main) {
     mount(picks, list.map((x) => h('button', { type: 'button', class: 'chip small', onclick: () => addItem(x.name, false) }, x.name, h('span', { class: 'muted' }, ` ${money(Math.round(x.rate * 100))}`))));
   }
 
-  const customer = h('input', { value: bill.customer, placeholder: 'Customer name', autocomplete: 'off', 'aria-label': 'Customer name', oninput: (e) => { bill.customer = e.target.value; save(); } });
-  const phone = h('input', { value: bill.phone, placeholder: 'Phone', inputmode: 'tel', autocomplete: 'off', 'aria-label': 'Customer phone', oninput: (e) => { bill.phone = e.target.value; save(); } });
-  const discount = h('input', { value: bill.discount, inputmode: 'decimal', placeholder: '0', 'aria-label': 'Discount in rupees', oninput: (e) => { bill.discount = e.target.value; paintTotals(); } });
-  const modes = [['cash', 'Cash'], ['upi', 'UPI'], ['card', 'Card'], ['credit', 'Udhaar']];
+  const customer = h('input', { value: bill.customer, placeholder: tx('Customer name'), autocomplete: 'off', 'aria-label': tx('Customer name'), oninput: (e) => { bill.customer = e.target.value; save(); } });
+  const phone = h('input', { value: bill.phone, placeholder: tx('Phone'), inputmode: 'tel', autocomplete: 'off', 'aria-label': tx('Customer phone'), oninput: (e) => { bill.phone = e.target.value; save(); } });
+  const discount = h('input', { value: bill.discount, inputmode: 'decimal', placeholder: '0', 'aria-label': tx('Discount in rupees'), oninput: (e) => { bill.discount = e.target.value; paintTotals(); } });
+  const modes = [['cash', tx('Cash')], ['upi', tx('UPI')], ['card', tx('Card')], ['credit', tx('Udhaar')]];
   const modeBtns = modes.map(([id, label]) => h('button', { type: 'button', class: 'chip' + (bill.mode === id ? ' on' : ''), onclick: () => { bill.mode = id; modeBtns.forEach((b, i) => b.classList.toggle('on', modes[i][0] === id)); save(); } }, label));
 
   const receiptOpts = (no) => {
     const items = bill.items.filter((it) => it.name.trim() && num(it.qty) && num(it.rate));
     const lines = items.map((it) => ({ label: it.name.trim(), note: `${num(it.qty)} × ${money(Math.round(num(it.rate) * 100))}`, value: money(Math.round(num(it.qty) * num(it.rate) * 100)) }));
-    if (num(bill.discount)) lines.push({ label: 'Discount', value: '−' + money(Math.round(num(bill.discount) * 100)), negative: true });
+    if (num(bill.discount)) lines.push({ label: tx('Discount'), value: '−' + money(Math.round(num(bill.discount) * 100)), negative: true });
     const who = [bill.customer.trim(), bill.phone.trim()].filter(Boolean).join(' · ');
     const paid = bill.mode === 'credit' ? 'Payment due (udhaar)' : `Paid by ${modes.find((m) => m[0] === bill.mode)[1]}`;
-    return { company: state.company, title: no ? `Bill #${no}` : 'Bill', subtitle: who ? `To: ${who}` : null, lines, totalLabel: 'TOTAL', total: money(Math.round(total() * 100)),
-      words: amountToWords(Math.round(total() * 100), 'en', true), footer: `${paid} · Thank you, visit again!`, phone: bill.phone, sheetTitle: 'Share bill' };
+    return { company: state.company, title: no ? `Bill #${no}` : 'Bill', subtitle: who ? `To: ${who}` : null, lines, totalLabel: tx('TOTAL'), total: money(Math.round(total() * 100)),
+      words: amountToWords(Math.round(total() * 100), appLang(), true), footer: `${paid} · Thank you, visit again!`, phone: bill.phone, sheetTitle: tx('Share bill') };
   };
   const valid = () => {
     const bad = bill.items.find((it) => it.name.trim() && !num(it.rate));
     if (bad) { toast(`Add a rate for ${bad.name}`, true); return false; }
-    if (!total()) { toast('Add at least one item with a rate', true); return false; }
-    if (bill.mode === 'credit' && !bill.customer.trim()) { toast('Udhaar needs the customer’s name', true); customer.focus(); return false; }
+    if (!total()) { toast(tx('Add at least one item with a rate'), true); return false; }
+    if (bill.mode === 'credit' && !bill.customer.trim()) { toast(tx('Udhaar needs the customer’s name'), true); customer.focus(); return false; }
     return true;
   };
   const shareOnly = async () => { if (!valid()) return; (await import('../receipt.js')).openReceiptSheet(receiptOpts(nextNo())); };
-  const saveBtn = h('button', { class: 'primary bsave' }, icon('check', 18), 'Save & share bill');
+  const saveBtn = h('button', { class: 'primary bsave' }, icon('check', 18), tx('Save & share bill'));
   saveBtn.addEventListener('click', busy(saveBtn, async () => {
     if (!valid()) return;
     const date = state.today || todayLocal();
@@ -113,7 +114,7 @@ export async function billPage(main) {
     const rec = await api('/api/c/bills', { method: 'POST', body: { client_id: uid(), date, items, customer: bill.customer.trim(), phone: bill.phone.trim(), discount: String(num(bill.discount)), pay_mode: bill.mode, collection_client_id: saleId } });
     const no = billLabel(rec.series, rec.bill_no);
     const opts = receiptOpts(no);
-    const itemsText = opts.lines.filter((l) => l.label !== 'Discount').map((l) => `${l.label} ${l.note}`).join(', ');
+    const itemsText = opts.lines.filter((l) => l.label !== tx('Discount')).map((l) => `${l.label} ${l.note}`).join(', ');
     try {
       await api('/api/c/collections', { method: 'POST', body: { client_id: saleId, date, amount: String(total()), mode: bill.mode, customer: bill.customer.trim(), notes: `Bill #${no}: ${itemsText}`.slice(0, 500) } });
     } catch (e) { await api(`/api/c/bills/${rec.client_id}/void`, { method: 'POST', body: {} }).catch(() => {}); throw e; }
@@ -128,21 +129,21 @@ export async function billPage(main) {
     (await import('../receipt.js')).openReceiptSheet(opts);
   }));
   const clearBtn = h('button', { class: 'ghost small', type: 'button', onclick: async () => {
-    if (!bill.items.length && !bill.customer || await confirmDialog('Start a new bill? This one is not saved.', { okText: 'New bill' })) {
+    if (!bill.items.length && !bill.customer || await confirmDialog(tx('Start a new bill? This one is not saved.'), { okText: tx('New bill') })) {
       Object.assign(bill, blank()); keep(draftKey(), null); customer.value = ''; phone.value = ''; discount.value = ''; modeBtns.forEach((b, i) => b.classList.toggle('on', i === 0)); paintRows(); paintTotals();
-    } } }, 'New bill');
+    } } }, tx('New bill'));
 
   mount(main,
-    pageHead('Make a bill', noText(), clearBtn),
+    pageHead(tx('Make a bill'), noText(), clearBtn),
     h('datalist', { id: 'dk-bill-prods' }, products.map((p) => h('option', { value: p.name }))),
     h('div', { class: 'card bcard' }, h('div', { class: 'bcust' }, customer, phone)),
     h('div', { class: 'card bcard' },
-      h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, 'Items'), h('button', { class: 'small', type: 'button', onclick: () => addItem() }, icon('plus', 16), 'Add item')),
+      h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, tx('Items')), h('button', { class: 'small', type: 'button', onclick: () => addItem() }, icon('plus', 16), tx('Add item'))),
       rows, picks,
-      h('label', { class: 'bdisc' }, h('span', null, 'Discount ₹'), discount)),
-    h('div', { class: 'card bcard' }, h('div', { class: 'small muted', style: { marginBottom: '8px' } }, 'Paid by'), h('div', { class: 'chips', style: { marginBottom: 0 } }, modeBtns)),
+      h('label', { class: 'bdisc' }, h('span', null, tx('Discount ₹')), discount)),
+    h('div', { class: 'card bcard' }, h('div', { class: 'small muted', style: { marginBottom: '8px' } }, tx('Paid by')), h('div', { class: 'chips', style: { marginBottom: 0 } }, modeBtns)),
     h('div', { class: 'bbar' },
-      h('div', { class: 'spread' }, h('div', null, h('div', { class: 'small muted' }, 'Total'), totalEl), h('button', { class: 'ghost small', type: 'button', onclick: shareOnly }, 'Preview')),
+      h('div', { class: 'spread' }, h('div', null, h('div', { class: 'small muted' }, tx('Total')), totalEl), h('button', { class: 'ghost small', type: 'button', onclick: shareOnly }, tx('Preview'))),
       subEl, wordsEl, saveBtn));
   paintRows(); paintTotals(); paintPicks();
 }

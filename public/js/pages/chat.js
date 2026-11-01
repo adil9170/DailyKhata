@@ -5,15 +5,16 @@ import { h, mount, money, toast, icon } from '../ui.js';
 import { api, state, can, todayLocal, navigate } from '../api.js';
 import { rowOrder } from '../state.js';
 import { readDump } from '../../../src/lib/dump.ts';
+import { t as tx, locale, isHindi } from '../i18n.js';
 
-const KINDS = { purchases: 'Stock', expenses: 'Expense', collections: 'Sale' };
-const time = (sql) => { if (!sql) return ''; const d = new Date(sql.replace(' ', 'T') + 'Z'); return isNaN(d) ? '' : d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }); };
+const KINDS = { purchases: tx('Stock'), expenses: tx('Expense'), collections: tx('Sale') };
+const time = (sql) => { if (!sql) return ''; const d = new Date(sql.replace(' ', 'T') + 'Z'); return isNaN(d) ? '' : d.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' }); };
 // entries get a new id when they reach the server; client_id never changes, so we track that
 const keyOf = (k, e) => `${k}:${e.client_id || e.id}`;
 const ids = (day) => new Set(['purchases', 'expenses', 'collections'].flatMap((k) => day[k].map((e) => keyOf(k, e))));
 
 function describe(kind, e) {
-  if (kind === 'collections') return { t: [e.mode === 'credit' ? 'Udhaar' : e.mode === 'cash' ? 'Cash' : e.mode.toUpperCase(), e.customer].filter(Boolean).join(' · '), amt: e.amount_paise, sign: '+' };
+  if (kind === 'collections') return { t: [e.mode === 'credit' ? tx('Udhaar') : e.mode === 'cash' ? tx('Cash') : e.mode.toUpperCase(), e.customer].filter(Boolean).join(' · '), amt: e.amount_paise, sign: '+' };
   if (kind === 'expenses') return { t: `${e.category}${e.notes ? ' · ' + e.notes : ''}`, amt: e.amount_paise, sign: '−' };
   return { t: `${e.product_name} · ${e.qty_units} ${e.unit}`, amt: e.total_cost_paise, sign: '−' };
 }
@@ -40,19 +41,19 @@ export async function chatPage(main) {
   // ---- history: today's entries, oldest first, as if you had sent them ----
   const all = ['purchases', 'expenses', 'collections'].flatMap((k) => day[k].map((e) => [k, e])).sort((a, b) => rowOrder(a[1].id) - rowOrder(b[1].id));
   const first = (state.user?.name || '').split(/\s+/)[0];
-  bubble('bot', h('div', null, `Namaste${first ? ' ' + first : ''}! Tell me what happened — like `, h('i', null, '“chai 40, auto 120”'), ' or ', h('i', null, '“Sharma se 3000 mila”'), '. I’ll write it in your khata.'),
-    all.length ? null : chips([['How do I use this?', () => help()]]));
+  bubble('bot', h('div', null, tx('Namaste{name}! Tell me what happened — like ', null, { name: first ? ' ' + first : '' }), h('i', null, '“chai 40, auto 120”'), tx(' or '), h('i', null, '“Sharma se 3000 mila”'), tx('. I’ll write it in your khata.')),
+    all.length ? null : chips([[tx('How do I use this?'), () => help()]]));
   if (all.length) {
     const shown = all.slice(-8);
-    bubble('me', all.length > shown.length ? h('div', { class: 'bt', style: { textAlign: 'left', marginTop: 0 } }, `+${all.length - shown.length} earlier`) : null,
-      shown.map(([k, e]) => entryCard(k, e)), h('div', { class: 'bt' }, `Today · ${all.length} ${all.length === 1 ? 'entry' : 'entries'}`));
-    bubble('bot', h('div', null, 'So far today:'), summary());
+    bubble('me', all.length > shown.length ? h('div', { class: 'bt', style: { textAlign: 'left', marginTop: 0 } }, tx('+{n} earlier', null, { n: all.length - shown.length })) : null,
+      shown.map(([k, e]) => entryCard(k, e)), h('div', { class: 'bt' }, tx('Today · {n} entries', null, { n: all.length })));
+    bubble('bot', h('div', null, tx('So far today:')), summary());
   }
 
   function help() {
-    bubble('bot', h('div', null, 'Just write it the way you talk:'),
+    bubble('bot', h('div', null, tx('Just write it the way you talk:')),
       h('ul', null, h('li', null, '“gas 820, chai 40” → expenses'), h('li', null, '“sale 1500 upi” → money in'), h('li', null, '“Raju udhaar 300” → udhaar sale'), h('li', null, '“Sting 2 box 1020” → stock bought'), h('li', null, '“aaj kitna?” → today’s numbers')),
-      chips([['Today’s total', () => ask('aaj kitna')], ['Make a bill', () => navigate('#/bill')], ['Count cash', () => navigate('#/counter')]]));
+      chips([[tx('Today’s total'), () => ask('aaj kitna')], [tx('Make a bill'), () => navigate('#/bill')], [tx('Count cash'), () => navigate('#/counter')]]));
   }
   async function refresh() { day = await api(`/api/c/day/${date}`); }
 
@@ -73,13 +74,13 @@ export async function chatPage(main) {
     const r = readDump(text, ctx);
     const found = r.expenses.length + r.purchases.length + r.collections.length;
     if (!found) {
-      if (/kitna|total|hisab|hisaab|summary|kaisa|today|aaj|din/.test(low)) { await refresh(); return bubble('bot', h('div', null, 'Today so far:'), summary(), chips([['Open khata', () => navigate(`#/day?date=${date}`)]])); }
-      if (/bill|invoice/.test(low)) return bubble('bot', h('div', null, 'Let’s make a bill.'), chips([['Make a bill', () => navigate('#/bill')]]));
-      if (/cash|gin|count|galla|drawer/.test(low)) return bubble('bot', h('div', null, 'Count the notes in the drawer:'), chips([['Count cash', () => navigate('#/counter')]]));
+      if (/kitna|total|hisab|hisaab|summary|kaisa|today|aaj|din/.test(low)) { await refresh(); return bubble('bot', h('div', null, tx('Today so far:')), summary(), chips([[tx('Open khata'), () => navigate(`#/day?date=${date}`)]])); }
+      if (/bill|invoice/.test(low)) return bubble('bot', h('div', null, tx('Let’s make a bill.')), chips([[tx('Make a bill'), () => navigate('#/bill')]]));
+      if (/cash|gin|count|galla|drawer/.test(low)) return bubble('bot', h('div', null, tx('Count the notes in the drawer:')), chips([[tx('Count cash'), () => navigate('#/counter')]]));
       if (/help|kaise|how|\?$/.test(low)) return help();
-      return bubble('bot', h('div', null, 'I couldn’t find an amount there. Put the amount next to what it was for, like “gas 820”.'), chips([['Show examples', () => help()]]));
+      return bubble('bot', h('div', null, tx('I couldn’t find an amount there. Put the amount next to what it was for, like “gas 820”.')), chips([[tx('Show examples'), () => help()]]));
     }
-    if (!W) return bubble('bot', h('div', null, 'You can view this shop but not add entries.'));
+    if (!W) return bubble('bot', h('div', null, tx('You can view this shop but not add entries.')));
     const groups = new Map();
     const put = (d) => { const k = d || date; if (!groups.has(k)) groups.set(k, { date: k, purchases: [], expenses: [], collections: [] }); return groups.get(k); };
     r.expenses.forEach((e) => put(e.date).expenses.push({ category: e.category, amount: String(e.amount), payment_mode: e.payment_mode, notes: e.notes }));
@@ -93,37 +94,37 @@ export async function chatPage(main) {
     const added = ['purchases', 'expenses', 'collections'].flatMap((k) => day[k].filter((e) => !before.has(keyOf(k, e))).map((e) => [k, e]));
     lastAdded.push(added.map(([k, e]) => keyOf(k, e)));
     const other = [...groups.keys()].filter((d) => d !== date);
-    const undoBtn = h('button', { type: 'button', class: 'chip small', onclick: (ev) => undo(ev.currentTarget) }, 'Undo');
-    bubble('bot', h('div', null, `Added ${found} ${found === 1 ? 'entry' : 'entries'}`, other.length ? ` (${other.length === 1 ? 'one on ' + other[0] : 'some on other days'})` : '', ':'),
+    const undoBtn = h('button', { type: 'button', class: 'chip small', onclick: (ev) => undo(ev.currentTarget) }, tx('Undo'));
+    bubble('bot', h('div', null, tx('Added {n} entries', null, { n: found }), other.length ? ` (${other.length === 1 ? 'one on ' + other[0] : 'some on other days'})` : '', ':'),
       added.map(([k, e]) => entryCard(k, e)), summary(), h('div', { class: 'bubchips' }, undoBtn));
   }
 
   // ---- composer ----
-  const ta = h('textarea', { rows: '1', placeholder: 'Type what happened…', 'aria-label': 'Message', enterkeyhint: 'send' });
+  const ta = h('textarea', { rows: '1', placeholder: tx('Type what happened…'), 'aria-label': tx('Message'), enterkeyhint: 'send' });
   const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; };
   const send = async () => { const t = ta.value.trim(); if (!t) return; ta.value = ''; grow(); sendBtn.disabled = true; try { await ask(t); } finally { sendBtn.disabled = false; ta.focus(); } };
   ta.addEventListener('input', grow);
   ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && matchMedia('(hover: hover)').matches) { e.preventDefault(); send(); } });
-  const sendBtn = h('button', { class: 'send', type: 'button', 'aria-label': 'Send', onclick: send }, icon('right', 22));
+  const sendBtn = h('button', { class: 'send', type: 'button', 'aria-label': tx('Send'), onclick: send }, icon('right', 22));
 
   // voice: Indian English understands Hinglish numbers well ("chai chalis" stays words, "chai 40" works)
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let mic = null;
   if (SR) {
-    mic = h('button', { class: 'mic', type: 'button', 'aria-label': 'Speak' }, icon('mic', 20));
+    mic = h('button', { class: 'mic', type: 'button', 'aria-label': tx('Speak') }, icon('mic', 20));
     let rec = null;
     mic.addEventListener('click', () => {
       if (rec) { rec.stop(); return; }
-      rec = new SR(); rec.lang = 'en-IN'; rec.interimResults = true;
+      rec = new SR(); rec.lang = isHindi() ? 'hi-IN' : 'en-IN'; rec.interimResults = true;
       const startText = ta.value ? ta.value.trim() + ' ' : '';
       rec.onresult = (e) => { ta.value = startText + [...e.results].map((x) => x[0].transcript).join(' '); grow(); };
       rec.onend = () => { rec = null; mic.classList.remove('on'); };
-      rec.onerror = (e) => { if (e.error === 'not-allowed') toast('Allow the microphone to speak entries', true); };
+      rec.onerror = (e) => { if (e.error === 'not-allowed') toast(tx('Allow the microphone to speak entries'), true); };
       mic.classList.add('on'); rec.start();
     });
   }
   const quick = h('div', { class: 'chatquick' },
-    [['Today’s total', () => ask('aaj kitna')], ['Make a bill', () => navigate('#/bill')], ['Count cash', () => navigate('#/counter')], ['Help', () => help()]]
+    [[tx('Today’s total'), () => ask('aaj kitna')], [tx('Make a bill'), () => navigate('#/bill')], [tx('Count cash'), () => navigate('#/counter')], [tx('Help'), () => help()]]
       .map(([l, fn]) => h('button', { type: 'button', class: 'chip small', onclick: fn }, l)));
 
   mount(main, h('div', { class: 'chat' }, log, h('div', { class: 'composer' }, quick, h('div', { class: 'cbox' }, mic, ta, sendBtn))));
