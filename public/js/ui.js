@@ -138,10 +138,25 @@ export function toast(msg, err = false) {
   setTimeout(() => t.remove(), err ? 6000 : 3000);
 }
 
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 export function modal(title, body, { wide = false } = {}) {
-  const close = () => { bg.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
-  const box = h('div', { class: 'modal' + (wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+  const opener = document.activeElement; // focus returns here when the sheet closes
+  const close = () => {
+    const was = bg.isConnected; bg.remove(); document.removeEventListener('keydown', onKey);
+    if (was && opener && opener !== document.body && opener.isConnected && opener.focus) opener.focus({ preventScroll: true });
+  };
+  const onKey = (e) => {
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key !== 'Tab') return;
+    // Keep Tab inside the sheet (only the topmost sheet reacts when several are stacked).
+    const all = document.querySelectorAll('.modal-bg'); if (all[all.length - 1] !== bg) return;
+    const f = [...box.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (!f.length) { e.preventDefault(); box.focus(); return; }
+    const a = document.activeElement;
+    if (e.shiftKey && (a === f[0] || a === box || !box.contains(a))) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && (a === f[f.length - 1] || !box.contains(a))) { e.preventDefault(); f[0].focus(); }
+  };
+  const box = h('div', { class: 'modal' + (wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': title, tabindex: '-1' },
     h('div', { class: 'grab' }),
     h('div', { class: 'spread', style: { marginBottom: '14px' } }, h('h2', { style: { margin: 0, fontSize: '1.15rem' } }, title), h('button', { class: 'ghost icon', 'aria-label': 'Close', onclick: () => close() }, icon('x'))),
     body);
@@ -150,7 +165,9 @@ export function modal(title, body, { wide = false } = {}) {
   enableSheetDrag(box, close);
   document.addEventListener('keydown', onKey);
   document.body.append(bg);
-  const first = box.querySelector('input:not([type=file]),select,textarea'); if (first && matchMedia('(min-width: 641px)').matches) first.focus();
+  // Wide screens focus the first field; phones focus the sheet itself so the keyboard stays down but Tab starts inside it.
+  const first = box.querySelector('input:not([type=file]),select,textarea');
+  if (first && matchMedia('(min-width: 641px)').matches) first.focus(); else box.focus({ preventScroll: true });
   return { close, box };
 }
 

@@ -55,7 +55,7 @@ export async function counterPage(main) {
     tiles.set(d, { el, input, sum });
   }
 
-  const langBtn = h('button', { class: 'chip small cl', type: 'button', 'aria-label': tx('Switch language') }, lang === 'hi' ? 'हिंदी' : 'EN');
+  const langBtn = h('button', { class: 'chip small cl', type: 'button', 'aria-label': (lang === 'hi' ? 'हिंदी' : 'EN') + ' · ' + tx('Switch language') }, lang === 'hi' ? 'हिंदी' : 'EN');
   langBtn.addEventListener('click', () => { lang = lang === 'hi' ? 'en' : 'hi'; langBtn.textContent = lang === 'hi' ? 'हिंदी' : 'EN'; paintTotals(); });
   const reset = () => { DENOMS.forEach((d) => { qty[d] = 0; }); paintAll(); };
 

@@ -892,3 +892,34 @@ html.lite[data-style="soft"] { --raise: 4px 4px 8px var(--neu-lo), -4px -4px 8px
 .tally.ok { background: var(--good-bg); color: var(--good); }
 .tally.off { background: var(--warn-bg); color: var(--warn); }
 html.lite .sl.anim { animation: none; }
+
+/* ---- accessibility + low-end phones (slot 13) ---- */
+/* touch targets: 44 px minimum on the shared controls (the counter's +/- are extra; the whole tile also steps) */
+.topbar .topmark { width: 44px; min-height: 44px; }
+button.icon.small { width: 44px; min-height: 44px; }
+button.small, button.ghost { min-width: 44px; }
+.datechip { min-height: 44px; }
+details summary, details.fold > summary, .dskip summary { min-height: 44px; }
+.bpicks .chip, .bubchips .chip, .chatquick .chip { min-height: 44px; }
+.chatquick .chip, .bubchips .chip { max-width: 100%; }
+.bubchips .chip small { white-space: normal; }
+/* the counter number must never collapse to nothing on short screens (it was 5 px high at 360x640) */
+.cqty { min-height: 24px !important; }
+@media (max-height: 700px) and (max-width: 860px) { .cplus { height: 28px; } .ctile .csum { margin: 0 0 2px; } }
+/* sheets take focus themselves; show where it is only when using the keyboard */
+.modal:focus { outline: none; }
+/* larger text / zoom: let labels wrap instead of overflowing */
+.qtype .t, .qtype .s, .chip, .action .t, .action .d { overflow-wrap: anywhere; }
+.qtypes { grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr)); }
+.amtbox { min-width: 0; }
+/* forced colors (Windows high contrast): box-shadow rings are dropped, so draw real outlines */
+@media (forced-colors: active) {
+  button:focus-visible, .btn:focus-visible, a:focus-visible, input:focus, select:focus, textarea:focus, .modal:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+  .qtype.on, .chip.on, .tabbar a.active, .seg button.on { outline: 2px solid Highlight; }
+  .cplus, button.primary, .fab { border: 2px solid ButtonText; forced-color-adjust: none; background: ButtonFace; color: ButtonText; }
+}
+.qform { grid-template-columns: minmax(0, 1fr); }   /* an auto track let the amount box widen the form past the screen at 130% text */
+.amtbox input { min-width: 0; }
+.datechip { min-height: 46px; }
+.tablewrap td a { display: inline-flex; align-items: center; min-height: 44px; }
+.savebtn, .photobtn { white-space: normal; max-width: 100%; text-align: center; }
