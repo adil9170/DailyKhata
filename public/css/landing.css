@@ -8,7 +8,7 @@ html:not(.app-mode) #app, html:not(.app-mode) .tabbar { display: none !important
 html:not(.app-mode) body { background: #f1ebdd; }
 
 .lp {
-  --oat: #f1ebdd; --oat-2: #e9e1cf; --slip: #fbf8f0; --ink: #1c1a2b; --ink-2: #4f4b63; --ink-3: #6f6a80;
+  --oat: #f1ebdd; --oat-2: #e9e1cf; --slip: #fbf8f0; --ink: #1c1a2b; --ink-2: #4f4b63; --ink-3: #5f5a72;
   --brick: #a9372d; --gold: #ebb74a; --night: #15121f; --green: #2e6f4f; --line: #d9d0ba;
   --wrap: 1200px; --pad: clamp(20px, 5vw, 48px);
   font-family: var(--font); font-size: 1.0625rem; line-height: 1.6; color: var(--ink); background: var(--oat);
@@ -107,7 +107,7 @@ html.lang-pending #landing { visibility: hidden; }
 .lp-moments { list-style: none; }
 .lp-moments li { display: grid; grid-template-columns: minmax(0, 1fr) 250px; grid-template-rows: auto auto; column-gap: 40px; align-items: center; min-height: 62vh; }
 .lp-moments time, .lp-moments img { transition: opacity .7s; }
-.lp-moments li:not(.on) time { opacity: .6; }
+.lp-moments li:not(.on) time { opacity: .72; }
 .lp-moments li:not(.on) img { opacity: .55; }
 .lp-moments time { grid-column: 1; align-self: end; font-family: var(--serif); font-size: clamp(4.4rem, 1.5rem + 8vw, 9.5rem); line-height: .86; color: var(--brick); letter-spacing: -.03em; }
 .lp-moments li > div { grid-column: 1; grid-row: 2; align-self: start; padding-top: 18px; }
@@ -163,7 +163,7 @@ html.lang-pending #landing { visibility: hidden; }
 .lp-foot .lp-brand { color: var(--oat); font-size: 1.15rem; }
 .lp-foot p:first-of-type { margin-left: auto; }
 .lp-foot a:not(.lp-brand) { color: var(--oat); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
-.lp-foot .lp-small { color: rgba(241,235,221,.45); }
+.lp-foot .lp-small { color: rgba(241,235,221,.7); }
 @media (max-width: 640px) { .lp-foot { flex-direction: column; align-items: flex-start; } .lp-foot p:first-of-type { margin-left: 0; } }
 
 @media (prefers-reduced-motion: reduce) { .lp-lines li { animation: none; } .lp-moments time, .lp-moments img, .lp-words-in, .lp-words-out { transition: none; } }
@@ -184,3 +184,7 @@ html.lite .lp-lines li { animation: none; }
 @media (prefers-reduced-motion: reduce) { .lp-mic.on { animation: none; } }
 html.lite .lp-mic.on { animation: none; }
 @media (max-width: 520px) { .lp-setup { display: none; } .lp-mic-row { flex-wrap: wrap; gap: 8px; } .lp-btn { width: 100%; } }
+
+/* the landing page is always light: keep app dark-theme / Soft-style colours from leaking in */
+.lp summary, .lp label { color: var(--ink); }
+.lp .lp-mic:not(.on):not(:hover) { background: transparent !important; color: var(--ink); }

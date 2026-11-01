@@ -3,10 +3,10 @@
 //  - hashed chunks, fonts, icons   cache-first (they never change under the same URL)
 //  - index.html, app.js, css, manifest   network-first with a short timeout, cache as fallback, so a slow
 //    connection never blocks start-up but a good connection always picks up a new deploy
-const VERSION = 'v24';
+const VERSION = 'v25';
 const CORE = 'dk-core-' + VERSION;
 const STATIC = 'dk-static-' + VERSION;
-const PRECACHE = ['/', '/index.html', '/boot.js', '/css/app.css', '/css/landing.css', '/logo.svg', '/dist/app.js', '/favicon.svg', '/manifest.webmanifest',
+const PRECACHE = ['/', '/index.html', '/boot.js', '/css/app.css', '/css/landing.css', '/logo.svg', '/dist/app.js', '/favicon.svg', '/manifest.webmanifest', '/icons/apple-touch-icon.png', '/icons/icon-192.png',
   '/fonts/palanquin-latin-400.woff2', '/fonts/palanquin-latin-700.woff2', '/fonts/eczar-latin-400.woff2'];
 
 self.addEventListener('install', (e) => {
