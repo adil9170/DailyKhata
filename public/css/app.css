@@ -786,6 +786,16 @@ html.lite[data-style="soft"] { --raise: 4px 4px 8px var(--neu-lo), -4px -4px 8px
 .bub.bub-bot .ent.collections .ea { color: var(--good); }
 .bub.bub-me .ent .ek { background: rgba(255,255,255,.2); }
 .ent .ea { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ent.tap { cursor: pointer; border-radius: 8px; margin: 0 -6px; padding: 8px 6px; min-height: 44px; align-items: center; }
+.ent.tap:hover { background: rgba(127,127,127,.12); }
+.ent.tap:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.ent.gone { opacity: .5; } .ent.gone .et, .ent.gone .ea { text-decoration: line-through; }
+.chatearlier { display: flex; flex-direction: column; gap: 10px; }
+.chatearlier > .chatmore { align-self: center; min-height: 36px; }
+.chatday { display: flex; flex-direction: column; gap: 10px; }
+.chatday .bub-me { align-self: flex-end; } .chatday .bub-bot { align-self: flex-start; }
+.dayhead { align-self: center; font-size: .78rem; font-weight: 650; color: var(--muted); padding: 2px 12px; border-radius: 99px; background: var(--surface-2); }
+.chatquick .chip[hidden] { display: none; }
 .sumcard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; padding: 10px; border-radius: 14px; background: var(--surface-2); }
 .sumcard > div { display: grid; gap: 2px; min-width: 0; }
 .sumcard span { font-size: .74rem; color: var(--muted); }

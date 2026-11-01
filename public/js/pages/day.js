@@ -140,7 +140,7 @@ export async function uploadDoc(file, kind, date) {
 
 function datalist(id, items) { return h('datalist', { id }, items.map((v) => h('option', { value: v }))); }
 
-function purchaseForm(date, e, done) {
+export function purchaseForm(date, e, done) {
   const prods = state.products.filter((p) => p.active || p.id === e?.product_id);
   const byName = (n) => prods.find((p) => p.name.toLowerCase() === n.trim().toLowerCase());
   const item = h('input', { list: 'pf-products', required: true, value: e?.product_name ?? '', autocomplete: 'off' });
@@ -177,7 +177,7 @@ function purchaseForm(date, e, done) {
   })(); });
 }
 
-function expenseForm(date, e, done) {
+export function expenseForm(date, e, done) {
   const cat = h('input', { list: 'ef-cats', required: true, value: e?.category ?? '' });
   const amount = h('input', { inputmode: 'decimal', required: true, value: e ? rupees(e.amount_paise) : '' });
   const mode = h('select', null, ['cash', 'bank', 'credit'].map((m) => h('option', { value: m, selected: (e?.payment_mode ?? 'cash') === m ? 'selected' : null }, m)));
@@ -197,7 +197,7 @@ function expenseForm(date, e, done) {
   })(); });
 }
 
-function collectionForm(date, e, done) {
+export function collectionForm(date, e, done) {
   const amount = h('input', { inputmode: 'decimal', required: true, value: e ? rupees(e.amount_paise) : '' });
   const mode = h('select', null, [['cash', tx('Cash')], ['upi', tx('UPI')], ['card', tx('Card')], ['credit', tx('Udhaar (credit sale)')]].map(([v, l]) => h('option', { value: v, selected: (e?.mode ?? 'cash') === v ? 'selected' : null }, l)));
   const customer = h('input', { value: e?.customer ?? '' });
