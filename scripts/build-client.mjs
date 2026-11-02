@@ -15,7 +15,7 @@ mkdirSync(`${root}public/dist`, { recursive: true });
 
 const result = await build({
   absWorkingDir: root,
-  entryPoints: { app: 'public/js/app.js' },
+  entryPoints: { app: 'public/js/app.js', bento: 'public/js/bento.js' },
   outdir: 'public/dist',
   entryNames: '[name]',
   chunkNames: 'chunks/[name]-[hash]',

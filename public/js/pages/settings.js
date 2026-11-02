@@ -24,15 +24,15 @@ export async function settingsPage(main) {
       h('button', { class: cur0 === v ? 'on' : '', role: 'radio', 'aria-checked': cur0 === v ? 'true' : 'false', onclick: () => setTheme(v) }, icon(ic, 16), l))),
     h('p', { class: 'small muted' }, 'System follows your phone or computer setting. Saved on this device.'),
     h('h3', { style: { margin: '14px 0 8px', fontSize: '.95rem' } }, tx('Style')),
-    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Style') }, [['clean', tx('Clean')], ['soft', tx('Soft')]].map(([v, l]) => {
-      const cur = document.documentElement.dataset.style === 'soft' ? 'soft' : 'clean';
+    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Style') }, [['clean', tx('Clean')], ['soft', tx('Soft')], ['bento', 'Bento']].map(([v, l]) => {
+      const cur = document.documentElement.dataset.style || 'clean';
       return h('button', { class: cur === v ? 'on' : '', role: 'radio', 'aria-checked': cur === v ? 'true' : 'false', onclick: () => {
-        try { if (v === 'soft') localStorage.setItem('dk_style', 'soft'); else localStorage.removeItem('dk_style'); } catch { /* storage blocked */ }
-        if (v === 'soft') document.documentElement.dataset.style = 'soft'; else delete document.documentElement.dataset.style;
+        try { if (v !== 'clean') localStorage.setItem('dk_style', v); else localStorage.removeItem('dk_style'); } catch { /* storage blocked */ }
+        if (v !== 'clean') document.documentElement.dataset.style = v; else delete document.documentElement.dataset.style;
         window.dispatchEvent(new Event('themechange'));
       } }, l);
     })),
-    h('p', { class: 'small muted' }, 'Soft: raised, pillow-like buttons and cards (neumorphism). Clean: flat and sharp.'),
+    h('p', { class: 'small muted' }, 'Soft: raised, pillow-like cards (neumorphism). Bento: colourful rounded tiles. Clean: flat and sharp.'),
     h('h3', { style: { margin: '14px 0 8px', fontSize: '.95rem' } }, tx('Home screen')),
     h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Home screen') }, [['classic', tx('Buttons')], ['chat', tx('Chat')]].map(([v, l]) => {
       let cur = 'classic'; try { cur = localStorage.getItem('dk_layout') === 'chat' ? 'chat' : 'classic'; } catch { /* storage blocked */ }

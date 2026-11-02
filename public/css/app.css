@@ -923,3 +923,40 @@ details summary, details.fold > summary, .dskip summary { min-height: 44px; }
 .datechip { min-height: 46px; }
 .tablewrap td a { display: inline-flex; align-items: center; min-height: 44px; }
 .savebtn, .photobtn { white-space: normal; max-width: 100%; text-align: center; }
+
+/* ==== Bento style (Settings → Style → Bento): rounded colour tiles on a calm canvas ==== */
+:root[data-style="bento"] { --bg: #ebe6da; --surface: #fbf8f0; --surface-2: #f1ebdd; --border: transparent; --bn-green: #2e6f4f; --bn-gold: #ebb74a; --bn-brick: #a9372d; --bn-ink: #1c1a2b; --bn-sage: #dbe8d6; --bn-sand: #e2d9c4; --radius: 28px; }
+@media (prefers-color-scheme: dark) { :root[data-style="bento"]:not([data-theme="light"]) { --bg: #0d0c14; --surface: #1a1826; --surface-2: #232033; --border: transparent; } }
+:root[data-style="bento"][data-theme="dark"] { --bg: #0d0c14; --surface: #1a1826; --surface-2: #232033; --border: transparent; }
+[data-style="bento"] .card, [data-style="bento"] .tile, [data-style="bento"] .notecard, [data-style="bento"] .strip, [data-style="bento"] .ctile, [data-style="bento"] .cpanel, [data-style="bento"] .pastelink { border-radius: 28px; border-color: transparent; box-shadow: none; }
+[data-style="bento"] .topbar, [data-style="bento"] .side { border-color: transparent; }
+[data-style="bento"] .page-head h1, [data-style="bento"] .qhead h1 { font-size: clamp(2.2rem, 1.6rem + 2.4vw, 3rem); letter-spacing: -.02em; }
+/* summary rows become three separate tiles */
+[data-style="bento"] .qsum, [data-style="bento"] .daysum { background: transparent; border: 0; box-shadow: none; gap: 10px; border-radius: 0; overflow: visible; }
+[data-style="bento"] .qcell, [data-style="bento"] .daysum > div { border-radius: 24px; border: 0 !important; padding: 16px 16px 18px; }
+[data-style="bento"] .qcell .k, [data-style="bento"] .daysum .k { color: inherit; opacity: .9; text-transform: none; letter-spacing: 0; font-size: .85rem; font-weight: 600; }
+[data-style="bento"] .qcell .v, [data-style="bento"] .daysum .v { color: inherit; font-size: clamp(1.45rem, 1.1rem + 1.4vw, 1.9rem); }
+[data-style="bento"] .qcell:nth-child(1), [data-style="bento"] .daysum > div:nth-child(1) { background: var(--bn-green); color: #fff; }
+[data-style="bento"] .qcell:nth-child(2), [data-style="bento"] .daysum > div:nth-child(2) { background: var(--bn-gold); color: var(--bn-ink); }
+[data-style="bento"] .qcell:nth-child(3), [data-style="bento"] .daysum > div:nth-child(3) { background: var(--bn-ink); color: #f1ebdd; }
+[data-style="bento"] .daysum .pos, [data-style="bento"] .daysum .neg { color: inherit; }
+/* quick tools */
+[data-style="bento"] .qtool { border: 0; border-radius: 26px; color: var(--bn-ink); }
+[data-style="bento"] .qtool:nth-child(1) { background: var(--bn-sage); }
+[data-style="bento"] .qtool:nth-child(2) { background: var(--bn-gold); }
+[data-style="bento"] .qtool:nth-child(3) { background: var(--bn-sand); }
+[data-style="bento"] .qtool:nth-child(n+4) { background: var(--bn-sage); }
+[data-style="bento"] .qtool .dot { background: rgba(255,255,255,.65); color: var(--bn-ink); }
+[data-style="bento"] .qtool .d { color: rgba(28,26,43,.78); }
+/* reports tiles */
+[data-style="bento"] .tiles .tile { border-radius: 26px; }
+[data-style="bento"] .tiles .tile:nth-child(1) { background: var(--bn-green); color: #fff; }
+[data-style="bento"] .tiles .tile:nth-child(2) { background: var(--bn-gold); color: var(--bn-ink); }
+[data-style="bento"] .tiles .tile:nth-child(3) { background: var(--bn-brick); color: #fff; }
+[data-style="bento"] .tiles .tile:nth-child(4) { background: var(--bn-ink); color: #f1ebdd; }
+[data-style="bento"] .tile .k, [data-style="bento"] .tile .s { color: inherit; opacity: .9; }
+[data-style="bento"] .tile .pos, [data-style="bento"] .tile .neg, [data-style="bento"] .tile .muted { color: inherit; }
+/* controls */
+[data-style="bento"] button.primary, [data-style="bento"] .primary.btn { border-radius: 999px; }
+[data-style="bento"] .modal { border-radius: 30px 30px 0 0; }
+[data-style="bento"] .tabbar { border-color: transparent; }
