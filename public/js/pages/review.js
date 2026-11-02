@@ -22,7 +22,7 @@ export function reviewEditor({ parsed, date, documentId = null, onSaved, onCance
     const sum = (l, k) => l.reduce((s, r) => s + (Number(String(r[k]).replace(/,/g, '')) || 0), 0);
     const p = sum(data.purchases, 'total'), e = sum(data.expenses, 'amount'), c = sum(data.collections, 'amount');
     mount(totals, h('div', null, 'Purchases'), h('div', null, money(p * 100)), h('div', null, 'Expenses'), h('div', null, money(e * 100)),
-      h('div', null, 'Collection'), h('div', null, money(c * 100)), h('div', { class: 'tot' }, 'Net cash'), h('div', { class: 'tot' }, money((c - p - e) * 100)));
+      h('div', null, 'Sales'), h('div', null, money(c * 100)), h('div', { class: 'tot' }, 'Net cash'), h('div', { class: 'tot' }, money((c - p - e) * 100)));
   }
 
   function render() {
@@ -62,7 +62,7 @@ export function reviewEditor({ parsed, date, documentId = null, onSaved, onCance
         h('tbody', null, data.collections.map((r, i) => h('tr', null,
           h('td', null, cell(r, 'amount', { inputmode: 'decimal', style: { width: '120px' } })), h('td', null, sel(r, 'mode', ['cash', 'upi', 'card', 'credit'])),
           h('td', null, cell(r, 'customer')), h('td', null, rm(data.collections, i))))))),
-      h('button', { class: 'small', onclick: () => { data.collections.push({ amount: '', mode: 'cash', customer: '' }); render(); } }, icon('plus', 17), 'Add collection row'),
+      h('button', { class: 'small', onclick: () => { data.collections.push({ amount: '', mode: 'cash', customer: '' }); render(); } }, icon('plus', 17), 'Add a sale row'),
       parsed.unparsed?.length ? h('div', { class: 'alert warning', style: { marginTop: '12px' } }, h('span', { class: 'ic' }, '!'),
         h('div', null, h('strong', null, 'Could not understand these lines — add them manually if needed:'), h('ul', { style: { margin: '4px 0 0', paddingLeft: '16px' } }, parsed.unparsed.map((l) => h('li', null, l))))) : null,
       h('div', { style: { marginTop: '12px' } }, totals),

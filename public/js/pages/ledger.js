@@ -1,5 +1,6 @@
 // Outstanding: supplier credit (to pay) and customer udhaar (to receive), plus settlement payments.
 import { h, mount, money, rupees, fmtDate, addDays, table, toast, busy, modal, confirmDialog, badge, icon } from '../ui.js';
+import { t as tx } from '../i18n.js';
 import { api, state, can, todayLocal, navigate } from '../api.js';
 
 export async function ledgerPage(main) {
@@ -34,7 +35,7 @@ export async function ledgerPage(main) {
     const dir = h('select', null, [['to_supplier', 'Paid to supplier'], ['from_customer', 'Received from customer']].map(([v, l]) => h('option', { value: v, selected: (p?.direction ?? preset.direction) === v ? 'selected' : null }, l)));
     const party = h('input', { value: p?.party ?? preset.party ?? '', list: 'parties' });
     const amount = h('input', { inputmode: 'decimal', required: true, value: p ? rupees(p.amount_paise) : preset.amount ? rupees(preset.amount) : '' });
-    const mode = h('select', null, ['cash', 'upi', 'bank'].map((m) => h('option', { value: m, selected: p?.mode === m ? 'selected' : null }, m)));
+    const mode = h('select', null, [['cash', tx('Cash')], ['upi', tx('UPI')], ['bank', tx('Bank')]].map(([m, l]) => h('option', { value: m, selected: p?.mode === m ? 'selected' : null }, l)));
     const date = h('input', { type: 'date', value: p?.entry_date ?? today });
     const notes = h('input', { value: p?.notes ?? '' });
     const names = out ? [...out.payable, ...out.receivable].map((r) => r.party).filter((n) => !n.startsWith('Unnamed')) : [];
@@ -42,7 +43,7 @@ export async function ledgerPage(main) {
     const L = (t, el) => h('div', { class: 'field' }, h('label', null, t, el));
     const form = h('form', null, h('datalist', { id: 'parties' }, names.map((n) => h('option', { value: n }))),
       h('div', { class: 'fields' }, L('Type', dir), L('Party name', party), L('Amount ₹', amount), L('Mode', mode), L('Date', date)), L('Notes', notes),
-      h('div', { class: 'small muted', style: { marginBottom: '12px' } }, 'Use the same party name as on the purchase/collection to settle that balance.'),
+      h('div', { class: 'small muted', style: { marginBottom: '12px' } }, tx('Type the name exactly as on the udhaar entry, so the right balance goes down.')),
       h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, btn));
     const m = modal(p ? 'Edit payment' : 'Record payment', form);
     form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {

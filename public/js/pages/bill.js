@@ -29,6 +29,8 @@ export async function billPage(main) {
   // the number the next bill will get (shared across devices; "P…" numbers are provisional while offline)
   const nextNo = () => { const n = peekBillNumber(); return n ? billLabel(n.series, n.no) : ''; };
   const noText = () => (nextNo() ? `Bill #${nextNo()}` : tx('New bill'));
+  // "Clear" only shows once there is something to clear (it used to read "New bill" right next to the "New bill" subtitle)
+  const syncClear = () => main.querySelector('.billclear')?.toggleAttribute('hidden', !bill.items.length && !bill.customer.trim() && !bill.phone.trim());
   warmBillNumbers();
 
   const subtotal = () => r2(bill.items.reduce((s, it) => s + num(it.qty) * num(it.rate), 0));
@@ -44,6 +46,7 @@ export async function billPage(main) {
     const t = total();
     totalEl.textContent = money(Math.round(t * 100));
     wordsEl.textContent = t ? amountToWords(Math.round(t * 100), appLang(), true) : tx('Add items to start');
+    syncClear();
     subEl.textContent = num(bill.discount) ? `${money(Math.round(subtotal() * 100))} − ${money(Math.round(num(bill.discount) * 100))} discount` : '';
     save();
   }
@@ -81,8 +84,8 @@ export async function billPage(main) {
     mount(picks, list.map((x) => h('button', { type: 'button', class: 'chip small', onclick: () => addItem(x.name, false) }, x.name, h('span', { class: 'muted' }, ` ${money(Math.round(x.rate * 100))}`))));
   }
 
-  const customer = h('input', { value: bill.customer, placeholder: tx('Customer name'), autocomplete: 'off', 'aria-label': tx('Customer name'), oninput: (e) => { bill.customer = e.target.value; save(); } });
-  const phone = h('input', { value: bill.phone, placeholder: tx('Phone'), inputmode: 'tel', autocomplete: 'off', 'aria-label': tx('Customer phone'), oninput: (e) => { bill.phone = e.target.value; save(); } });
+  const customer = h('input', { value: bill.customer, placeholder: tx('Customer name'), autocomplete: 'off', 'aria-label': tx('Customer name'), oninput: (e) => { bill.customer = e.target.value; save(); syncClear(); } });
+  const phone = h('input', { value: bill.phone, placeholder: tx('Phone'), inputmode: 'tel', autocomplete: 'off', 'aria-label': tx('Customer phone'), oninput: (e) => { bill.phone = e.target.value; save(); syncClear(); } });
   const discount = h('input', { value: bill.discount, inputmode: 'decimal', placeholder: '0', 'aria-label': tx('Discount in rupees'), oninput: (e) => { bill.discount = e.target.value; paintTotals(); } });
   const modes = [['cash', tx('Cash')], ['upi', tx('UPI')], ['card', tx('Card')], ['credit', tx('Udhaar')]];
   const modeBtns = modes.map(([id, label]) => h('button', { type: 'button', class: 'chip' + (bill.mode === id ? ' on' : ''), onclick: () => { bill.mode = id; modeBtns.forEach((b, i) => b.classList.toggle('on', modes[i][0] === id)); save(); } }, label));
@@ -128,10 +131,10 @@ export async function billPage(main) {
     toast(`Bill #${no} saved as a sale`);
     (await import('../receipt.js')).openReceiptSheet(opts);
   }));
-  const clearBtn = h('button', { class: 'ghost small', type: 'button', onclick: async () => {
+  const clearBtn = h('button', { class: 'ghost small billclear', type: 'button', onclick: async () => {
     if (!bill.items.length && !bill.customer || await confirmDialog(tx('Start a new bill? This one is not saved.'), { okText: tx('New bill') })) {
       Object.assign(bill, blank()); keep(draftKey(), null); customer.value = ''; phone.value = ''; discount.value = ''; modeBtns.forEach((b, i) => b.classList.toggle('on', i === 0)); paintRows(); paintTotals();
-    } } }, tx('New bill'));
+    } } }, tx('Clear'));
 
   mount(main,
     pageHead(tx('Make a bill'), noText(), clearBtn),

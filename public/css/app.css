@@ -82,6 +82,7 @@ h3 { font-size: .9375rem; font-weight: 650; margin: 0 0 8px; }
 .spread { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .grow { flex: 1; }
 .hidden { display: none !important; }
+[hidden] { display: none !important; } /* the hidden attribute always wins over component display rules */
 .ico { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .page-head .sub { color: var(--text-2); font-size: .9375rem; }
@@ -1021,3 +1022,7 @@ td a[href] { display: inline-flex; align-items: center; min-height: 44px; min-wi
 button.qtool { font: inherit; text-align: left; cursor: pointer; }
 /* summary cells: amounts share one baseline even when a label wraps to two lines */
 .qcell, .daysum > div { display: flex; flex-direction: column; justify-content: space-between; }
+/* Photos & bills: a real button instead of the browser's bare file picker */
+.pickfield { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; grid-column: 1 / -1; }
+.pickbtn { width: 100%; justify-content: flex-start; }
+.pickname { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

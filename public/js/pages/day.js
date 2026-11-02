@@ -148,7 +148,7 @@ export function purchaseForm(date, e, done) {
   const unit = h('input', { value: e?.unit ?? 'box' });
   const pieces = h('input', { type: 'number', min: '0', value: e?.pieces ?? '' , placeholder: 'auto' });
   const total = h('input', { inputmode: 'decimal', required: true, value: e ? rupees(e.total_cost_paise) : '' });
-  const mode = h('select', null, ['cash', 'bank', 'credit'].map((m) => h('option', { value: m, selected: (e?.payment_mode ?? 'cash') === m ? 'selected' : null }, m === 'credit' ? 'credit (udhaar)' : m)));
+  const mode = h('select', null, [['cash', tx('Cash')], ['bank', tx('Bank')], ['credit', tx('Udhaar (credit)')]].map(([m, l]) => h('option', { value: m, selected: (e?.payment_mode ?? 'cash') === m ? 'selected' : null }, l)));
   const supplier = h('input', { value: e?.supplier ?? '', list: 'pf-sup' });
   const notes = h('input', { value: e?.notes ?? '' });
   const calc = h('div', { class: 'alert info' });
@@ -167,7 +167,7 @@ export function purchaseForm(date, e, done) {
     h('div', { class: 'fields' }, lab(tx('Item'), item), lab(tx('Quantity'), qty), lab(tx('Unit'), unit), lab('Pieces', pieces), lab(tx('Total cost ₹'), total), lab(tx('Paid by'), mode), lab(tx('Supplier'), supplier), lab(tx('Notes'), notes)),
     calc, formFoot('purchases', e, () => m, done, btn));
   update();
-  const m = modal(e ? 'Edit purchase' : tx('Add purchase'), form);
+  const m = modal(e ? tx('Edit stock bought') : tx('Add stock bought'), form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     const p = byName(item.value);
     const body = { date, product_id: p?.id, product_name: item.value.trim(), qty: qty.value, unit: unit.value, pieces: pieces.value === '' ? null : pieces.value, total: total.value, payment_mode: mode.value, supplier: supplier.value, notes: notes.value };
@@ -180,7 +180,7 @@ export function purchaseForm(date, e, done) {
 export function expenseForm(date, e, done) {
   const cat = h('input', { list: 'ef-cats', required: true, value: e?.category ?? '' });
   const amount = h('input', { inputmode: 'decimal', required: true, value: e ? rupees(e.amount_paise) : '' });
-  const mode = h('select', null, ['cash', 'bank', 'credit'].map((m) => h('option', { value: m, selected: (e?.payment_mode ?? 'cash') === m ? 'selected' : null }, m)));
+  const mode = h('select', null, [['cash', tx('Cash')], ['bank', tx('Bank')], ['credit', tx('Udhaar (credit)')]].map(([m, l]) => h('option', { value: m, selected: (e?.payment_mode ?? 'cash') === m ? 'selected' : null }, l)));
   const notes = h('input', { value: e?.notes ?? '' });
   const d = h('input', { type: 'date', value: e?.entry_date ?? date });
   const photo = h('input', { type: 'file', accept: 'image/*,application/pdf' });
@@ -188,7 +188,7 @@ export function expenseForm(date, e, done) {
   const form = h('form', null, datalist('ef-cats', state.categories.map((c) => c.name)),
     h('div', { class: 'fields' }, lab(tx('Category'), cat), lab(tx('Amount ₹'), amount), lab(tx('Paid by'), mode), lab(tx('Date'), d)), lab(tx('Notes'), notes),
     can('uploads.write') ? lab('Receipt photo (optional)', photo) : null, formFoot('expenses', e, () => m, done, btn));
-  const m = modal(e ? 'Edit expense' : tx('Add expense'), form);
+  const m = modal(e ? tx('Edit expense') : tx('Add expense'), form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     let document_id = e?.document_id ?? null;
     if (photo.files?.[0]) document_id = (await uploadDoc(photo.files[0], 'receipt', d.value)).id;
@@ -202,11 +202,11 @@ export function collectionForm(date, e, done) {
   const mode = h('select', null, [['cash', tx('Cash')], ['upi', tx('UPI')], ['card', tx('Card')], ['credit', tx('Udhaar (credit sale)')]].map(([v, l]) => h('option', { value: v, selected: (e?.mode ?? 'cash') === v ? 'selected' : null }, l)));
   const customer = h('input', { value: e?.customer ?? '' });
   const notes = h('input', { value: e?.notes ?? '' });
-  const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : tx('Add collection'));
+  const btn = h('button', { class: 'primary', type: 'submit' }, e ? tx('Save changes') : tx('Add sale'));
   const form = h('form', null, h('div', { class: 'fields' }, lab(tx('Amount ₹'), amount), lab(tx('Mode'), mode), lab(tx('Customer'), customer)), lab(tx('Notes'), notes),
     h('div', { class: 'small muted', style: { marginBottom: '12px' } }, 'Use “Udhaar” when goods were given on credit; record the money later under Udhaar / Outstanding.'),
     formFoot('collections', e, () => m, done, btn));
-  const m = modal(e ? 'Edit collection' : tx('Add collection'), form);
+  const m = modal(e ? tx('Edit sale') : tx('Add sale'), form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {
     await api(e ? `/api/c/collections/${e.id}` : '/api/c/collections', { method: e ? 'PUT' : 'POST', body: { date, amount: amount.value, mode: mode.value, customer: customer.value, notes: notes.value } });
     m.close(); toast(tx('Saved')); done();

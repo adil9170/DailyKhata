@@ -268,7 +268,7 @@ function authShell(title, sub, form) {
       h('a', { class: 'logo', href: '/', style: { color: 'inherit', textDecoration: 'none' } }, h('img', { src: '/logo.svg', alt: '', width: 34, height: 34, style: { borderRadius: '9px', boxShadow: '0 0 0 2px rgba(255,255,255,.35)' } }), 'DailyKhata'),
       h('div', null,
         h('h1', null, 'Your daily hisaab, done in minutes.'),
-        h('p', null, 'Purchases, expenses, collections and stock — with profit and cash checks calculated for you.'),
+        h('p', null, 'Sales, expenses, stock and udhaar, with profit and cash checks done for you.'),
         h('ul', null,
           h('li', null, icon('camera'), 'Snap your register, we read it'),
           h('li', null, icon('box'), 'Stock bought, sold and left — automatically'),

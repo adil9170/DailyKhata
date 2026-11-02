@@ -383,7 +383,17 @@ ${FIELDS} { background: var(--surface); border-radius: 8px; caret-color: var(--l
 :where(&) .li .amt { font-family: var(--serif); font-weight: 700; letter-spacing: 0; font-variant-numeric: tabular-nums lining-nums; }
 :where(&) .li .amt .d { font-family: var(--font); font-weight: 500; }
 :where(&) .modal { border-color: var(--lp-line); }
-& .toast:not(.err) { background: var(--lp-bar); color: #f1ebdd; border-radius: 12px; }`,
+& .toast:not(.err) { background: var(--lp-bar); color: #f1ebdd; border-radius: 12px; }
+/* sign in: the landing's night finale on top, a sheet of paper below */
+:where(&) .auth-hero { background: #15121f; color: #f1ebdd; }
+:where(&) .auth-hero .mesh { display: none; }
+:where(&) .auth-hero h1 { font-weight: 400; letter-spacing: -.02em; color: #f1ebdd; }
+:where(&) .auth-hero p { color: rgba(241,235,221,.78); opacity: 1; }
+:where(&) .auth-hero li .ico { background: rgba(235,183,74,.18); color: #ebb74a; }
+:where(&) .auth-form { background: var(--bg); }
+:where(&) .auth-form h2 { font-weight: 400; letter-spacing: -.02em; }
+/* amounts in notes and lists read as numbers, not as warnings (brick is kept for accents and links) */
+:where(&) .nl { color: var(--text-2); }`,
   },
   {
     // a bit of every style: each part of the screen borrows from a different one

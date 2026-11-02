@@ -11,20 +11,25 @@ export async function uploadsPage(main, params) {
   const reviewId = Number(params.get('review'));
   if (reviewId) return reviewPage(main, reviewId);
   const docs = await api('/api/c/documents');
-  const kind = h('select', null, [['hisaab', 'Hisaab page'], ['bill', 'Supplier bill'], ['receipt', 'Expense receipt'], ['other', 'Other']].map(([v, l]) => h('option', { value: v }, l)));
+  const kind = h('select', null, [['hisaab', tx('Hisaab page')], ['bill', tx('Supplier bill')], ['receipt', tx('Expense receipt')], ['other', tx('Other')]].map(([v, l]) => h('option', { value: v }, l)));
   const date = h('input', { type: 'date', value: state.today || todayLocal() });
-  const file = h('input', { type: 'file', accept: 'image/*,application/pdf', capture: 'environment' });
-  const btn = h('button', { class: 'primary' }, 'Upload');
+  // no `capture`: phones then offer camera *or* files, so a PDF can be picked too
+  const file = h('input', { type: 'file', accept: 'image/*,application/pdf', class: 'hidden' });
+  const picked = h('span', { class: 'pickname small muted' }, tx('Nothing chosen yet'));
+  const pick = h('button', { type: 'button', class: 'pickbtn' }, icon('camera', 18), tx('Take or choose a photo'));
+  pick.addEventListener('click', () => file.click());
+  file.addEventListener('change', () => { picked.textContent = file.files[0]?.name || tx('Nothing chosen yet'); });
+  const btn = h('button', { class: 'primary' }, tx('Upload'));
   btn.addEventListener('click', busy(btn, async () => {
-    const f = file.files[0]; if (!f) return toast('Choose a photo first', true);
+    const f = file.files[0]; if (!f) { pick.focus(); return toast(tx('Choose a photo first'), true); }
     const doc = await uploadDoc(f, kind.value, date.value);
-    toast('Uploaded');
+    toast(tx('Uploaded'));
     if (doc.content_type.startsWith('image/') && state.company?.ocr_enabled && can('entries.write')) navigate(`#/uploads?review=${doc.id}`); else navigate('#/uploads');
   }));
   const rows = docs.map((d) => {
     const [label, k] = STATUS[d.ocr_status] || [d.ocr_status, ''];
     return h('tr', null,
-      h('td', null, d.content_type.startsWith('image/') ? h('img', { src: companyUrl(`/api/c/documents/${d.id}/file`), alt: '', loading: 'lazy', style: { width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px' } }) : icon('file', 28)),
+      h('td', null, d.content_type.startsWith('image/') ? h('img', { src: companyUrl(`/api/c/documents/${d.id}/file`), alt: '', loading: 'lazy', style: { width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px' }, onerror: (e) => e.target.replaceWith(icon('file', 28)) }) : icon('file', 28)),
       h('td', null, h('a', { href: companyUrl(`/api/c/documents/${d.id}/file`), target: '_blank', rel: 'noopener' }, d.filename), h('div', { class: 'small muted' }, `${d.kind} · ${bytes(d.size_bytes)} · ${d.uploaded_by_name || ''}`)),
       h('td', null, d.entry_date ? fmtDate(d.entry_date) : '—'), h('td', null, badge(label, k)), h('td', { class: 'small muted' }, fmtDateTime(d.created_at)),
       h('td', { class: 'right' }, h('span', { class: 'row', style: { justifyContent: 'flex-end', flexWrap: 'nowrap' } },
@@ -37,8 +42,8 @@ export async function uploadsPage(main, params) {
   mount(main,
     pageHead(tx('Photos & bills'), tx('Photos of your handwritten hisaab, supplier bills or receipts. Only your shop can see them.')),
     can('uploads.write') ? h('div', { class: 'card' }, h('div', { class: 'fields' },
-      h('div', { class: 'field' }, h('label', null, 'Photo or PDF', file)), h('div', { class: 'field' }, h('label', null, 'Type', kind)),
-      h('div', { class: 'field' }, h('label', null, 'Date', date)), h('div', { class: 'field' }, btn)),
+      h('div', { class: 'field pickfield' }, h('label', null, tx('Photo or PDF')), pick, picked, file), h('div', { class: 'field' }, h('label', null, tx('Type'), kind)),
+      h('div', { class: 'field' }, h('label', null, tx('Date'), date)), h('div', { class: 'field' }, btn)),
       !state.company?.ocr_enabled ? h('div', { class: 'small muted' }, 'Automatic reading is not included in your plan — files are stored for reference.') : null) : null,
     h('div', { class: 'card' }, table(['', 'File', 'Date', 'Status', 'Uploaded', ''], rows, { empty: 'No uploads yet' })));
 }
