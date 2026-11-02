@@ -5,6 +5,7 @@
 export const STYLES = [
   { id: 'clean', name: 'Clean', group: 'basic', scheme: 'any', css: 'app', swatch: ['#f3f4f8', '#ffffff', '#1c1a2b', '#2e6f4f'], blurb: 'Flat and calm' },
   { id: 'bento', name: 'Bento', group: 'basic', scheme: 'any', css: 'app', swatch: ['#ebe6da', '#2e6f4f', '#ebb74a', '#1c1a2b'], blurb: 'Colour tiles' },
+  { id: 'landing', name: 'Paper & ink', group: 'basic', scheme: 'any', css: 'themes', swatch: ['#f1ebdd', '#1c1a2b', '#a9372d', '#ebb74a'], blurb: 'Same look as the DailyKhata website' },
   { id: 'skeuo', name: 'Skeuomorphism', group: 'art', scheme: 'light', css: 'themes', swatch: ['#e6ddc8', '#5a3b24', '#fbf7ee', '#3f7a3a'], blurb: 'Leather, linen, glossy buttons' },
   { id: 'soft', name: 'Neumorphism', group: 'art', scheme: 'any', css: 'app', swatch: ['#e6e9ef', '#e6e9ef', '#c9cfda', '#2e6f4f'], blurb: 'Raised, pillow-like' },
   { id: 'nouveau', name: 'Art Nouveau', group: 'art', scheme: 'light', css: 'themes', swatch: ['#f1e6cf', '#24402f', '#b8892d', '#fbf5e6'], blurb: 'Curves, gold, forest green' },

@@ -333,6 +333,59 @@ ${H1} { font-family: var(--serif); color: #5b3a29; }
 ${FAB} { background: #d9a43b; color: #2b1d14; box-shadow: 0 0 0 4px #fffaf0, 0 0 0 7px #2e7d7a; }`,
   },
   {
+    // the landing page's look (public/css/landing.css) for the app: oat paper, ledger ink, one brick red, gold focus.
+    // Follows Light/Dark: `dark` is the landing's night colours.
+    id: 'landing',
+    t: { bg: '#f1ebdd', surface: '#fbf8f0', surface2: '#f5f0e4', surface3: '#e9e1cf', border: '#d9d0ba', borderStrong: 'rgba(28,26,43,.42)', text: '#1c1a2b', text2: '#4f4b63', muted: '#5f5a72', field: '#8c8473', good: '#286346', bad: '#9c3329', warn: '#7c4a00', brand: '#1c1a2b', onBrand: '#f1ebdd', brandFg: '#a9372d', accent: '#ebb74a', radius: '12px', radiusSm: '10px', ring: '0 0 0 4px rgba(235,183,74,.5)',
+      '--lp-line': '#d9d0ba', '--slip-dot': '#cdc4ae', '--lp-brick': '#a9372d', '--lp-gold': '#ebb74a', '--lp-nav': 'rgba(241,235,221,.92)', '--lp-bar': '#1c1a2b', '--lp-bar-fg': 'rgba(241,235,221,.8)', '--lp-bar-on': '#ebb74a', '--lp-fab': '#a9372d', '--lp-lift': '0 1px 0 rgba(28,26,43,.05), 0 22px 38px -28px rgba(28,26,43,.42)' },
+    dark: { bg: '#15121f', surface: '#1e1a2b', surface2: '#252034', surface3: '#2d2840', border: 'rgba(241,235,221,.14)', borderStrong: 'rgba(241,235,221,.4)', text: '#f1ebdd', text2: '#d6cfbf', muted: '#b3ab9c', field: '#857d70', good: '#74c99f', bad: '#ff9a8c', warn: '#ebb74a', brand: '#f1ebdd', onBrand: '#15121f', brandFg: '#ebb74a',
+      '--lp-line': 'rgba(241,235,221,.16)', '--slip-dot': 'rgba(241,235,221,.3)', '--lp-brick': '#ff9a8c', '--lp-nav': 'rgba(21,18,31,.9)', '--lp-bar': '#2d2840', '--lp-bar-fg': 'rgba(241,235,221,.78)', '--lp-fab': '#b8433a', '--lp-lift': '0 22px 38px -26px rgba(0,0,0,.85)' },
+    css: `
+/* top bar: the landing's paper nav; side menu on wide screens the same paper */
+:where(&) .topbar { background: var(--lp-nav); border-bottom: 1px solid var(--lp-line); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+:where(&) .topbar .title { font-family: var(--serif); font-weight: 400; font-size: 1.15rem; letter-spacing: -.01em; }
+:where(&) .side { background: var(--bg); border-right: 1px solid var(--lp-line); }
+:where(&) .nav a.active { background: var(--text); color: var(--bg); }
+/* tab bar: the landing's dark running-total bar, with a brick + button */
+:where(&) .tabbar { background: var(--lp-bar); border: 0; border-radius: 14px; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 14px 30px -14px rgba(28,26,43,.6); }
+&.lite .tabbar { background: var(--lp-bar) !important; }
+:where(&) .tabbar a, :where(&) .tabbar button:not(.fab) { color: var(--lp-bar-fg); }
+:where(&) .tabbar a.active { color: var(--lp-bar-on); }
+${FAB} { background: var(--lp-fab); color: #fbf8f0; box-shadow: 0 0 0 5px var(--bg), 0 12px 22px -8px rgba(169,55,45,.55); }
+/* big quiet serif headings, like the landing */
+${H1} { font-weight: 400; letter-spacing: -.025em; line-height: 1; font-size: clamp(2.3rem, 1.6rem + 2.6vw, 3.1rem); }
+:where(&) h2 { font-family: var(--serif); font-weight: 400; font-size: 1.22rem; letter-spacing: -.005em; }
+/* paper cards with the landing's long soft shadow */
+:where(&) .card, :where(&) .tile, :where(&) .cpanel, :where(&) .notecard, :where(&) .qtool, :where(&) .ctile { background: var(--surface); border: 1px solid var(--lp-line); border-radius: 10px; box-shadow: var(--lp-lift); }
+:where(&) .notecard { border-style: dashed; box-shadow: none; }
+/* summaries: one paper slip split by dashed rules, totals in the serif */
+:where(&) .qsum, :where(&) .daysum { background: var(--surface); border: 1px solid var(--lp-line); border-radius: 10px; gap: 0; box-shadow: var(--lp-lift); }
+:where(&) .qcell { background: transparent; }
+:where(&) .qcell + .qcell, :where(&) .daysum > div + div { border-left: 1.5px dashed var(--lp-line); }
+:where(&) .qcell .v, :where(&) .daysum .v { font-family: var(--serif); font-weight: 700; font-size: 1.4rem; letter-spacing: -.01em; font-variant-numeric: tabular-nums lining-nums; }
+/* the khata strip: torn receipt edge, like the slip on the landing */
+:where(&) .strip { border: 0; border-radius: 4px 4px 0 0; box-shadow: none; padding-bottom: 30px; -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%; mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%; }
+/* buttons: ink outline; the main action is solid ink */
+${BUTTON} { border-width: 1.5px; border-radius: 10px; background: transparent; box-shadow: none; font-weight: 620; }
+${PRIMARY} { background: var(--brand); color: var(--on-brand); border-color: transparent; box-shadow: none; }
+:where(&) .qtype { background: var(--surface); border: 1px solid var(--lp-line); }
+:where(&) .qtype.on { background: var(--surface); border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+:where(&) .chip.on { background: var(--text); color: var(--bg); box-shadow: none; }
+:where(&) .seg { background: transparent; box-shadow: inset 0 0 0 1.5px var(--lp-line); border-radius: 10px; padding: 0; gap: 0; overflow: hidden; }
+:where(&) .seg button { border-radius: 0; min-height: 40px; }
+:where(&) .seg button.on { background: var(--text); color: var(--bg); box-shadow: none; }
+/* fields: writing paper with a brick caret and a gold focus ring; notes are written in the serif */
+${FIELDS} { background: var(--surface); border-radius: 8px; caret-color: var(--lp-brick); }
+:where(&) input:focus, :where(&) select:focus, :where(&) textarea:focus { border-color: var(--lp-gold); }
+:where(&) textarea { font-family: var(--serif); font-size: 1.12rem; line-height: 1.5; }
+:where(&) .dump-ta { font-family: var(--serif); font-size: 1.15rem; font-weight: 400; }
+:where(&) .bigamt, :where(&) .amtbox .rs { font-family: var(--serif); font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums lining-nums; }
+:where(&) .li .amt { font-family: var(--serif); font-weight: 700; letter-spacing: 0; font-variant-numeric: tabular-nums lining-nums; }
+:where(&) .li .amt .d { font-family: var(--font); font-weight: 500; }
+:where(&) .modal { border-color: var(--lp-line); }
+& .toast:not(.err) { background: var(--lp-bar); color: #f1ebdd; border-radius: 12px; }`,
+  },
+  {
     // a bit of every style: each part of the screen borrows from a different one
     id: 'collage',
     t: { bg: '#fff6e9', surface: '#ffffff', surface2: '#fff1db', surface3: '#ffe3b8', border: 'rgba(17,17,17,.2)', borderStrong: '#111111', text: '#141414', text2: '#2e2a2a', muted: '#474747', field: '#555555', good: '#0a6447', bad: '#a81f33', warn: '#834e00', brand: '#1f4aa8', onBrand: '#ffffff', brandFg: '#1f4aa8', accent: '#ff6fae', radius: '18px', radiusSm: '12px' },
@@ -399,11 +452,9 @@ export { mix };
 export function rootSelector(id) { return `html.app-mode[data-style="${id}"]`; }
 
 /** CSS for one style: colour tokens on the root, brand tokens on body (they beat the company colour set inline on <html>), then decorations. */
-export function themeCss({ id, t, css }) {
-  const S = rootSelector(id);
-  const dark = STYLES.find((x) => x.id === id)?.scheme === 'dark';
+function decls(t, scheme) {
   const tokens = [
-    `color-scheme: ${dark ? 'dark' : 'light'}`,
+    `color-scheme: ${scheme}`,
     `--bg: ${t.bg}`, `--surface: ${t.surface}`, `--surface-2: ${t.surface2}`, `--surface-3: ${t.surface3}`,
     `--border: ${t.border}`, `--border-strong: ${t.borderStrong}`, `--text: ${t.text}`, `--text-2: ${t.text2}`, `--muted: ${t.muted}`, `--field: ${t.field}`,
     `--good: ${t.good}`, `--good-bg: ${rgba(t.good, BADGE)}`, `--bad: ${t.bad}`, `--bad-bg: ${rgba(t.bad, BADGE)}`, `--warn: ${t.warn || '#8a5200'}`, `--warn-bg: ${rgba(t.warn || '#8a5200', BADGE)}`,
@@ -412,19 +463,34 @@ export function themeCss({ id, t, css }) {
     `--radius: ${t.radius}`, `--radius-sm: ${t.radiusSm}`,
     `--slip: ${t.slip || t.surface}`, `--slip-ink: ${t.text}`, `--slip-muted: ${t.muted}`, `--slip-dot: ${t.field}`, `--slip-line: ${t.field}`, `--slip-in: ${t.good}`,
     ...(t.font ? [`--font: ${t.font}`] : []), ...(t.serif ? [`--serif: ${t.serif}`] : []),
+    ...Object.entries(t).filter(([k]) => k.startsWith('--')).map(([k, v]) => `${k}: ${v}`), // a style's own extra variables
   ];
   const brand = [
     `--brand: ${t.brand}`, `--accent: ${t.accent}`, `--on-brand: ${t.onBrand}`,
     `--brand-06: ${rgba(t.brand, 0.06)}`, `--brand-10: ${rgba(t.brand, 0.1)}`, `--brand-16: ${rgba(t.brand, 0.16)}`, `--brand-25: ${rgba(t.brand, 0.25)}`, `--brand-40: ${rgba(t.brand, 0.4)}`,
     `--brand-fg: ${t.brandFg}`, `--brand-fg-l: ${t.brandFg}`, `--brand-fg-d: ${t.brandFg}`,
     `--brand-deep: ${mix(t.brand, '#000000', 0.35)}`, `--brand-light: ${mix(t.brand, '#ffffff', 0.3)}`, `--hero-a: ${t.brand}`, `--hero-b: ${mix(t.brand, '#000000', 0.35)}`,
-    `--ring: 0 0 0 4px ${rgba(t.brand, 0.28)}`,
+    `--ring: ${t.ring || `0 0 0 4px ${rgba(t.brand, 0.28)}`}`,
   ];
-  return `/* ${id} */\n${S} { ${tokens.join('; ')}; }\n${S} body { ${brand.join('; ')}; background-color: var(--bg); color: var(--text); font-family: var(--font); }\n`
-    + css.replace(/&/g, S).trim() + '\n';
+  return { tokens: tokens.join('; '), brand: brand.join('; ') };
+}
+
+/** CSS for one style: colour tokens on the root, brand tokens on body (they beat the company colour set inline on <html>), then decorations.
+ *  A style with `dark` follows the Light/Dark setting: those colours apply when the app is dark. */
+export function themeCss({ id, t, dark, css }) {
+  const S = rootSelector(id);
+  const scheme = STYLES.find((x) => x.id === id)?.scheme === 'dark' ? 'dark' : 'light';
+  const L = decls(t, scheme);
+  let out = `/* ${id} */\n${S} { ${L.tokens}; }\n${S} body { ${L.brand}; background-color: var(--bg); color: var(--text); font-family: var(--font); }\n`;
+  if (dark) {
+    const D = decls({ ...t, ...dark }, 'dark');
+    const block = (sel) => `${sel} { ${D.tokens}; }\n${sel} body { ${D.brand}; }`;
+    out += `${block(`${S}[data-theme="dark"]`)}\n@media (prefers-color-scheme: dark) {\n${block(`${S}:not([data-theme="light"])`)}\n}\n`;
+  }
+  return out + css.replace(/&/g, S).trim() + '\n';
 }
 
 export function buildThemesCss() {
-  return '/* Generated by scripts/themes.mjs - do not edit. Loaded by boot.js only for the art styles in Settings > Style. */\n'
+  return '/* Generated by scripts/themes.mjs - do not edit. Loaded by boot.js only for the styles in Settings > Style that live here. */\n'
     + THEMES.map(themeCss).join('\n');
 }
