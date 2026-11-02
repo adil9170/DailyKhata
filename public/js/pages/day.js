@@ -117,7 +117,7 @@ function quickEntryCard(date, done) {
     if (!ta.value.trim()) return toast('Type some lines first', true);
     const parsed = await api('/api/c/parse', { method: 'POST', body: { text: ta.value, date } });
     if (!parsed.purchases.length && !parsed.expenses.length && !parsed.collections.length) return toast('Could not find any entries in this text', true);
-    mount(out, h('div', { class: 'card tint', style: { marginTop: '14px' } }, h('h3', null, 'Check before saving'),
+    mount(out, h('div', { class: 'card tint', style: { marginTop: '12px' } }, h('h3', null, 'Check before saving'),
       reviewEditor({ parsed, date, onSaved: (d) => { ta.value = ''; navigate(`#/day?date=${d}`); }, onCancel: () => mount(out) })));
   }));
   const fileIn = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'hidden' });
@@ -204,7 +204,7 @@ export function collectionForm(date, e, done) {
   const notes = h('input', { value: e?.notes ?? '' });
   const btn = h('button', { class: 'primary', type: 'submit' }, e ? 'Save changes' : tx('Add collection'));
   const form = h('form', null, h('div', { class: 'fields' }, lab(tx('Amount ₹'), amount), lab(tx('Mode'), mode), lab(tx('Customer'), customer)), lab(tx('Notes'), notes),
-    h('div', { class: 'small muted', style: { marginBottom: '10px' } }, 'Use “Udhaar” when goods were given on credit; record the money later under Udhaar / Outstanding.'),
+    h('div', { class: 'small muted', style: { marginBottom: '12px' } }, 'Use “Udhaar” when goods were given on credit; record the money later under Udhaar / Outstanding.'),
     formFoot('collections', e, () => m, done, btn));
   const m = modal(e ? 'Edit collection' : tx('Add collection'), form);
   form.addEventListener('submit', (ev) => { ev.preventDefault(); busy(btn, async () => {

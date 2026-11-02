@@ -33,7 +33,7 @@ export function memberForm(u, data, done, { endpoint } = {}) {
   const password = h('input', { type: 'password', autocomplete: 'new-password', required: !u, placeholder: u ? 'Leave blank to keep' : '' });
   const role = h('select', null, Object.entries(ROLE_LABELS).map(([v, l]) => h('option', { value: v, selected: (u?.role ?? 'staff') === v ? 'selected' : null }, l)));
   const status = h('select', null, ['active', 'disabled'].map((s) => h('option', { value: s, selected: (u?.status ?? 'active') === s ? 'selected' : null }, s)));
-  const permBox = h('div', { class: 'grid g2', style: { gap: '6px' } });
+  const permBox = h('div', { class: 'grid g2', style: { gap: '8px' } });
   let current = new Set(u?.permissions ?? data.role_defaults[role.value] ?? []);
   const renderPerms = () => mount(permBox, data.all_permissions.map((p) => h('label', { class: 'check' },
     h('input', { type: 'checkbox', checked: role.value === 'company_admin' || current.has(p), disabled: role.value === 'company_admin', onchange: (e) => { e.target.checked ? current.add(p) : current.delete(p); } }), PERM_LABELS[p] || p)));
@@ -42,7 +42,7 @@ export function memberForm(u, data, done, { endpoint } = {}) {
   const btn = h('button', { class: 'primary', type: 'submit' }, u ? 'Save' : 'Add member');
   const L = (t, el, hint) => h('div', { class: 'field' }, h('label', null, t, el), hint ? h('div', { class: 'small muted' }, hint) : null);
   const form = h('form', null, h('div', { class: 'fields' }, L('Name', name), L('Email (login)', email), L(u ? 'Reset password' : 'Password', password, '8+ characters, letters and numbers'), L('Role', role), u ? L('Status', status) : null),
-    h('h3', null, 'Permissions'), h('div', { class: 'small muted', style: { marginBottom: '6px' } }, 'Role sets the defaults; tick or untick to customise. Admins always have everything.'), permBox,
+    h('h3', null, 'Permissions'), h('div', { class: 'small muted', style: { marginBottom: '8px' } }, 'Role sets the defaults; tick or untick to customise. Admins always have everything.'), permBox,
     h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } }, btn));
   const m = modal(u ? `Edit ${u.name}` : 'Add team member', form);
   form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {

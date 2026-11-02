@@ -364,7 +364,7 @@ ${H1} { font-weight: 400; letter-spacing: -.025em; line-height: 1; font-size: cl
 :where(&) .qcell + .qcell, :where(&) .daysum > div + div { border-left: 1.5px dashed var(--lp-line); }
 :where(&) .qcell .v, :where(&) .daysum .v { font-family: var(--serif); font-weight: 700; font-size: 1.4rem; letter-spacing: -.01em; font-variant-numeric: tabular-nums lining-nums; }
 /* the khata strip: torn receipt edge, like the slip on the landing */
-:where(&) .strip { border: 0; border-radius: 4px 4px 0 0; box-shadow: none; padding-bottom: 30px; -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%; mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%; }
+:where(&) .strip { border: 0; border-radius: 4px 4px 0 0; box-shadow: none; padding-bottom: 32px; -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%; mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%; }
 /* buttons: ink outline; the main action is solid ink */
 ${BUTTON} { border-width: 1.5px; border-radius: 10px; background: transparent; box-shadow: none; font-weight: 620; }
 ${PRIMARY} { background: var(--brand); color: var(--on-brand); border-color: transparent; box-shadow: none; }

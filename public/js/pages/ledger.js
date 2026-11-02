@@ -42,7 +42,7 @@ export async function ledgerPage(main) {
     const L = (t, el) => h('div', { class: 'field' }, h('label', null, t, el));
     const form = h('form', null, h('datalist', { id: 'parties' }, names.map((n) => h('option', { value: n }))),
       h('div', { class: 'fields' }, L('Type', dir), L('Party name', party), L('Amount ₹', amount), L('Mode', mode), L('Date', date)), L('Notes', notes),
-      h('div', { class: 'small muted', style: { marginBottom: '10px' } }, 'Use the same party name as on the purchase/collection to settle that balance.'),
+      h('div', { class: 'small muted', style: { marginBottom: '12px' } }, 'Use the same party name as on the purchase/collection to settle that balance.'),
       h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, btn));
     const m = modal(p ? 'Edit payment' : 'Record payment', form);
     form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {

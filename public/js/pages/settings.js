@@ -45,10 +45,10 @@ export async function settingsPage(main) {
       h('button', { class: cur0 === v ? 'on' : '', role: 'radio', 'aria-checked': cur0 === v ? 'true' : 'false', onclick: () => setTheme(v) }, icon(ic, 16), l))),
     h('p', { class: 'small muted' }, 'System follows your phone or computer setting. Saved on this device.'),
     styleScheme() ? h('p', { class: 'small muted' }, tx('Your style has its own colours, so Light and Dark do not change it. Pick Clean, Bento or Neumorphism to use them.')) : null,
-    h('h3', { style: { margin: '14px 0 4px', fontSize: '.95rem' } }, tx('Style')),
+    h('h3', { style: { margin: '12px 0 4px', fontSize: '.95rem' } }, tx('Style')),
     h('p', { class: 'small muted', style: { marginTop: 0 } }, tx('Changes only how the app looks. Your data stays the same. Saved on this device.')),
     stylePicker(),
-    h('h3', { style: { margin: '14px 0 8px', fontSize: '.95rem' } }, tx('Home screen')),
+    h('h3', { style: { margin: '12px 0 8px', fontSize: '.95rem' } }, tx('Home screen')),
     h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Home screen') }, [['classic', tx('Buttons')], ['chat', tx('Chat')]].map(([v, l]) => {
       let cur = 'classic'; try { cur = localStorage.getItem('dk_layout') === 'chat' ? 'chat' : 'classic'; } catch { /* storage blocked */ }
       return h('button', { class: cur === v ? 'on' : '', role: 'radio', 'aria-checked': cur === v ? 'true' : 'false', onclick: () => {
@@ -127,7 +127,7 @@ export async function settingsPage(main) {
         h('div', { class: 'grow' }, pickBtn, logoIn, suggestion)),
       h('div', { class: 'row', style: { marginTop: '8px' } }, fromCurrent, resetColours,
         c.has_logo ? h('button', { type: 'button', class: 'ghost danger', onclick: async () => { await api('/api/c/settings/logo', { method: 'DELETE' }); window.dispatchEvent(new Event('dk:reload-context')); } }, tx('Remove logo')) : null),
-      h('h3', { style: { marginTop: '18px' } }, tx('Business details')), form));
+      h('h3', { style: { marginTop: '16px' } }, tx('Business details')), form));
   }
 
   if (M) {
@@ -138,7 +138,7 @@ export async function settingsPage(main) {
       table(['Category', ''], state.categories.map((k) => h('tr', null, h('td', null, k.name), h('td', { class: 'right' },
         h('button', { class: 'small ghost', onclick: async () => { const n = prompt('Rename category', k.name); if (!n) return; try { await api(`/api/c/categories/${k.id}`, { method: 'PUT', body: { name: n } }); await refreshLists(); navigate('#/settings'); } catch (e) { toast(e.message, true); } } }, 'Rename'),
         h('button', { class: 'small ghost danger', onclick: async () => { if (!(await confirmDialog(`Delete “${k.name}”?`))) return; try { await api(`/api/c/categories/${k.id}`, { method: 'DELETE' }); await refreshLists(); navigate('#/settings'); } catch (e) { toast(e.message, true); } } }, 'Delete'))))),
-      h('div', { class: 'row', style: { marginTop: '10px' } }, name, add)));
+      h('div', { class: 'row', style: { marginTop: '12px' } }, name, add)));
   }
 
   const cur = h('input', { type: 'password', autocomplete: 'current-password' }), nw = h('input', { type: 'password', autocomplete: 'new-password' });

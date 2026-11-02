@@ -1,4 +1,5 @@
-import { h, mount, fmtDateTime, badge } from '../ui.js';
+import { h, mount, fmtDateTime, badge, pageHead } from '../ui.js';
+import { t as tx } from '../i18n.js';
 import { api } from '../api.js';
 
 const KIND = { create: 'good', bulk_create: 'good', update: 'warn', delete: 'bad', archive: 'bad', login_failed: 'bad', suspend: 'bad' };
@@ -27,7 +28,7 @@ export async function auditPage(main) {
     more.classList.toggle('hidden', rows.length < 100);
   };
   more.addEventListener('click', load);
-  mount(main, h('h1', null, 'Audit log'), h('p', { class: 'muted' }, 'Every change to accounts, stock, team and settings — who, when and what changed.'),
+  mount(main, pageHead(tx('Audit log'), tx('Every change to accounts, stock, team and settings: who, when and what.')),
     h('div', { class: 'card' }, h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['When', 'Who', 'Action', 'Record', 'IP'].map((t) => h('th', null, t)))), body)), more));
   await load();
 }

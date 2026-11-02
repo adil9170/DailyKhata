@@ -59,7 +59,7 @@ export async function billPage(main) {
     return h('div', { class: 'brow' }, name, h('div', { class: 'bnums' }, qty, h('span', { class: 'muted' }, '×'), h('span', { class: 'muted' }, '₹'), rate, line, rm));
   }
   function paintRows() {
-    mount(rows, bill.items.length ? bill.items.map(itemRow) : h('div', { class: 'small muted', style: { padding: '6px 2px 10px' } }, tx('Tap an item below, or add one.')));
+    mount(rows, bill.items.length ? bill.items.map(itemRow) : h('div', { class: 'small muted', style: { padding: '8px 2px 12px' } }, tx('Tap an item below, or add one.')));
   }
   const addItem = (name = '', focus = true) => {
     const existing = name && bill.items.find((x) => x.name.toLowerCase() === name.toLowerCase());

@@ -44,7 +44,7 @@ function productForm(p) {
   const form = h('form', null, h('div', { class: 'fields' },
     L('Name', f.name), L('Category', f.category), L('Purchase unit', f.unit, 'box, crate, pack, kg…'), L('Pieces per unit', f.pieces_per_unit),
     L('Usual cost per unit ₹', f.default_unit_cost, 'Used when no purchase yet'), L('Sale price per piece ₹', f.sale_price, 'For expected-sales checks')),
-    h('label', { class: 'check' }, f.active, 'Active (shown in daily entry)'), h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '10px' } }, btn));
+    h('label', { class: 'check' }, f.active, 'Active (shown in daily entry)'), h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } }, btn));
   const m = modal(p ? 'Edit product' : 'New product', form);
   form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {
     const body = { name: f.name.value, category: f.category.value, unit: f.unit.value, pieces_per_unit: Number(f.pieces_per_unit.value), default_unit_cost: f.default_unit_cost.value || null, sale_price: f.sale_price.value || null, active: f.active.checked };

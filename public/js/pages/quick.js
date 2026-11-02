@@ -76,7 +76,7 @@ export async function quickPage(main, params) {
       mount(detail, h('div', { class: 'lbl' }, tx('What did you buy?')), chipsEl, h('datalist', { id: 'q-prods' }, prods.map((p) => h('option', { value: p.name }))), h('div', { class: 'field' }, name),
         h('div', { class: 'lbl' }, tx('How many boxes / packs?')),
         h('div', { class: 'stepper' }, h('button', { type: 'button', 'aria-label': tx('Less'), onclick: () => step(-1) }, '−'), qty, h('button', { type: 'button', 'aria-label': tx('More'), onclick: () => step(1) }, '+')),
-        h('div', { class: 'small muted', style: { marginTop: '6px' } }, tx('Enter the total you paid in the big box above.')));
+        h('div', { class: 'small muted', style: { marginTop: '8px' } }, tx('Enter the total you paid in the big box above.')));
       saveBtn.textContent = tx('Save purchase');
     }
   }
@@ -120,7 +120,7 @@ export async function quickPage(main, params) {
   ].sort((a, b) => rowOrder(b.id) - rowOrder(a.id)).slice(0, 6);
   const recentCard = recent.length ? h('div', { class: 'card' },
     h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, isToday ? 'Added today' : tx('Added')), h('a', { href: `#/day?date=${date}`, class: 'small' }, getMode() === 'layman' ? 'See my day' : tx('Full day view'))),
-    h('div', { class: 'list', style: { marginTop: '6px' } }, recent.map((r) => h('div', { class: 'li' }, h('div', { class: 'lead' }, icon(r.ic, 18)), h('div', { class: 'body' }, h('div', { class: 't' }, r.t), r.d ? h('div', { class: 'd' }, r.d) : null), h('div', { class: 'amt ' + (r.sign === '+' ? 'pos' : '') }, r.sign + money(r.amt)))))) : null;
+    h('div', { class: 'list', style: { marginTop: '8px' } }, recent.map((r) => h('div', { class: 'li' }, h('div', { class: 'lead' }, icon(r.ic, 18)), h('div', { class: 'body' }, h('div', { class: 't' }, r.t), r.d ? h('div', { class: 'd' }, r.d) : null), h('div', { class: 'amt ' + (r.sign === '+' ? 'pos' : '') }, r.sign + money(r.amt)))))) : null;
 
   const tools = h('div', { class: 'qtools' },
     h('a', { class: 'qtool', href: '#/bill' }, h('span', { class: 'dot' }, icon('receipt', 22)), h('span', null, h('b', null, tx('Make a bill')), h('span', { class: 'd' }, tx('For a customer')))),

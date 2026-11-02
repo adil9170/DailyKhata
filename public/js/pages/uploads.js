@@ -1,5 +1,6 @@
 // Photos of handwritten hisaab, bills and receipts → OCR → review → confirm.
-import { h, mount, toast, busy, table, badge, bytes, fmtDate, fmtDateTime, confirmDialog, icon } from '../ui.js';
+import { t as tx } from '../i18n.js';
+import { h, mount, toast, busy, table, badge, bytes, fmtDate, fmtDateTime, confirmDialog, icon, pageHead } from '../ui.js';
 import { api, state, can, companyUrl, todayLocal, navigate, refreshLists } from '../api.js';
 import { uploadDoc } from './day.js';
 import { reviewEditor } from './review.js';
@@ -34,7 +35,7 @@ export async function uploadsPage(main, params) {
         } }, icon('trash', 18)) : null)));
   });
   mount(main,
-    h('h1', null, 'Photos & Bills'), h('p', { class: 'muted' }, 'Upload photos of your handwritten hisaab, supplier bills or receipts. Files are private to your company.'),
+    pageHead(tx('Photos & bills'), tx('Photos of your handwritten hisaab, supplier bills or receipts. Only your shop can see them.')),
     can('uploads.write') ? h('div', { class: 'card' }, h('div', { class: 'fields' },
       h('div', { class: 'field' }, h('label', null, 'Photo or PDF', file)), h('div', { class: 'field' }, h('label', null, 'Type', kind)),
       h('div', { class: 'field' }, h('label', null, 'Date', date)), h('div', { class: 'field' }, btn)),

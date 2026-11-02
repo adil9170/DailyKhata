@@ -146,7 +146,7 @@ export async function billsPage(main) {
     const detail = modal(`Bill #${label}`, body);
     const voidBtn = D && !b.voided ? h('button', { class: 'block ghost danger', type: 'button' }, icon('trash', 18), tx('Void bill')) : null;
     if (voidBtn) voidBtn.addEventListener('click', busy(voidBtn, () => voidIt(b, detail)));
-    const row = h('div', { class: 'receipt-actions', style: { marginTop: '14px' } },
+    const row = h('div', { class: 'receipt-actions', style: { marginTop: '12px' } },
       h('button', { class: 'primary block', type: 'button', onclick: async () => (await import('../receipt.js')).openReceiptSheet(receiptFor(b)) }, icon('share', 18), tx('Reprint / share')),
       isDue(b) ? h('button', { class: 'block', type: 'button', onclick: () => remind(b) }, icon('share', 18), tx('Send udhaar reminder')) : null,
       W && isDue(b) ? h('button', { class: 'block', type: 'button', onclick: () => markPaid(b, detail) }, icon('check', 18), tx('Mark paid')) : null,

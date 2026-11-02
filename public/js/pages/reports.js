@@ -1,4 +1,5 @@
-import { h, mount, money, num, cls, fmtDate, addDays, table, busy, toast, icon } from '../ui.js';
+import { h, mount, money, num, cls, fmtDate, addDays, table, busy, toast, icon, pageHead } from '../ui.js';
+import { t as tx } from '../i18n.js';
 import { api, state, can, todayLocal, download, navigate } from '../api.js';
 import { presetRange } from './dashboard.js';
 
@@ -7,8 +8,8 @@ export async function reportsPage(main, params) {
   const tab = params.get('tab') || 'day';
   const tabs = [['day', 'Day report'], ['compare', 'Compare periods'], ['export', 'Export']];
   const content = h('div');
-  mount(main, h('h1', null, 'Reports'),
-    h('div', { class: 'seg noprint', style: { marginBottom: '14px' } }, tabs.map(([k, l]) => h('button', { class: tab === k ? 'on' : '', onclick: () => navigate(`#/reports?tab=${k}`) }, l))),
+  mount(main, pageHead(tx('Download reports'), tx('Excel or PDF for your records or your accountant')),
+    h('div', { class: 'seg noprint', style: { marginBottom: '16px' } }, tabs.map(([k, l]) => h('button', { class: tab === k ? 'on' : '', onclick: () => navigate(`#/reports?tab=${k}`) }, l))),
     content);
   if (tab === 'day') return dayReport(content, params.get('date') || today);
   if (tab === 'compare') return compare(content, params, today);

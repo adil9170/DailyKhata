@@ -46,7 +46,7 @@ function companyForm(c, plans, done) {
     h('div', { class: 'fields' }, L('Company name', f.name), L('Business type', f.business_type), L('Plan', f.plan_id), L('Phone', f.phone), L('Email', f.email), L('GSTIN', f.gstin)),
     L('Address', f.address), h('div', { class: 'row' }, L('Brand colour', f.primary_color), L('Accent', f.accent_color)),
     adm ? [h('h3', null, 'First company admin'), h('div', { class: 'fields' }, L('Name', adm.admin_name), L('Email (login)', adm.admin_email), L('Password', adm.admin_password, '8+ chars, letters & numbers'))] : null,
-    h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '10px' } }, btn));
+    h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } }, btn));
   const m = modal(c ? `Edit ${c.name}` : 'New company', form, { wide: true });
   form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {
     const body = Object.fromEntries(Object.entries({ ...f, ...(adm || {}) }).map(([k, el]) => [k, el.value]));

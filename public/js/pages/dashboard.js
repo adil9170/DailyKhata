@@ -30,7 +30,7 @@ export async function dashboardPage(main, params) {
   const presets = [['today', 'Today'], ['7d', '7 days'], ['month', 'This month'], ['30d', '30 days']];
   const morePresets = [['yesterday', 'Yesterday'], ['lastmonth', 'Last month'], ['90d', 'Last 90 days']];
   const fIn = h('input', { type: 'date', value: from }), tIn = h('input', { type: 'date', value: to });
-  const filters = h('div', { class: 'noprint', style: { marginBottom: '16px', display: 'grid', gap: '10px' } },
+  const filters = h('div', { class: 'noprint', style: { marginBottom: '16px', display: 'grid', gap: '12px' } },
     h('div', { class: 'scroll-x' }, h('div', { class: 'seg', role: 'group', 'aria-label': 'Date range' }, presets.map(([k, l]) => h('button', { class: preset === k ? 'on' : '', onclick: () => set({ p: k, g: '' }) }, l)))),
     h('details', { class: 'small', open: preset === 'custom' || morePresets.some(([k]) => k === preset) ? true : null }, h('summary', null, 'Other dates'),
       h('div', { class: 'row', style: { marginTop: '8px', flexWrap: 'wrap' } },
@@ -77,7 +77,7 @@ export async function dashboardPage(main, params) {
 
   const details = h('details', { class: 'card fold' }, h('summary', null, 'Stock & profit details'),
     h('h3', null, 'Profit by day'),
-    h('div', { class: 'small muted', style: { marginBottom: '6px' } }, 'Only days with a full stock count are shown.'),
+    h('div', { class: 'small muted', style: { marginBottom: '8px' } }, 'Only days with a full stock count are shown.'),
     h('div', { class: 'chart' }, c2),
     h('h3', null, 'Pieces bought and sold'),
     legend([['Bought', cssv('--series-1')], ['Sold', cssv('--series-2')]]),

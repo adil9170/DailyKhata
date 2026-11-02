@@ -158,7 +158,7 @@ export function modal(title, body, { wide = false } = {}) {
   };
   const box = h('div', { class: 'modal' + (wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': title, tabindex: '-1' },
     h('div', { class: 'grab' }),
-    h('div', { class: 'spread', style: { marginBottom: '14px' } }, h('h2', { style: { margin: 0, fontSize: '1.15rem' } }, title), h('button', { class: 'ghost icon', 'aria-label': 'Close', onclick: () => close() }, icon('x'))),
+    h('div', { class: 'spread', style: { marginBottom: '12px' } }, h('h2', { style: { margin: 0, fontSize: '1.15rem' } }, title), h('button', { class: 'ghost icon', 'aria-label': 'Close', onclick: () => close() }, icon('x'))),
     body);
   autoLabelTables(box);
   const bg = h('div', { class: 'modal-bg', onclick: (e) => { if (e.target === bg) close(); } }, box);

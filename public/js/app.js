@@ -136,7 +136,7 @@ function openSyncProblems() {
     const ops = S.failedOps();
     if (!ops.length) { m.close(); return; }
     mount(body, h('p', { class: 'muted', style: { marginTop: 0 } }, 'The server refused these changes, so they are only on this phone. Fix the cause (for example a plan limit) and retry, or discard them.'),
-      ops.map((o) => h('div', { class: 'card tint', style: { marginBottom: '10px' } }, h('div', { style: { fontWeight: 650 } }, o.label), h('div', { class: 'small', style: { color: 'var(--bad)', margin: '4px 0 8px' } }, o.error),
+      ops.map((o) => h('div', { class: 'card tint', style: { marginBottom: '12px' } }, h('div', { style: { fontWeight: 650 } }, o.label), h('div', { class: 'small', style: { color: 'var(--bad)', margin: '4px 0 8px' } }, o.error),
         h('div', { class: 'row' }, h('button', { class: 'small primary', onclick: async () => { await S.retryFailed(o.qid); render(); } }, 'Retry'), h('button', { class: 'small danger', onclick: async () => { await S.discardFailed(o.qid); render(); } }, 'Discard')))));
   };
   const body = h('div');
@@ -274,15 +274,15 @@ function authShell(title, sub, form) {
           h('li', null, icon('lock'), 'Private to your company, backed up nightly'))),
       h('div', { class: 'small', style: { opacity: 0.75 } }, '© DailyKhata')),
     h('section', { class: 'auth-form' }, h('div', { class: 'inner' },
-      h('h2', null, title), h('p', { class: 'muted', style: { marginTop: 0, marginBottom: '22px' } }, sub), form))));
+      h('h2', null, title), h('p', { class: 'muted', style: { marginTop: 0, marginBottom: '20px' } }, sub), form))));
 }
 
 function loginPage() {
   const email = input({ type: 'email', name: 'email', autocomplete: 'username', required: true, placeholder: 'you@business.com', inputmode: 'email' });
   const pw = input({ type: 'password', name: 'password', autocomplete: 'current-password', required: true, placeholder: '••••••••' });
-  const btn = h('button', { class: 'primary block', type: 'submit', style: { minHeight: '48px', marginTop: '6px' } }, 'Sign in');
+  const btn = h('button', { class: 'primary block', type: 'submit', style: { minHeight: '48px', marginTop: '8px' } }, 'Sign in');
   const form = h('form', null, field('Email', email), field('Password', pw), btn,
-    h('p', { class: 'small muted', style: { marginTop: '18px' } }, 'Forgot your password? Ask your company admin to reset it from Team.'));
+    h('p', { class: 'small muted', style: { marginTop: '16px' } }, 'Forgot your password? Ask your company admin to reset it from Team.'));
   form.addEventListener('submit', (e) => { e.preventDefault(); busy(btn, async () => {
     await api('/api/auth/login', { method: 'POST', body: { email: email.value, password: pw.value } });
     await route(true);
@@ -366,7 +366,7 @@ async function route(reloadUser = false) {
   if (!S.isActive() || S.currentCompany() !== cid) {
     const opened = await S.openStore(cid); // the phone's copy of this company's books (null if the browser blocks local storage)
     if (opened?.first) {
-      mount(app, h('div', { class: 'boot' }, h('div', { class: 'spinner' }), h('div', { style: { fontWeight: 650, marginTop: '14px' } }, 'Setting up your khata on this phone…'), h('div', { class: 'small muted' }, 'One-time download. After this, the app opens instantly and works offline.')));
+      mount(app, h('div', { class: 'boot' }, h('div', { class: 'spinner' }), h('div', { style: { fontWeight: 650, marginTop: '12px' } }, 'Setting up your khata on this phone…'), h('div', { class: 'small muted' }, 'One-time download. After this, the app opens instantly and works offline.')));
       try { await S.pull(); } catch (e) { toast(`Couldn’t download your data yet (${e.message}). Using the online version for now.`, true); }
     }
     if (opened) { S.startSync(); if (!opened.first) S.syncNow(); }
@@ -382,6 +382,22 @@ async function route(reloadUser = false) {
   if (r.path !== seg) { location.hash = '#/' + r.path; return; }
   const main = layout(companyRoutes, r.path, { portalOf: state.viewCompanyId, title: routeLabel(r) });
   try { await r.page(main, params, path.split('/').slice(1)); } catch (e) { toast(e.message, true); mount(main, h('div', { class: 'card empty' }, e.message)); }
+  collapseTitle(main);
+}
+
+// Apple-style large title: the page's big heading names the page, so the small title in the top bar only fades in
+// once that heading has scrolled up under the bar.
+let titleObs = null;
+function collapseTitle(main) {
+  titleObs?.disconnect(); titleObs = null;
+  const bar = document.querySelector('.topbar');
+  if (!bar) return;
+  const big = main.querySelector('.page-head h1, .qhead h1');
+  bar.classList.toggle('has-large', !!big);
+  if (!big || !('IntersectionObserver' in window)) return;
+  titleObs = new IntersectionObserver(([e]) => bar.classList.toggle('scrolled', !e.isIntersecting && e.boundingClientRect.top < 80),
+    { rootMargin: `-${Math.round(bar.getBoundingClientRect().height)}px 0px 0px 0px` });
+  titleObs.observe(big);
 }
 
 let lastPath = '';

@@ -64,7 +64,7 @@ export function reviewEditor({ parsed, date, documentId = null, onSaved, onCance
           h('td', null, cell(r, 'customer')), h('td', null, rm(data.collections, i))))))),
       h('button', { class: 'small', onclick: () => { data.collections.push({ amount: '', mode: 'cash', customer: '' }); render(); } }, icon('plus', 17), 'Add collection row'),
       parsed.unparsed?.length ? h('div', { class: 'alert warning', style: { marginTop: '12px' } }, h('span', { class: 'ic' }, '!'),
-        h('div', null, h('strong', null, 'Could not understand these lines — add them manually if needed:'), h('ul', { style: { margin: '4px 0 0', paddingLeft: '18px' } }, parsed.unparsed.map((l) => h('li', null, l))))) : null,
+        h('div', null, h('strong', null, 'Could not understand these lines — add them manually if needed:'), h('ul', { style: { margin: '4px 0 0', paddingLeft: '16px' } }, parsed.unparsed.map((l) => h('li', null, l))))) : null,
       h('div', { style: { marginTop: '12px' } }, totals),
       h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '12px' } },
         onCancel ? h('button', { onclick: onCancel }, 'Cancel') : null, saveBtn));
