@@ -3,6 +3,7 @@ import { api, state, can, companyUrl, refreshLists, navigate, applyBranding } fr
 import { getTheme, setTheme, applyTheme, styleScheme } from '../theme.js';
 import { STYLES, currentStyle, setStyle } from '../styles.js';
 import { LAYOUTS, SECTIONS, SHORTCUTS, readHome, writeHome, homeParts, isQuickLayout, move } from '../home.js';
+import { TEMPLATES, readReceiptPrefs, writeReceiptPrefs, DEFAULT_THANKS } from '../receiptprefs.js';
 import { icon } from '../ui.js';
 import { modeCards, getMode, modeOrDefault } from '../mode.js';
 import { brandFromImage } from '../color.js';
@@ -88,6 +89,43 @@ function homeSettings() {
   return card;
 }
 
+// Settings > Receipts: real thumbnails of each design (drawn with this shop's name, logo and colour), the default
+// design, and the thank-you line printed at the bottom of bills.
+let receiptThumbUrls = [];
+function receiptSettings() {
+  receiptThumbUrls.forEach((u) => URL.revokeObjectURL(u)); receiptThumbUrls = [];
+  const card = h('div', { class: 'card', id: 'receipt-settings' });
+  let prefs = readReceiptPrefs();
+  const imgs = new Map(TEMPLATES.map((t) => [t.id, h('img', { class: 'rthumb', alt: '', loading: 'lazy' })]));
+  const thanks = h('input', { value: prefs.thanks, maxlength: '80', placeholder: tx(DEFAULT_THANKS), 'aria-label': tx('Thank-you line') });
+  thanks.addEventListener('change', () => { prefs = writeReceiptPrefs({ ...readReceiptPrefs(), thanks: thanks.value }); thanks.value = prefs.thanks; toast(tx('Saved')); });
+  const grid = h('div', { class: 'stylegrid rgrid', role: 'group', 'aria-label': tx('Receipt design') });
+  const drawGrid = () => mount(grid, TEMPLATES.map((t) => h('button', {
+    type: 'button', class: 'stylecard rcard' + (t.id === prefs.tpl ? ' on' : ''), 'aria-pressed': t.id === prefs.tpl ? 'true' : 'false',
+    onclick: () => { prefs = writeReceiptPrefs({ ...readReceiptPrefs(), tpl: t.id }); drawGrid(); },
+  }, h('span', { class: 'rthumbwrap', 'aria-hidden': 'true' }, imgs.get(t.id)), h('span', { class: 'nm' }, tx(t.name)), h('span', { class: 'bl' }, tx(t.desc)))));
+  drawGrid();
+  const sample = h('button', { type: 'button', class: 'small' }, icon('share', 16), tx('See a sample'));
+  sample.addEventListener('click', async () => { const r = await import('../receipt.js'); r.openReceiptSheet(r.sampleReceipt(state.company)); });
+  mount(card,
+    h('h2', null, tx('Receipts')),
+    h('p', { class: 'small muted', style: { marginTop: 0 } }, tx('Pick how shared bills, cash reports and notes look. Saved on this device.')),
+    grid,
+    h('div', { class: 'field', style: { marginTop: '16px' } }, h('label', null, tx('Thank-you line'), thanks)),
+    h('p', { class: 'small muted', style: { marginTop: '-4px' } }, tx('Printed at the bottom of bills. Leave it empty for none.')),
+    h('div', { class: 'row' }, sample));
+  // draw the thumbnails one by one after the page is up, so Settings opens instantly
+  (async () => {
+    const { renderReceipt, sampleReceipt } = await import('../receipt.js');
+    for (let i = 0; i < 30 && !card.isConnected; i++) await new Promise((r) => setTimeout(r, 100)); // wait for the page to be shown
+    for (const t of TEMPLATES) {
+      if (!card.isConnected) return; // left Settings: stop drawing
+      try { const blob = await renderReceipt(sampleReceipt(state.company), { tpl: t.id, scale: 1 }); const u = URL.createObjectURL(blob); receiptThumbUrls.push(u); imgs.get(t.id).src = u; } catch { /* a thumbnail is optional */ }
+    }
+  })();
+  return card;
+}
+
 export async function settingsPage(main) {
   const c = state.company;
   const S = can('settings.manage'), M = can('products.manage');
@@ -110,6 +148,7 @@ export async function settingsPage(main) {
     h('p', { class: 'small muted', style: { marginTop: 0 } }, tx('Changes only how the app looks. Your data stays the same. Saved on this device.')),
     stylePicker()));
   sections.push(homeSettings());
+  sections.push(receiptSettings());
 
   if (S) {
     const f = {

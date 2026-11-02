@@ -87,13 +87,13 @@ export async function billsPage(main) {
   function receiptFor(b) {
     const label = billLabel(b.series, b.bill_no);
     const items = itemsOf(b);
-    const lines = items.map((it) => ({ label: String(it.name ?? tx('Item')), note: `${Number(it.qty) || 0} × ${money(Number(it.rate_paise) || 0)}`, value: money(Number(it.amount_paise) || 0) }));
+    const lines = items.map((it) => ({ label: String(it.name ?? tx('Item')), note: `${Number(it.qty) || 0} × ${money(Number(it.rate_paise) || 0)}`, qty: Number(it.qty) || 0, rate: money(Number(it.rate_paise) || 0), value: money(Number(it.amount_paise) || 0) }));
     if (b.discount_paise > 0) lines.push({ label: tx('Discount'), value: '−' + money(b.discount_paise), negative: true });
     if (!lines.length) lines.push({ label: tx('Bill total'), value: money(b.total_paise) });
     const who = [b.customer, b.phone].filter(Boolean).join(' · ');
     const paid = b.voided ? 'VOIDED bill' : b.pay_mode === 'credit' ? (settledFor(b) ? 'Paid (udhaar settled)' : tx('Payment due (udhaar)')) : `Paid by ${MODE_NAME[b.pay_mode] || b.pay_mode}`;
     return { company: state.company, title: `Bill #${label}`, subtitle: who ? `To: ${who}` : null, lines, totalLabel: tx('TOTAL'), total: money(b.total_paise), when: whenOf(b),
-      words: b.total_paise ? amountToWords(b.total_paise, 'en', true) : null, footer: `${paid} · Thank you, visit again!`, phone: b.phone || '', sheetTitle: tx('Share bill') };
+      words: b.total_paise ? amountToWords(b.total_paise, 'en', true) : null, status: paid, thanks: true, phone: b.phone || '', sheetTitle: tx('Share bill') };
   }
   function openWhatsApp(b, to) {
     const text = reminderText({ shop: state.company?.name, customer: b.customer, label: billLabel(b.series, b.bill_no), paise: b.total_paise });

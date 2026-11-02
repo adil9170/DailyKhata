@@ -45,4 +45,20 @@ describe('smart notes calculator', () => {
     expect(r.lines[6].value).toBe(80);
     expect(r.total).toBe(186);
   });
+  it('a line that is only a percentage works on the total so far (the hint on the page promises "- 10%" discounts)', () => {
+    const r = calcNote(['Chai 3 x 12', 'Milk 2 x 35', 'Rent 5000', '- 10%'].join('\n'));
+    expect(r.lines[3]).toMatchObject({ kind: 'amount', value: -510.6 });
+    expect(r.total).toBe(4595.4);
+    expect(calcNote('1000\n10% off').total).toBe(900);
+    expect(calcNote('1000\n10% छूट').total).toBe(900);
+    expect(calcNote('1000\n+ 5%').total).toBe(1050);
+    expect(calcNote('- 10%').total).toBe(0); // nothing above yet: no error, nothing taken off
+    expect(calcNote('10%').lines[0].kind).not.toBe('subtotal'); // a bare "10%" keeps its old meaning
+    expect(calcNote('1,500 - 10%').total).toBe(1350); // in-line percentages unchanged
+  });
+  it('a bare "=" line is a subtotal, like "total"', () => {
+    const r = calcNote(['Chai 3 x 12', 'Milk 2 x 35', '=', 'Sugar 90'].join('\n'));
+    expect(r.lines[2]).toMatchObject({ kind: 'subtotal', value: 106 });
+    expect(r.total).toBe(196);
+  });
 });

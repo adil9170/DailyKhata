@@ -92,12 +92,12 @@ export async function billPage(main) {
 
   const receiptOpts = (no) => {
     const items = bill.items.filter((it) => it.name.trim() && num(it.qty) && num(it.rate));
-    const lines = items.map((it) => ({ label: it.name.trim(), note: `${num(it.qty)} × ${money(Math.round(num(it.rate) * 100))}`, value: money(Math.round(num(it.qty) * num(it.rate) * 100)) }));
+    const lines = items.map((it) => ({ label: it.name.trim(), note: `${num(it.qty)} × ${money(Math.round(num(it.rate) * 100))}`, qty: num(it.qty), rate: money(Math.round(num(it.rate) * 100)), value: money(Math.round(num(it.qty) * num(it.rate) * 100)) }));
     if (num(bill.discount)) lines.push({ label: tx('Discount'), value: '−' + money(Math.round(num(bill.discount) * 100)), negative: true });
     const who = [bill.customer.trim(), bill.phone.trim()].filter(Boolean).join(' · ');
     const paid = bill.mode === 'credit' ? 'Payment due (udhaar)' : `Paid by ${modes.find((m) => m[0] === bill.mode)[1]}`;
     return { company: state.company, title: no ? `Bill #${no}` : 'Bill', subtitle: who ? `To: ${who}` : null, lines, totalLabel: tx('TOTAL'), total: money(Math.round(total() * 100)),
-      words: amountToWords(Math.round(total() * 100), appLang(), true), footer: `${paid} · Thank you, visit again!`, phone: bill.phone, sheetTitle: tx('Share bill') };
+      words: amountToWords(Math.round(total() * 100), appLang(), true), status: paid, thanks: true, phone: bill.phone, sheetTitle: tx('Share bill') };
   };
   const valid = () => {
     const bad = bill.items.find((it) => it.name.trim() && !num(it.rate));

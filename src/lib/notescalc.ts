@@ -9,6 +9,8 @@
 //   -200 returned        → -200          a leading minus makes it a deduction
 //   Rent                 → (label)       lines without numbers are just text
 //   total                → running total since the last "total" (not added again)
+//   - 10%   /  10% off   → takes 10% off everything above (a line that is only a percentage works on the total so far)
+//   =                    → same as "total"
 //
 // Pure and import-free (shared by the browser bundle and the tests). Money is rounded to paise.
 export type LineKind = 'amount' | 'label' | 'subtotal' | 'blank' | 'error';
@@ -17,7 +19,9 @@ export interface LineResult { kind: LineKind; value: number | null; hint?: strin
 type Tok = { t: 'num'; v: number; src: string } | { t: 'op'; v: string } | { t: 'lp' } | { t: 'rp' } | { t: 'pct' } | { t: 'of' } | { t: 'word'; v: string };
 
 const UNITS = new Set(['pcs', 'pc', 'piece', 'pieces', 'box', 'boxes', 'bx', 'crate', 'crates', 'pack', 'packs', 'packet', 'packets', 'kg', 'kgs', 'g', 'gm', 'gms', 'ltr', 'ltrs', 'litre', 'liter', 'litres', 'liters', 'l', 'ml', 'dozen', 'doz', 'nos', 'no', 'bottle', 'bottles', 'bag', 'bags', 'carton', 'ctn', 'units', 'unit']);
-const SUBTOTAL = /^(sub\s*total|subtotal|total|sum|jod|kul|योग|कुल)\s*[:=]?$/i;
+const SUBTOTAL = /^(sub\s*total|subtotal|total|sum|jod|kul|योग|कुल|=+)\s*[:=]?$/i;
+// a line that is only a percentage: "- 10%", "+5%", "10% off", "10% discount", "10% छूट"
+const PCT_LINE = /^(?:([+\-−–])\s*)?(\d+(?:[.,]\d+)?)\s*%\s*(off|discount|less|chhoot|chhut|छूट|कम)?\s*$/i;
 
 function normalise(line: string): string {
   return line
@@ -166,6 +170,14 @@ export function calcNote(text: string): { lines: LineResult[]; total: number } {
   for (const raw of text.split('\n')) {
     if (!raw.trim()) { lines.push({ kind: 'blank', value: null }); continue; }
     if (SUBTOTAL.test(raw.trim())) { lines.push({ kind: 'subtotal', value: sinceTotal / 100 }); sinceTotal = 0; continue; }
+    const pm = raw.trim().match(PCT_LINE);
+    if (pm && (pm[1] || pm[3])) { // "- 10%" alone means 10% of everything above, like a phone calculator (it used to be 10% of 1)
+      const pct = Number(pm[2].replace(',', '.'));
+      const c = Math.round(((pm[1] === '+' ? 1 : -1) * pct * totalCents) / 100);
+      totalCents += c; sinceTotal += c;
+      lines.push({ kind: 'amount', value: c / 100, hint: `${pct}% of the total above` });
+      continue;
+    }
     const r = calcLine(raw);
     if (r.kind === 'amount') { const c = cents(r.value!); totalCents += c; sinceTotal += c; }
     lines.push(r);
