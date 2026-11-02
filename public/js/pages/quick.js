@@ -6,6 +6,7 @@ import { rowOrder } from '../state.js';
 import { getMode } from '../mode.js';
 import { uploadDoc } from './day.js';
 import { t as tx } from '../i18n.js';
+import { readHome, homeParts, isQuickLayout, SHORTCUTS } from '../home.js';
 
 const TYPES = [
   { id: 'collection', label: tx('Sale'), sub: tx('Money received'), icon: 'rupee' },
@@ -21,10 +22,19 @@ export async function quickPage(main, params) {
   const rep = data.report;
   const isToday = date === (state.today || todayLocal());
 
-  const summary = h('div', { class: 'qsum' },
-    h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Sales')), h('div', { class: 'v' }, money(rep.collections.total))),
-    h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Bought')), h('div', { class: 'v' }, money(rep.purchases.total))),
-    h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Expenses')), h('div', { class: 'v' }, money(rep.expenses.total))));
+  // Home layout (Settings > Home screen). A shortcut or the + sheet asking for a form (?type=) always gets the form.
+  const home = readHome();
+  const layoutId = isQuickLayout(home.layout) ? home.layout : 'quick';
+  const parts = homeParts(home, layoutId);
+  const summary = layoutId === 'summary'
+    ? h('div', { class: 'qsum big' },
+      h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Sales')), h('div', { class: 'v' }, money(rep.collections.total))),
+      h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Spent')), h('div', { class: 'v' }, money(rep.purchases.total + rep.expenses.total))),
+      h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Cash in drawer')), h('div', { class: 'v' }, rep.cash?.expected == null ? '—' : money(rep.cash.expected))))
+    : h('div', { class: 'qsum' },
+      h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Sales')), h('div', { class: 'v' }, money(rep.collections.total))),
+      h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Bought')), h('div', { class: 'v' }, money(rep.purchases.total))),
+      h('div', { class: 'qcell' }, h('div', { class: 'k' }, tx('Expenses')), h('div', { class: 'v' }, money(rep.expenses.total))));
 
   const greeting = h('div', { class: 'qhead' },
     h('div', { class: 'small muted' }, isToday ? tx('Today') : fmtDate(date, { weekday: 'long' }), ' · ', fmtDate(date, { day: 'numeric', month: 'short' })),
@@ -32,7 +42,7 @@ export async function quickPage(main, params) {
     h('div', { class: 'sub' }, tx('What happened in the shop?')));
 
   if (!W) {
-    mount(main, greeting, summary, h('div', { class: 'card empty' }, tx('You can view this shop but not add entries.')));
+    mount(main, greeting, summary, shortcutTiles(parts, layoutId, date), h('div', { class: 'card empty' }, tx('You can view this shop but not add entries.')));
     return;
   }
 
@@ -117,17 +127,48 @@ export async function quickPage(main, params) {
     ...data.collections.map((e) => ({ ic: 'rupee', t: e.mode === 'credit' ? 'Udhaar sale' : tx('Sale'), d: e.mode === 'credit' ? e.customer : e.mode.toUpperCase(), amt: e.amount_paise, id: e.id, kind: 'collections', sign: '+' })),
     ...data.purchases.map((e) => ({ ic: 'bag', t: e.product_name, d: `${num(e.qty_units)} ${e.unit}`, amt: e.total_cost_paise, id: e.id, kind: 'purchases', sign: '−' })),
     ...data.expenses.map((e) => ({ ic: 'receipt', t: e.category, d: tx('Expense'), amt: e.amount_paise, id: e.id, kind: 'expenses', sign: '−' })),
-  ].sort((a, b) => rowOrder(b.id) - rowOrder(a.id)).slice(0, 6);
+  ].sort((a, b) => rowOrder(b.id) - rowOrder(a.id)).slice(0, layoutId === 'summary' ? 10 : 6);
   const recentCard = recent.length ? h('div', { class: 'card' },
     h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, isToday ? 'Added today' : tx('Added')), h('a', { href: `#/day?date=${date}`, class: 'small' }, getMode() === 'layman' ? 'See my day' : tx('Full day view'))),
     h('div', { class: 'list', style: { marginTop: '8px' } }, recent.map((r) => h('div', { class: 'li' }, h('div', { class: 'lead' }, icon(r.ic, 18)), h('div', { class: 'body' }, h('div', { class: 't' }, r.t), r.d ? h('div', { class: 'd' }, r.d) : null), h('div', { class: 'amt ' + (r.sign === '+' ? 'pos' : '') }, r.sign + money(r.amt)))))) : null;
 
-  const tools = h('div', { class: 'qtools' },
-    h('a', { class: 'qtool', href: '#/bill' }, h('span', { class: 'dot' }, icon('receipt', 22)), h('span', null, h('b', null, tx('Make a bill')), h('span', { class: 'd' }, tx('For a customer')))),
-    h('a', { class: 'qtool', href: '#/bills' }, h('span', { class: 'dot' }, icon('clock', 22)), h('span', null, h('b', null, tx('Past bills')), h('span', { class: 'd' }, tx('Reprint, udhaar reminders')))),
-    h('a', { class: 'qtool', href: '#/dump' }, h('span', { class: 'dot' }, icon('type', 22)), h('span', null, h('b', null, tx('Paste notes')), h('span', { class: 'd' }, tx('Many at once')))),
-    h('a', { class: 'qtool', href: '#/notes' }, h('span', { class: 'dot' }, icon('book', 22)), h('span', null, h('b', null, tx('Notes')), h('span', { class: 'd' }, tx('Jot lines, auto total')))));
-  mount(main, greeting, startCard(data, isToday), summary, form, tools, recentCard);
+  let order = parts.sections.filter((x) => x.on).map((x) => x.id);
+  if (params.has('type') && !order.includes('add')) { // asked for a form from a shortcut or the + sheet
+    const at = order.filter((x) => x === 'greeting' || x === 'totals').length;
+    order = order.filter((x) => x !== 'bigadd'); order.splice(Math.min(at, order.length), 0, 'add');
+  }
+  const bigAdd = h('button', { type: 'button', class: 'primary bigadd', onclick: () => window.dispatchEvent(new Event('dk:quickadd')) }, icon('plus', 26), tx('Add'));
+  const blocks = {
+    greeting: () => greeting,
+    totals: () => summary,
+    add: () => [startCard(data, isToday), form],
+    bigadd: () => bigAdd,
+    shortcuts: () => shortcutTiles(parts, layoutId, date),
+    recent: () => recentCard || (layoutId === 'summary' ? h('div', { class: 'card empty' }, tx('Nothing added today yet. Tap + to add the first entry.')) : null),
+  };
+  const shown = order.map((id) => blocks[id]?.()).flat().filter(Boolean);
+  if (!shown.length) shown.push(greeting, h('div', { class: 'card empty' }, tx('Nothing is switched on for Home.'), ' ', h('a', { href: '#/settings' }, tx('Choose what Home shows'))));
+  mount(main, ...shown);
+}
+
+/** The shortcut tiles chosen for this layout (only the ones this person may use). Big tiles in the Shortcuts layout. */
+function shortcutTiles(parts, layoutId, date) {
+  const on = parts.shortcuts.filter((x) => x.on).map((x) => SHORTCUTS.find((s) => s.id === x.id)).filter((s) => s && can(s.perm));
+  if (!on.length) return null;
+  const tile = (s) => {
+    const body = [h('span', { class: 'dot' }, icon(s.icon, 22)), h('span', null, h('b', null, tx(s.name)), h('span', { class: 'd' }, tx(s.desc)))];
+    if (s.href) return h('a', { class: 'qtool', href: s.href }, body);
+    const f = h('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'hidden' });
+    const b = h('button', { type: 'button', class: 'qtool' }, body, f);
+    b.addEventListener('click', (e) => { if (e.target !== f) f.click(); });
+    f.addEventListener('change', busy(b, async () => {
+      const file = f.files[0]; if (!file) return;
+      const doc = await uploadDoc(file, 'hisaab', date);
+      navigate(`#/uploads?review=${doc.id}`);
+    }));
+    return b;
+  };
+  return h('div', { class: 'qtools' + (layoutId === 'grid' ? ' big' : '') }, on.map(tile));
 }
 
 /** First-minute hint for new users: one slim line with three dots that tick off by themselves. Hidden once done or dismissed. */

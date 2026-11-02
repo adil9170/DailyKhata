@@ -2,6 +2,7 @@ import { h, mount, toast, busy, table, confirmDialog } from '../ui.js';
 import { api, state, can, companyUrl, refreshLists, navigate, applyBranding } from '../api.js';
 import { getTheme, setTheme, applyTheme, styleScheme } from '../theme.js';
 import { STYLES, currentStyle, setStyle } from '../styles.js';
+import { LAYOUTS, SECTIONS, SHORTCUTS, readHome, writeHome, homeParts, isQuickLayout, move } from '../home.js';
 import { icon } from '../ui.js';
 import { modeCards, getMode, modeOrDefault } from '../mode.js';
 import { brandFromImage } from '../color.js';
@@ -27,6 +28,63 @@ function stylePicker() {
   ]).flat());
 }
 
+// Settings > Home screen: pick a layout (cards with a tiny sketch of it), then switch parts on or off and reorder them.
+const SKETCH = {
+  quick: ['bar', 'tri', 'field', 'btn', 'pair'],
+  grid: ['bar', 'row3', 'row3', 'row3'],
+  summary: ['big', 'line', 'line', 'line', 'pair'],
+  minimal: ['bar', 'bigbtn', 'line'],
+  day: ['strip'],
+  chat: ['bub', 'bubr', 'bub', 'input'],
+};
+function homeSettings() {
+  const card = h('div', { class: 'card', id: 'home-settings' });
+  let home = readHome();
+  const save = (next, rerouteAll = false) => {
+    home = next; writeHome(home);
+    if (rerouteAll) window.dispatchEvent(new Event('themechange')); // Home tab and the + sheet follow the new layout
+    else draw();
+  };
+  const setPart = (kind, list) => save({ ...home, per: { ...home.per, [home.layout]: { ...homeParts(home), ...home.per[home.layout], [kind]: list.map(({ id, on }) => ({ id, on })) } } });
+  function partList(kind, all, label) {
+    const parts = homeParts(home)[kind].filter((x) => { const d = all.find((a) => a.id === x.id); return d && (!d.perm || can(d.perm)); });
+    const full = homeParts(home)[kind];
+    const name = (id) => tx(all.find((a) => a.id === id).name);
+    const update = (fn) => { const idx = (id) => full.findIndex((x) => x.id === id); setPart(kind, fn(full, idx)); };
+    return h('div', { class: 'homeparts', role: 'list', 'aria-label': label }, parts.map((x, i) => h('div', { class: 'homepart' + (x.on ? '' : ' off'), role: 'listitem' },
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: x.on, 'data-k': `${kind}:${x.id}:on`, onchange: (e) => update((f, idx) => f.map((y) => (y.id === x.id ? { ...y, on: e.target.checked } : y))) }), name(x.id)),
+      h('button', { type: 'button', class: 'ghost icon', 'aria-label': `${tx('Move up')}: ${name(x.id)}`, 'data-k': `${kind}:${x.id}:up`, disabled: i === 0, onclick: () => update((f, idx) => move(f, idx(x.id), idx(parts[i - 1].id) - idx(x.id))) }, icon('up', 18)),
+      h('button', { type: 'button', class: 'ghost icon', 'aria-label': `${tx('Move down')}: ${name(x.id)}`, 'data-k': `${kind}:${x.id}:down`, disabled: i === parts.length - 1, onclick: () => update((f, idx) => move(f, idx(x.id), idx(parts[i + 1].id) - idx(x.id))) }, icon('down', 18)))));
+  }
+  function draw() {
+    const focusKey = document.activeElement?.dataset?.k;
+    const quick = isQuickLayout(home.layout);
+    mount(card,
+      h('h2', null, tx('Home screen')),
+      h('p', { class: 'small muted', style: { marginTop: 0 } }, tx('Pick how Home looks, then choose what it shows. Saved on this device.')),
+      h('div', { class: 'stylegrid homegrid', role: 'group', 'aria-label': tx('Home screen') }, LAYOUTS.map((l) => h('button', {
+        type: 'button', class: 'stylecard homecard' + (l.id === home.layout ? ' on' : ''), 'aria-pressed': l.id === home.layout ? 'true' : 'false',
+        onclick: () => { if (l.id !== home.layout) save({ ...home, layout: l.id }, true); },
+      }, h('span', { class: 'sketch', 'aria-hidden': 'true' }, SKETCH[l.id].map((k) => h('i', { class: 'sk-' + k }))), h('span', { class: 'nm' }, tx(l.name)), h('span', { class: 'bl' }, tx(l.desc))))),
+      quick ? [
+        h('h3', { class: 'homehead' }, tx('What Home shows')),
+        partList('sections', SECTIONS, tx('What Home shows')),
+        h('h3', { class: 'homehead' }, tx('Shortcuts')),
+        partList('shortcuts', SHORTCUTS, tx('Shortcuts')),
+        h('div', { class: 'row', style: { marginTop: '12px' } },
+          h('button', { type: 'button', class: 'small', onclick: () => { const per = { ...home.per }; delete per[home.layout]; save({ ...home, per }); toast(tx('Back to the usual Home')); } }, tx('Reset this layout')),
+          h('a', { class: 'btn small ghost', href: '#/' }, tx('See Home'))),
+      ] : h('p', { class: 'small muted', style: { marginBottom: 0 } }, home.layout === 'chat' ? tx('Chat: type or speak what happened, like messaging a friend. It goes straight into your khata.') : tx('Khata strip: Home opens today’s khata, with every entry and the cash in the drawer.')));
+    if (focusKey) { // keep keyboard and screen-reader focus on the row that moved (its other arrow if this one is now disabled)
+      let el = card.querySelector(`[data-k="${focusKey}"]`);
+      if (el?.disabled) el = el.parentElement.querySelector('button:not([disabled])') || el.parentElement.querySelector('input');
+      el?.focus();
+    }
+  }
+  draw();
+  return card;
+}
+
 export async function settingsPage(main) {
   const c = state.company;
   const S = can('settings.manage'), M = can('products.manage');
@@ -47,16 +105,8 @@ export async function settingsPage(main) {
     styleScheme() ? h('p', { class: 'small muted' }, tx('Your style has its own colours, so Light and Dark do not change it. Pick Clean, Bento or Neumorphism to use them.')) : null,
     h('h3', { style: { margin: '12px 0 4px', fontSize: '.95rem' } }, tx('Style')),
     h('p', { class: 'small muted', style: { marginTop: 0 } }, tx('Changes only how the app looks. Your data stays the same. Saved on this device.')),
-    stylePicker(),
-    h('h3', { style: { margin: '12px 0 8px', fontSize: '.95rem' } }, tx('Home screen')),
-    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Home screen') }, [['classic', tx('Buttons')], ['chat', tx('Chat')]].map(([v, l]) => {
-      let cur = 'classic'; try { cur = localStorage.getItem('dk_layout') === 'chat' ? 'chat' : 'classic'; } catch { /* storage blocked */ }
-      return h('button', { class: cur === v ? 'on' : '', role: 'radio', 'aria-checked': cur === v ? 'true' : 'false', onclick: () => {
-        try { if (v === 'chat') localStorage.setItem('dk_layout', 'chat'); else localStorage.removeItem('dk_layout'); } catch { /* storage blocked */ }
-        location.hash = '#/'; window.dispatchEvent(new Event('themechange'));
-      } }, l);
-    })),
-    h('p', { class: 'small muted', style: { marginBottom: 0 } }, 'Chat: type or speak what happened, like messaging a friend — it goes straight into your khata.')));
+    stylePicker()));
+  sections.push(homeSettings());
 
   if (S) {
     const f = {

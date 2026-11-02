@@ -3,6 +3,7 @@ import { api, netApi, state, loadContext, refreshContext, refreshLists, applyBra
 import * as S from './store.js';
 import { getTheme, setTheme, effectiveTheme, applyTheme, styleScheme } from './theme.js';
 import { currentStyle, ensureThemesCss } from './styles.js';
+import { readHome, homePage } from './home.js';
 import { MODES, getMode, modeOrDefault, initMode, openModeSheet } from './mode.js';
 import { t as tx, applyLangAttr } from './i18n.js';
 import './device.js';
@@ -60,8 +61,8 @@ const routeLabel = (r) => tx((modeOrDefault() === 'layman' && r.laymanLabel) || 
 /** Where "Home" goes: the simple add page, in every mode. */
 function homeRoute() {
   const rs = visibleCompanyRoutes();
-  let chat = false; try { chat = localStorage.getItem('dk_layout') === 'chat'; } catch { /* storage blocked */ }
-  return (chat && rs.find((r) => r.path === 'chat')) || rs.find((r) => r.path === 'quick') || rs.find((r) => r.path === 'day') || rs[0];
+  const want = homePage(readHome()); // Settings > Home screen: 'quick' (drawn from the chosen sections), 'day' or 'chat'
+  return rs.find((r) => r.path === want) || rs.find((r) => r.path === 'quick') || rs.find((r) => r.path === 'day') || rs[0];
 }
 const adminRoutes = [
   { path: 'admin', label: 'Overview', icon: 'chart', page: adminOverviewPage },
@@ -409,6 +410,7 @@ window.addEventListener('hashchange', () => {
 });
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 window.addEventListener('themechange', () => route());
+window.addEventListener('dk:quickadd', () => openQuickAdd()); // the big Add button on the One button home
 // Some labels are built once at load, so a language change reloads the page (fast: everything is cached).
 window.addEventListener('langchange', () => location.reload());
 // Switching mode lands on that mode's home so people are never left on a page their mode hides.

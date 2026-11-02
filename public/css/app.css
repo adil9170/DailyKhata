@@ -983,3 +983,41 @@ details summary, details.fold > summary, .dskip summary { min-height: 44px; }
 /* art styles may capitalise or space out button labels; cards that hold sentences stay readable */
 .modecard, .stylecard, .notecard, .li { text-transform: none; letter-spacing: normal; }
 td a[href] { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; } /* file names and links in tables are full-size tap targets */
+
+/* ---------- Settings > Home screen ---------- */
+.homegrid { margin-top: 4px; }
+.homecard .sketch { display: flex; flex-direction: column; gap: 4px; height: 76px; padding: 8px; border-radius: 9px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); margin-bottom: 4px; overflow: hidden; }
+.homecard .sketch i { display: block; flex: none; border-radius: 3px; background: var(--border-strong); opacity: .55; }
+.homecard .sketch .sk-bar { height: 8px; width: 55%; }
+.homecard .sketch .sk-tri { height: 14px; background: linear-gradient(90deg, var(--border-strong) 31%, transparent 31% 34.5%, var(--border-strong) 34.5% 65.5%, transparent 65.5% 69%, var(--border-strong) 69%); }
+.homecard .sketch .sk-field { height: 12px; opacity: .3; }
+.homecard .sketch .sk-btn, .homecard .sketch .sk-bigbtn { height: 10px; background: var(--brand); opacity: .85; }
+.homecard .sketch .sk-bigbtn { height: 26px; border-radius: 8px; }
+.homecard .sketch .sk-pair { height: 10px; background: linear-gradient(90deg, var(--border-strong) 48%, transparent 48% 52%, var(--border-strong) 52%); }
+.homecard .sketch .sk-row3 { height: 15px; background: linear-gradient(90deg, var(--border-strong) 31%, transparent 31% 34.5%, var(--border-strong) 34.5% 65.5%, transparent 65.5% 69%, var(--border-strong) 69%); }
+.homecard .sketch .sk-big { height: 20px; background: var(--brand); opacity: .7; }
+.homecard .sketch .sk-line { height: 6px; opacity: .4; }
+.homecard .sketch .sk-strip { flex: 1; border-radius: 4px 4px 0 0; background: repeating-linear-gradient(180deg, var(--border-strong) 0 2px, transparent 2px 9px); opacity: .45; }
+.homecard .sketch .sk-bub, .homecard .sketch .sk-bubr { height: 11px; width: 62%; border-radius: 6px; }
+.homecard .sketch .sk-bubr { align-self: flex-end; background: var(--brand); opacity: .7; }
+.homecard .sketch .sk-input { margin-top: auto; height: 12px; border-radius: 6px; opacity: .3; }
+.homehead { margin: 20px 0 4px; font-size: .9375rem; }
+.homeparts { display: grid; }
+.homepart { display: flex; align-items: center; gap: 4px; min-height: 48px; border-top: 1px solid var(--border); }
+.homepart:first-child { border-top: 0; }
+.homepart .check { flex: 1; display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 0; font-size: 1rem; font-weight: 500; color: var(--text); cursor: pointer; }
+.homepart .check input { width: 22px; height: 22px; min-height: 0; flex: none; accent-color: var(--brand); }
+.homepart.off .check { color: var(--muted); }
+.homepart button.icon { width: 44px; min-height: 44px; }
+.homepart button.icon:disabled { opacity: .3; }
+/* Home layouts */
+.qtools.big { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.qtools.big .qtool { flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; min-height: 108px; padding: 12px 8px; }
+.qtools.big .qtool .dot { width: 48px; height: 48px; border-radius: 16px; }
+.qtools.big .qtool b { font-size: .9375rem; line-height: 1.2; }
+.qtools.big .qtool .d { display: none; }
+.qsum.big .qcell .v { font-size: 1.375rem; }
+.bigadd { width: 100%; min-height: 72px; font-size: 1.25rem; border-radius: 20px; gap: 12px; margin: 0 0 16px; }
+button.qtool { font: inherit; text-align: left; cursor: pointer; }
+/* summary cells: amounts share one baseline even when a label wraps to two lines */
+.qcell, .daysum > div { display: flex; flex-direction: column; justify-content: space-between; }
