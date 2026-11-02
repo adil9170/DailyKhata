@@ -37,7 +37,8 @@ describe('boot.js picks the look before first paint', () => {
     expect(r.attrs['data-theme']).toBeUndefined();
   });
   it('a device that already used the app keeps Clean, saved so it never flips', () => {
-    for (const saved of [{ dk_session: JSON.stringify({ user: { id: 1 } }) }, { dk_start_done: '1' }, { dk_mode_7: 'smart' }, { dk_theme: 'dark' }]) {
+    const devices: Record<string, string>[] = [{ dk_session: JSON.stringify({ user: { id: 1 } }) }, { dk_start_done: '1' }, { dk_mode_7: 'smart' }, { dk_theme: 'dark' }];
+    for (const saved of devices) {
       const r = boot(saved);
       expect(r.store.dk_style, JSON.stringify(saved)).toBe('clean');
       expect(r.attrs['data-style']).toBeUndefined();
