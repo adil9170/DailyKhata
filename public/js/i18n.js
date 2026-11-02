@@ -5,13 +5,13 @@
 // Only Simple-mode surfaces are translated; admin/Pro-only screens stay in English on purpose.
 const HI = {
   // menu, tabs, + sheet
-  'Home': 'होम', 'Khata': 'खाता', 'Chat': 'चैट', 'Bill': 'बिल', 'Bills': 'बिल', 'Write': 'लिखो', 'Counter': 'गिनती', 'Notes': 'नोट्स', 'More': 'और',
+  'Home': 'होम', 'Khata': 'खाता', 'Chat': 'चैट', 'Bill': 'बिल', 'Bills': 'बिल', 'Write': 'लिखो', 'Counter': 'गिनती', 'More': 'और',
   'Add': 'जोड़ें', 'Add entry': 'एंट्री जोड़ें', 'Main': 'मुख्य', 'Quick navigation': 'जल्दी खोलें', 'Open menu': 'मेन्यू खोलें',
   'Today’s khata': 'आज का खाता', 'Chat khata': 'चैट खाता', 'Make a bill': 'बिल बनाओ', 'Past bills': 'पुराने बिल', 'Write expenses': 'खर्चा लिखो',
   'Cash counter': 'नकद गिनती', 'Settings': 'सेटिंग्स', 'Reports': 'रिपोर्ट', 'Udhaar': 'उधार', 'Products': 'माल', 'Photos & bills': 'फोटो और बिल',
   'Download (Excel/PDF)': 'डाउनलोड (Excel/PDF)', 'Team': 'टीम', 'Business': 'कारोबार', 'Account': 'खाता',
   'Bill for a customer': 'ग्राहक का बिल', 'Items, total, share on WhatsApp': 'सामान, कुल, WhatsApp पर भेजो',
-  'Sale': 'बिक्री', 'Money you received': 'जो पैसे मिले', 'Expense': 'खर्चा', 'Money you spent — gas, rent, tea…': 'जो पैसे लगे — गैस, किराया, चाय…',
+  'Sale': 'बिक्री', 'Money you received': 'जो पैसे मिले', 'Money you spent — gas, rent, tea…': 'जो पैसे लगे — गैस, किराया, चाय…',
   'Stock bought': 'माल खरीदा', 'Items you bought to sell': 'बेचने के लिए खरीदा माल',
   'Write or paste notes': 'नोट्स लिखो या पेस्ट करो', 'Many entries at once, the way you talk': 'बोलचाल में, कई एंट्री एक साथ',
   'Photo of a bill or page': 'बिल या पन्ने की फोटो', 'We read it for you': 'हम पढ़ देंगे', 'Uploading photo…': 'फोटो भेज रहे हैं…',
@@ -74,7 +74,7 @@ const HI = {
   'Namaste{name}! Tell me what happened — like ': 'नमस्ते{name}! बताओ क्या हुआ — जैसे ', ' or ': ' या ', '. I’ll write it in your khata.': '। मैं आपके खाते में लिख दूँगा।',
   'Just write it the way you talk:': 'जैसे बोलते हो वैसे लिखो:', 'Let’s make a bill.': 'चलो बिल बनाते हैं।', 'Count the notes in the drawer:': 'गल्ले के नोट गिनो:',
   'I couldn’t find an amount there. Put the amount next to what it was for, like “gas 820”.': 'वहाँ रकम नहीं मिली। जिसके लिए था उसके साथ रकम लिखो, जैसे “गैस 820”।',
-  'Show examples': 'उदाहरण दिखाओ', 'Stock': 'माल', 'Sales ': 'बिक्री ', 'Spent ': 'खर्च ', 'Allow the microphone to speak entries': 'बोलकर एंट्री करने के लिए माइक की इजाज़त दो',
+  'Show examples': 'उदाहरण दिखाओ', 'Sales ': 'बिक्री ', 'Spent ': 'खर्च ', 'Allow the microphone to speak entries': 'बोलकर एंट्री करने के लिए माइक की इजाज़त दो',
   // write expenses
   'Your notes': 'आपके नोट्स', 'Date for these entries': 'इन एंट्री की तारीख', 'Found': 'मिला', 'Nothing yet': 'अभी कुछ नहीं', 'Start typing': 'लिखना शुरू करो', 'Add to khata': 'खाते में जोड़ो',
   'Read with AI': 'AI से पढ़ाओ', 'Undo AI': 'AI वापस', 'Include this': 'इसे जोड़ो', 'Money in': 'पैसे आए', 'Try an example': 'उदाहरण देखो',
