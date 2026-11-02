@@ -908,7 +908,7 @@ html.lite .sl.anim { animation: none; }
 button.icon.small { width: 44px; min-height: 44px; }
 button.small, button.ghost { min-width: 44px; }
 .datechip { min-height: 44px; }
-details summary, details.fold > summary, .dskip summary { min-height: 44px; }
+details summary, details.fold > summary, .dskip summary { min-height: 44px; min-width: 44px; }
 .bpicks .chip, .bubchips .chip, .chatquick .chip { min-height: 44px; }
 .chatquick .chip, .bubchips .chip { max-width: 100%; }
 .bubchips .chip small { white-space: normal; }

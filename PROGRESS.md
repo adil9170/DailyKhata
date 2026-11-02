@@ -29,6 +29,7 @@ Update this file at the end of every work step. Newest entries at the top of "Lo
 - Super-admin account: owner must create it at the live URL.
 
 ## Log
+- 2026-11-03 Final checks for the night: tsc, vitest 107, smoke test on a fresh DB, align-check 390/360 (0 items besides the intentional narrow report tabs), a11y-check passes, contrast audit on every style. Disclosure toggles ('Details' in the audit log) get a 44 pt width. sw/BUILD v41.
 - 2026-11-03 Undo on Home: the 'Saved' message after adding a sale / expense / stock on Home has an Undo button (toast() takes an optional { label, onclick }; it finds the entry again by client_id, so it works before and after sync). sw/BUILD v40.
 - 2026-11-03 Per-style CSS: build writes public/css/themes/<id>.css (git-ignored) and boot.js / styles.js load only the chosen style's sheet (Paper & ink, the new default: 2.5 KB gzip instead of the 15 KB all-styles file); the combined themes.css is still built for app versions cached before this. sw/BUILD v39.
 - 2026-11-03 Bill: a priced row with no name now says 'Type what the item is' and focuses that name (before, the row was dropped and the server answered 'Add at least one item'); bill saved / rate messages translated. Flows checked end to end: bill save + share sheet + Past bills, counter (tile, + button, typed count = ₹1,900), chat add + Undo chip, landing images and hidden blocks. sw/BUILD v38.
