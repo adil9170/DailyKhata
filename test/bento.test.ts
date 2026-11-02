@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+// @ts-ignore node types are not part of this project's tsconfig
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync('public/bento/index.html', 'utf8');
