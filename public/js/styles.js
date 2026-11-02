@@ -41,6 +41,6 @@ export function ensureThemesCss() {
 export async function setStyle(id) {
   const s = styleById(id);
   if (s.css === 'themes') await ensureThemesCss();
-  try { if (s.id === 'clean') localStorage.removeItem('dk_style'); else localStorage.setItem('dk_style', s.id); } catch { /* storage blocked */ }
+  try { localStorage.setItem('dk_style', s.id); } catch { /* storage blocked */ } // Clean is saved too: no saved style means a new device (boot.js)
   if (s.id === 'clean') delete document.documentElement.dataset.style; else document.documentElement.dataset.style = s.id;
 }

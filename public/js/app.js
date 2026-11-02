@@ -2,6 +2,7 @@ import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables
 import { api, netApi, state, loadContext, refreshContext, refreshLists, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
 import * as S from './store.js';
 import { getTheme, setTheme, effectiveTheme, applyTheme, styleScheme } from './theme.js';
+import { currentStyle, ensureThemesCss } from './styles.js';
 import { MODES, getMode, modeOrDefault, initMode, openModeSheet } from './mode.js';
 import { t as tx, applyLangAttr } from './i18n.js';
 import './device.js';
@@ -317,7 +318,10 @@ async function route(reloadUser = false) {
 
   // visitors who are not signed in get the landing page (plain HTML in index.html); '#try' etc. are its own anchors
   if (!/^#\/./.test(location.hash) && !state.user && !loadSession()?.user) { showLanding(); return; }
-  if (!document.documentElement.classList.contains('app-mode')) { document.documentElement.classList.add('app-mode'); applyTheme(); }
+  if (!document.documentElement.classList.contains('app-mode')) {
+    document.documentElement.classList.add('app-mode'); applyTheme();
+    if (currentStyle().css === 'themes') await ensureThemesCss(); // coming from the landing page, which never loads it
+  }
   applyLangAttr(); // the app follows its own language setting (Settings > Language), not the landing's html lang
 
   if (path === 'setup') return setupPage();

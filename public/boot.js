@@ -7,13 +7,24 @@
   // Settings > Style. Keep in sync with public/js/styles.js (test/styles.test.ts checks): '' = CSS in app.css, follows Light/Dark;
   // 'any' / 'light' / 'dark' = CSS in /css/themes.css (loaded only for these); 'light' / 'dark' styles bring their own colours.
   var SS = { soft: '', bento: '', landing: 'any', skeuo: 'light', nouveau: 'light', chrome: 'light', stijl: 'light', memphis: 'light', psych: 'dark', vapor: 'dark', steam: 'light', grunge: 'dark', cutout: 'light', glitch: 'dark', anti: 'light', inflated: 'light', iso: 'light', ukiyo: 'light', brutal: 'light', bauhaus: 'light', midcentury: 'light', collage: 'light' };
-  var st = ls && ls.getItem('dk_style'), sc = st && Object.prototype.hasOwnProperty.call(SS, st) ? SS[st] : null;
+  var st = ls && ls.getItem('dk_style');
+  // No style saved yet: a device that has used the app before keeps Clean (its look so far); a new one starts on Paper & ink.
+  // The choice is saved so it never flips later (e.g. after signing in on this device).
+  if (ls && st === null) {
+    var used = false;
+    for (var i = 0; i < ls.length; i++) { var k = ls.key(i); if (/^dk_/.test(k) && !/^dk_(lang|perf|style|debug)$/.test(k)) { used = true; break; } }
+    st = used ? 'clean' : 'landing';
+    try { ls.setItem('dk_style', st); } catch (e) { /* storage full or blocked: decide again next time */ }
+  }
+  var sc = st && Object.prototype.hasOwnProperty.call(SS, st) ? SS[st] : null;
   if (sc !== null) d.setAttribute('data-style', st);
-  if (sc) document.write('<link rel="stylesheet" id="themes-css" href="/css/themes.css">');
   // signed-in people (or anyone opening an app link) go straight to the app; everyone else sees the landing page
   var sess = null; try { sess = ls && JSON.parse(ls.getItem('dk_session') || 'null'); } catch (e) { sess = null; }
   if ((sess && sess.user) || /^#\/./.test(location.hash)) d.classList.add('app-mode');
-  if ((sc === 'light' || sc === 'dark') && d.classList.contains('app-mode')) d.setAttribute('data-theme', sc); // art styles bring their own light or dark colours
+  if (sc && d.classList.contains('app-mode')) {
+    document.write('<link rel="stylesheet" id="themes-css" href="/css/themes.css">'); // only app pages use it; app.js loads it on sign-in from the landing page
+    if (sc === 'light' || sc === 'dark') d.setAttribute('data-theme', sc); // art styles bring their own light or dark colours
+  }
   // landing language (EN default; Hindi if chosen, or if the browser says hi): set <html lang> now and hold the page back until landing-i18n.js has painted it
   if (!d.classList.contains('app-mode')) {
     var lg = ls && ls.getItem('dk_lang');
