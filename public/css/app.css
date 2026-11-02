@@ -1043,3 +1043,8 @@ a.more { display: inline-flex; align-items: center; min-height: 44px; }
 .catlist .li { min-height: 52px; padding: 4px 8px; }
 .catlist .acts { display: flex; gap: 4px; }
 .addrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 12px; }
+/* a toast with one action (Undo): the button takes taps even though the toast stack ignores them */
+.toast .tmsg { flex: 1; min-width: 0; }
+.toast:has(.toastact) { padding-top: 4px; padding-bottom: 4px; }
+.toast .toastact { pointer-events: auto; flex: none; min-height: 44px; padding: 0 16px; margin-right: -8px; border: 0; border-radius: 10px; background: rgba(255,255,255,.16); color: inherit; font: inherit; font-weight: 700; box-shadow: none; text-transform: none; letter-spacing: normal; }
+:root[data-theme="dark"] .toast .toastact { background: rgba(0,0,0,.08); }

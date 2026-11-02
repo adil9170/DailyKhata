@@ -132,10 +132,12 @@ export function bytes(n) {
   return (n / 1048576).toFixed(1) + ' MB';
 }
 
-export function toast(msg, err = false) {
-  const t = h('div', { class: 'toast' + (err ? ' err' : ''), role: err ? 'alert' : 'status' }, icon(err ? 'alert' : 'check', 18), msg);
+/** A short message at the bottom. `action` ({ label, onclick }) adds one button, e.g. Undo, and keeps it up a little longer. */
+export function toast(msg, err = false, action = null) {
+  const t = h('div', { class: 'toast' + (err ? ' err' : ''), role: err ? 'alert' : 'status' }, icon(err ? 'alert' : 'check', 18), h('span', { class: 'tmsg' }, msg),
+    action ? h('button', { type: 'button', class: 'toastact', onclick: () => { t.remove(); action.onclick(); } }, action.label) : null);
   document.getElementById('toasts').append(t);
-  setTimeout(() => t.remove(), err ? 6000 : 3000);
+  setTimeout(() => t.remove(), err ? 6000 : action ? 6000 : 3000);
 }
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';

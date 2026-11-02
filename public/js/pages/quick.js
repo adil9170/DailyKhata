@@ -105,18 +105,29 @@ export async function quickPage(main, params) {
     busy(saveBtn, async () => {
       const amt = amount.value.replace(/,/g, '').trim();
       if (!amt || !(Number(amt) > 0)) { amount.focus(); throw new Error(tx('Enter the amount first')); }
-      if (type === 'collection') await api('/api/c/collections', { method: 'POST', body: { date, amount: amt, mode: chosen.mode, customer: chosen.mode === 'credit' ? chosen.customer : '', notes: '' } });
+      let made = null, kind = 'collections';
+      if (type === 'collection') made = await api('/api/c/collections', { method: 'POST', body: { date, amount: amt, mode: chosen.mode, customer: chosen.mode === 'credit' ? chosen.customer : '', notes: '' } });
       else if (type === 'expense') {
         if (!chosen.category.trim()) throw new Error(tx('Tap what the expense was for'));
-        await api('/api/c/expenses', { method: 'POST', body: { date, category: chosen.category.trim(), amount: amt, payment_mode: 'cash', notes: '' } });
+        kind = 'expenses'; made = await api('/api/c/expenses', { method: 'POST', body: { date, category: chosen.category.trim(), amount: amt, payment_mode: 'cash', notes: '' } });
         await refreshLists();
       } else {
         const name = chosen.product.trim(); if (!name) throw new Error(tx('Tell us which item you bought'));
         const p = state.products.find((x) => x.name.toLowerCase() === name.toLowerCase());
-        await api('/api/c/purchases', { method: 'POST', body: { date, product_id: p?.id, product_name: name, qty: chosen.qty || 1, unit: p?.unit || 'box', pieces: null, total: amt, payment_mode: 'cash', supplier: '', notes: '' } });
+        kind = 'purchases'; made = await api('/api/c/purchases', { method: 'POST', body: { date, product_id: p?.id, product_name: name, qty: chosen.qty || 1, unit: p?.unit || 'box', pieces: null, total: amt, payment_mode: 'cash', supplier: '', notes: '' } });
         await refreshLists();
       }
-      toast(tx('Saved ✓'));
+      // Undo right in the message: find the entry again by client_id (its id changes once it syncs) and delete it
+      const cid = made?.client_id;
+      toast(tx('Saved'), false, cid ? { label: tx('Undo'), onclick: async () => {
+        try {
+          const day = await api(`/api/c/day/${date}`);
+          const row = (day[kind] || []).find((x) => x.client_id === cid);
+          if (row) await api(`/api/c/${kind}/${row.id}`, { method: 'DELETE' });
+          toast(tx('Removed'));
+          if (location.hash.startsWith('#/quick')) navigate(location.hash);
+        } catch (e) { toast(e.message, true); }
+      } } : null);
       chosen = { mode: 'cash', category: '', product: '', qty: 1, customer: '' };
       navigate(`#/quick?date=${date}&type=${type}`);
     })();
