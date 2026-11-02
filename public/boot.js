@@ -5,7 +5,7 @@
   var t = ls && ls.getItem('dk_theme');
   if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
   // Settings > Style. Keep in sync with public/js/styles.js (test/styles.test.ts checks): '' = CSS in app.css, follows Light/Dark;
-  // 'any' / 'light' / 'dark' = CSS in /css/themes.css (loaded only for these); 'light' / 'dark' styles bring their own colours.
+  // 'any' / 'light' / 'dark' = CSS in /css/themes/<id>.css (loaded only for these); 'light' / 'dark' styles bring their own colours.
   var SS = { soft: '', bento: '', landing: 'any', skeuo: 'light', nouveau: 'light', chrome: 'light', stijl: 'light', memphis: 'light', psych: 'dark', vapor: 'dark', steam: 'light', grunge: 'dark', cutout: 'light', glitch: 'dark', anti: 'light', inflated: 'light', iso: 'light', ukiyo: 'light', brutal: 'light', bauhaus: 'light', midcentury: 'light', collage: 'light' };
   var st = ls && ls.getItem('dk_style');
   // No style saved yet: a device that has used the app before keeps Clean (its look so far); a new one starts on Paper & ink.
@@ -22,7 +22,7 @@
   var sess = null; try { sess = ls && JSON.parse(ls.getItem('dk_session') || 'null'); } catch (e) { sess = null; }
   if ((sess && sess.user) || /^#\/./.test(location.hash)) d.classList.add('app-mode');
   if (sc && d.classList.contains('app-mode')) {
-    document.write('<link rel="stylesheet" id="themes-css" href="/css/themes.css">'); // only app pages use it; app.js loads it on sign-in from the landing page
+    document.write('<link rel="stylesheet" id="theme-' + st + '" href="/css/themes/' + st + '.css">'); // st is a known id (SS); app.js loads it on sign-in from the landing page
     if (sc === 'light' || sc === 'dark') d.setAttribute('data-theme', sc); // art styles bring their own light or dark colours
   }
   // landing language (EN default; Hindi if chosen, or if the browser says hi): set <html lang> now and hold the page back until landing-i18n.js has painted it

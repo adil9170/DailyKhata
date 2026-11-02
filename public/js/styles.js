@@ -1,6 +1,6 @@
 // The looks a person can pick in Settings > Style (saved per device as localStorage dk_style).
 // scheme: 'any' follows the Light/Dark setting; 'light' / 'dark' means the style brings its own colours.
-// css: where the style's CSS lives ('app' = always loaded in app.css, 'themes' = /css/themes.css, built by scripts/themes.mjs).
+// css: where the style's CSS lives ('app' = always loaded in app.css, 'themes' = /css/themes/<id>.css, built by scripts/themes.mjs).
 // swatch: four colours for the picker preview. Keep ids in sync with public/boot.js (test/styles.test.ts checks).
 export const STYLES = [
   { id: 'clean', name: 'Clean', group: 'basic', scheme: 'any', css: 'app', swatch: ['#f3f4f8', '#ffffff', '#1c1a2b', '#2e6f4f'], blurb: 'Flat and calm' },
@@ -30,17 +30,17 @@ export const STYLES = [
 export const styleById = (id) => STYLES.find((s) => s.id === id) || STYLES[0];
 export const currentStyle = () => styleById(document.documentElement.dataset.style || 'clean');
 
-/** Loads /css/themes.css once (boot.js already adds it at start-up when an art style is saved). Resolves when ready, or after 3s. */
-export function ensureThemesCss() {
-  if (document.getElementById('themes-css')) return Promise.resolve();
+/** Loads the style's own sheet once (boot.js already adds it at start-up for a saved style). Resolves when ready, or after 3s. */
+export function ensureThemesCss(id = currentStyle().id) {
+  if (styleById(id).css !== 'themes' || document.getElementById('theme-' + id)) return Promise.resolve();
   const l = document.createElement('link');
-  l.rel = 'stylesheet'; l.id = 'themes-css'; l.href = '/css/themes.css';
+  l.rel = 'stylesheet'; l.id = 'theme-' + id; l.href = `/css/themes/${id}.css`;
   return new Promise((done) => { l.onload = l.onerror = () => done(); setTimeout(done, 3000); document.head.appendChild(l); });
 }
 /** Switches the look and saves it on this device. The caller re-applies the theme (theme.js) and re-renders. */
 export async function setStyle(id) {
   const s = styleById(id);
-  if (s.css === 'themes') await ensureThemesCss();
+  if (s.css === 'themes') await ensureThemesCss(s.id);
   try { localStorage.setItem('dk_style', s.id); } catch { /* storage blocked */ } // Clean is saved too: no saved style means a new device (boot.js)
   if (s.id === 'clean') delete document.documentElement.dataset.style; else document.documentElement.dataset.style = s.id;
 }

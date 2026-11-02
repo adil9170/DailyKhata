@@ -4,7 +4,7 @@
 import { build } from 'esbuild';
 import { rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { buildHindi } from './seo.mjs';
-import { buildThemesCss } from './themes.mjs';
+import { buildThemesCss, buildThemeFiles } from './themes.mjs';
 import { EN, HI } from '../public/js/landing-i18n.js';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -32,7 +32,9 @@ const result = await build({
 });
 
 // Art styles for Settings > Style (generated, git-ignored): loaded by boot.js only for people who picked one.
-writeFileSync(`${root}public/css/themes.css`, buildThemesCss());
+mkdirSync(`${root}public/css/themes`, { recursive: true });
+for (const [id, css] of Object.entries(buildThemeFiles())) writeFileSync(`${root}public/css/themes/${id}.css`, css);
+writeFileSync(`${root}public/css/themes.css`, buildThemesCss()); // older cached app versions still ask for this one
 
 // Hindi landing page at /hi/ (generated, git-ignored): the same page with the Hindi text already in the HTML for search engines.
 mkdirSync(`${root}public/hi`, { recursive: true });

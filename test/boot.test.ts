@@ -33,7 +33,7 @@ describe('boot.js picks the look before first paint', () => {
   });
   it('a new device opening an app link gets the Paper & ink sheet and keeps following Light/Dark', () => {
     const r = boot({}, '#/login');
-    expect(r.written.join('')).toContain('/css/themes.css');
+    expect(r.written.join('')).toContain('/css/themes/landing.css');
     expect(r.attrs['data-theme']).toBeUndefined();
   });
   it('a device that already used the app keeps Clean, saved so it never flips', () => {
@@ -52,7 +52,7 @@ describe('boot.js picks the look before first paint', () => {
     const r = boot({ dk_style: 'vapor', dk_session: JSON.stringify({ user: { id: 1 } }) });
     expect(r.attrs['data-style']).toBe('vapor');
     expect(r.attrs['data-theme']).toBe('dark');
-    expect(r.written.join('')).toContain('/css/themes.css');
+    expect(r.written.join('')).toContain('/css/themes/vapor.css');
     const x = boot({ dk_style: 'nope', dk_session: JSON.stringify({ user: { id: 1 } }) });
     expect(x.attrs['data-style']).toBeUndefined();
     expect(x.written).toEqual([]);

@@ -66,7 +66,7 @@ for (const [style, theme, landing] of combos) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, colorScheme: theme });
   await ctx.addInitScript(([s, t]) => { try { localStorage.setItem('dk_theme', t); localStorage.setItem('dk_start_done', '1'); if (s !== 'clean') localStorage.setItem('dk_style', s); } catch {} }, [style, theme]);
   const page = await ctx.newPage();
-  const pages = landing ? LAND.map((p) => ({ name: 'landing ' + p, go: () => page.goto(BASE + p) })) : []; // styles in themes.css never touch the landing page
+  const pages = landing ? LAND.map((p) => ({ name: 'landing ' + p, go: () => page.goto(BASE + p) })) : []; // styles in css/themes/ never touch the landing page
   for (const p of pages) { await p.go(); await page.waitForTimeout(900); const r = await page.evaluate(audit); total += r.checked; add(r, `${style}/${theme}`, p.name); }
   await page.request.post(BASE + '/api/auth/login', { data: { email: 'ravi@sharma.in', password: 'RaviPass123' } });
   for (const p of APP) {

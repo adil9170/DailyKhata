@@ -6,3 +6,4 @@ dist/
 wrangler.local.toml
 public/hi/
 public/css/themes.css
+public/css/themes/
