@@ -129,7 +129,7 @@ export async function quickPage(main, params) {
     ...data.expenses.map((e) => ({ ic: 'receipt', t: e.category, d: tx('Expense'), amt: e.amount_paise, id: e.id, kind: 'expenses', sign: '−' })),
   ].sort((a, b) => rowOrder(b.id) - rowOrder(a.id)).slice(0, layoutId === 'summary' ? 10 : 6);
   const recentCard = recent.length ? h('div', { class: 'card' },
-    h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, isToday ? 'Added today' : tx('Added')), h('a', { href: `#/day?date=${date}`, class: 'small' }, getMode() === 'layman' ? 'See my day' : tx('Full day view'))),
+    h('div', { class: 'spread' }, h('h2', { style: { margin: 0 } }, isToday ? 'Added today' : tx('Added')), h('a', { href: `#/day?date=${date}`, class: 'small more' }, getMode() === 'layman' ? tx('See my day') : tx('Full day view'))),
     h('div', { class: 'list', style: { marginTop: '8px' } }, recent.map((r) => h('div', { class: 'li' }, h('div', { class: 'lead' }, icon(r.ic, 18)), h('div', { class: 'body' }, h('div', { class: 't' }, r.t), r.d ? h('div', { class: 'd' }, r.d) : null), h('div', { class: 'amt ' + (r.sign === '+' ? 'pos' : '') }, r.sign + money(r.amt)))))) : null;
 
   let order = parts.sections.filter((x) => x.on).map((x) => x.id);

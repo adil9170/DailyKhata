@@ -11,10 +11,8 @@ import { t as tx, lang, setLang } from '../i18n.js';
 // Settings > Style: a card per look, with four colours as a preview
 function stylePicker() {
   const cur = currentStyle().id;
-  const groups = [['basic', tx('Basics')], ['art', tx('Art styles')], ['mix', tx('Mix of all')]];
-  return h('div', { role: 'group', 'aria-label': tx('Style') }, groups.map(([g, label]) => [
-    h('div', { class: 'stylegroup' }, label),
-    h('div', { class: 'stylegrid' }, STYLES.filter((s) => s.group === g).map((s) => h('button', {
+  const groups = [['basic', tx('Basics')], ['mix', tx('Mix of all')], ['art', tx('Art styles')]];
+  const grid = (g) => h('div', { class: 'stylegrid' }, STYLES.filter((s) => s.group === g).map((s) => h('button', {
       type: 'button', class: 'stylecard' + (s.id === cur ? ' on' : ''), 'aria-pressed': s.id === cur ? 'true' : 'false',
       onclick: async (e) => {
         if (s.id === currentStyle().id) return;
@@ -24,8 +22,12 @@ function stylePicker() {
         window.dispatchEvent(new Event('themechange'));
       },
     }, h('span', { class: 'sw4', 'aria-hidden': 'true' }, s.swatch.map((c) => h('i', { style: { background: c } }))),
-      h('span', { class: 'nm' }, s.name), h('span', { class: 'bl' }, tx(s.blurb))))),
-  ]).flat());
+      h('span', { class: 'nm' }, s.name), h('span', { class: 'bl' }, tx(s.blurb)))));
+  // the 19 art styles fold away (open when one of them is in use) so Settings stays short
+  const art = STYLES.filter((s) => s.group === 'art');
+  return h('div', { role: 'group', 'aria-label': tx('Style') }, groups.map(([g, label]) => (g === 'art'
+    ? h('details', { class: 'morefold', open: currentStyle().group === 'art' }, h('summary', null, h('span', null, label), h('span', { class: 'muted small' }, String(art.length))), grid(g))
+    : [h('div', { class: 'stylegroup' }, label), grid(g)])).flat());
 }
 
 // Settings > Home screen: pick a layout (cards with a tiny sketch of it), then switch parts on or off and reorder them.
@@ -69,8 +71,9 @@ function homeSettings() {
       quick ? [
         h('h3', { class: 'homehead' }, tx('What Home shows')),
         partList('sections', SECTIONS, tx('What Home shows')),
-        h('h3', { class: 'homehead' }, tx('Shortcuts')),
-        partList('shortcuts', SHORTCUTS, tx('Shortcuts')),
+        h('details', { class: 'morefold', open: !!card.querySelector('details.morefold[open]') || !!document.activeElement?.dataset?.k?.startsWith('shortcuts:') },
+          h('summary', null, h('span', null, tx('Shortcuts')), h('span', { class: 'muted small' }, tx('{n} on', null, { n: homeParts(home).shortcuts.filter((x) => x.on && can(SHORTCUTS.find((d) => d.id === x.id)?.perm)).length }))),
+          partList('shortcuts', SHORTCUTS, tx('Shortcuts'))),
         h('div', { class: 'row', style: { marginTop: '12px' } },
           h('button', { type: 'button', class: 'small', onclick: () => { const per = { ...home.per }; delete per[home.layout]; save({ ...home, per }); toast(tx('Back to the usual Home')); } }, tx('Reset this layout')),
           h('a', { class: 'btn small ghost', href: '#/' }, tx('See Home'))),
@@ -96,7 +99,7 @@ export async function settingsPage(main) {
       h('button', { class: curLang === v ? 'on' : '', role: 'radio', 'aria-checked': curLang === v ? 'true' : 'false', lang: v, onclick: () => { if (v !== curLang) setLang(v); } }, l))),
     h('p', { class: 'small muted', style: { marginBottom: 0 } }, tx('Hindi or English. Saved on this device.'))));
   sections.push(h('div', { class: 'card' }, h('h2', null, tx('Experience')),
-    h('p', { class: 'small muted', style: { marginTop: 0 } }, 'Choose how much of DailyKhata you want to see. Your data is the same in every mode.'),
+    h('p', { class: 'small muted', style: { marginTop: 0 } }, tx('Choose how much of DailyKhata you want to see. Your data is the same in every mode.')),
     modeCards(getMode() || modeOrDefault())));
   sections.push(h('div', { class: 'card' }, h('h2', null, tx('Appearance')),
     h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Appearance') }, [['system', tx('System'), 'monitor'], ['light', tx('Light'), 'sun'], ['dark', tx('Dark'), 'moon']].map(([v, l, ic]) =>
@@ -181,14 +184,18 @@ export async function settingsPage(main) {
   }
 
   if (M) {
-    const name = h('input', { placeholder: 'New category e.g. Electricity' });
-    const add = h('button', null, 'Add');
-    add.addEventListener('click', busy(add, async () => { if (!name.value.trim()) return; await api('/api/c/categories', { method: 'POST', body: { name: name.value } }); await refreshLists(); navigate('#/settings'); }));
+    const name = h('input', { placeholder: tx('New category, e.g. Electricity'), 'aria-label': tx('New category') });
+    const add = h('button', null, tx('Add'));
+    add.addEventListener('click', busy(add, async () => { if (!name.value.trim()) { name.focus(); return; } await api('/api/c/categories', { method: 'POST', body: { name: name.value } }); await refreshLists(); navigate('#/settings'); }));
+    name.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add.click(); } });
+    // one line per category, actions on the right (it was a phone-squeezed table: three lines each)
     sections.push(h('div', { class: 'card' }, h('h2', null, tx('Expense categories')),
-      table(['Category', ''], state.categories.map((k) => h('tr', null, h('td', null, k.name), h('td', { class: 'right' },
-        h('button', { class: 'small ghost', onclick: async () => { const n = prompt('Rename category', k.name); if (!n) return; try { await api(`/api/c/categories/${k.id}`, { method: 'PUT', body: { name: n } }); await refreshLists(); navigate('#/settings'); } catch (e) { toast(e.message, true); } } }, 'Rename'),
-        h('button', { class: 'small ghost danger', onclick: async () => { if (!(await confirmDialog(`Delete “${k.name}”?`))) return; try { await api(`/api/c/categories/${k.id}`, { method: 'DELETE' }); await refreshLists(); navigate('#/settings'); } catch (e) { toast(e.message, true); } } }, 'Delete'))))),
-      h('div', { class: 'row', style: { marginTop: '12px' } }, name, add)));
+      h('div', { class: 'list catlist' }, state.categories.map((k) => h('div', { class: 'li' },
+        h('div', { class: 'body' }, h('div', { class: 't' }, k.name)),
+        h('div', { class: 'acts' },
+          h('button', { class: 'small ghost', 'aria-label': `${tx('Rename')} ${k.name}`, onclick: async () => { const n = prompt(tx('Rename category'), k.name); if (!n || n.trim() === k.name) return; try { await api(`/api/c/categories/${k.id}`, { method: 'PUT', body: { name: n } }); await refreshLists(); navigate('#/settings'); } catch (e) { toast(e.message, true); } } }, tx('Rename')),
+          h('button', { class: 'small ghost danger', 'aria-label': `${tx('Delete')} ${k.name}`, onclick: async () => { if (!(await confirmDialog(tx('Delete “{name}”?', null, { name: k.name })))) return; try { await api(`/api/c/categories/${k.id}`, { method: 'DELETE' }); await refreshLists(); navigate('#/settings'); } catch (e) { toast(e.message, true); } } }, tx('Delete')))))),
+      h('div', { class: 'addrow' }, name, add)));
   }
 
   const cur = h('input', { type: 'password', autocomplete: 'current-password' }), nw = h('input', { type: 'password', autocomplete: 'new-password' });

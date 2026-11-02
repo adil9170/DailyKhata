@@ -42,7 +42,7 @@ export async function dayPage(main, params) {
   const cap = (s) => s.replace(/^./, (c) => c.toUpperCase());
   const lines = [
     ...data.collections.map((e) => ({ kind: 'collections', e, dir: e.mode === 'credit' ? 'ud' : 'in', amt: e.amount_paise, sign: '+',
-      name: e.mode === 'credit' ? `Udhaar${e.customer ? ' — ' + e.customer : ''}` : `${cap(modeTxt(e.mode))}${e.customer ? ' — ' + e.customer : ''}`,
+      name: e.mode === 'credit' ? `${tx('Udhaar')}${e.customer ? ' — ' + e.customer : ''}` : `${tx(cap(modeTxt(e.mode)))}${e.customer ? ' — ' + e.customer : ''}`,
       sub: e.notes || '', edit: () => collectionForm(date, e, reload) })),
     ...data.expenses.map((e) => ({ kind: 'expenses', e, dir: e.payment_mode === 'credit' ? 'ud' : 'out', amt: e.amount_paise, sign: '−',
       name: e.category, sub: [e.payment_mode !== 'cash' ? modeTxt(e.payment_mode) : '', e.notes].filter(Boolean).join(' · '),
@@ -51,15 +51,14 @@ export async function dayPage(main, params) {
       name: e.product_name, sub: `${num(e.qty_units)} ${e.unit}${e.payment_mode !== 'cash' ? ' · ' + modeTxt(e.payment_mode) : ''}${e.supplier ? ' · ' + e.supplier : ''}`,
       edit: () => purchaseForm(date, e, reload) })),
   ].sort((a, b) => String(a.e.created_at || '').localeCompare(String(b.e.created_at || '')) || (a.e.id > b.e.id) - (a.e.id < b.e.id));
-  const stripLine = (l, i) => h('li', { class: `sl ${l.dir}` + (W ? ' tap' : '') + (i < 30 ? ' anim' : ''), style: i < 30 ? { animationDelay: `${i * 25}ms` } : null,
-      onclick: W ? (ev) => { if (!ev.target.closest('button,a')) l.edit(); } : null, role: W ? 'button' : null, tabindex: W ? '0' : null,
-      'aria-label': W ? `Edit ${l.name} ${money(l.amt)}` : null,
-      onkeydown: W ? (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) { ev.preventDefault(); l.edit(); } } : null },
-    h('span', { class: 'n' }, l.name, l.sub ? h('span', { class: 'sub' }, l.sub) : null),
-    h('span', { class: 'dots', 'aria-hidden': 'true' }),
-    h('b', null, `${l.sign}${money(l.amt)}`),
-    l.doc ? h('a', { class: 'rc', href: companyUrl(`/api/c/documents/${l.doc}/file`), target: '_blank', rel: 'noopener' }, 'Receipt') : null,
-    DEL ? delBtn(l.kind, l.e) : null);
+  // one row: the name … amount part is the edit button; receipt and delete sit beside it (not nested inside it)
+  const stripLine = (l, i) => {
+    const body = [h('span', { class: 'n' }, l.name, l.sub ? h('span', { class: 'sub' }, l.sub) : null), h('span', { class: 'dots', 'aria-hidden': 'true' }), h('b', null, `${l.sign}${money(l.amt)}`)];
+    return h('li', { class: `sl ${l.dir}` + (i < 30 ? ' anim' : ''), style: i < 30 ? { animationDelay: `${i * 25}ms` } : null },
+      W ? h('button', { type: 'button', class: 'slbtn', 'aria-label': `${tx('Edit')} ${l.name} ${money(l.amt)}`, onclick: () => l.edit() }, body) : body,
+      l.doc ? h('a', { class: 'rc', href: companyUrl(`/api/c/documents/${l.doc}/file`), target: '_blank', rel: 'noopener' }, tx('Receipt')) : null,
+      DEL ? delBtn(l.kind, l.e) : null);
+  };
   const outTotal = rep.purchases.total + rep.expenses.total;
   const stripCard = h('section', { class: 'strip', id: 'sec-strip', 'aria-label': tx('Day strip') },
     h('div', { class: 'strip-top' }, h('b', null, tx('KHATA')), h('span', null, fmtDate(date, { day: 'numeric', month: 'short' }))),
