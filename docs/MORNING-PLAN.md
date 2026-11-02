@@ -19,6 +19,7 @@ If a session picks this up half-way: read the ledger below, `git pull`, continue
 5. **Verify + deploy + report.** tsc, vitest, smoke test, contrast + a11y + alignment audits, live check.
 
 ## Ledger (newest first)
+- 22:05 UTC ALL DONE, live as v42 (health checked). v39 per-style CSS, v40 Undo on Home, v41 44 pt toggles, v42 contrast fixes. Final checks: tsc, vitest 107, smoke test (fresh DB), align-check 390/360, a11y-check, contrast audit on all 23 styles (0), live landing + sign-in on a new device. Check-ins cancelled.
 - 21:50 UTC task 4 (UX review) in progress: v36 plain words / photo picker / [hidden]; v37 strip a11y, Settings folds, categories; v38 bill name check.
 - 21:30 UTC task 3 (home screens) shipped as v35: 6 layouts + customise lists + shortcuts.
 - 21:20 UTC task 2 (HIG spacing) shipped as v34: grid snap, margins, type ramp, nav bar, targets, separators, align-check.mjs.
