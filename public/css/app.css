@@ -960,3 +960,17 @@ details summary, details.fold > summary, .dskip summary { min-height: 44px; }
 [data-style="bento"] button.primary, [data-style="bento"] .primary.btn { border-radius: 999px; }
 [data-style="bento"] .modal { border-radius: 30px 30px 0 0; }
 [data-style="bento"] .tabbar { border-color: transparent; }
+
+/* ---------- Settings > Style picker: one card per look ---------- */
+.stylegroup { margin: 14px 0 6px; font-size: .74rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.stylegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 10px; }
+.stylecard { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 3px; padding: 8px 8px 10px; min-height: 0; text-align: left; white-space: normal; font-family: var(--font); text-transform: none; letter-spacing: normal; border-radius: 14px; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); box-shadow: none; transform: none; }
+.stylecard .sw4 { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; height: 36px; border-radius: 9px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,.14); margin-bottom: 4px; }
+.stylecard .sw4 i { display: block; }
+.stylecard .nm { font-size: .88rem; font-weight: 680; line-height: 1.2; }
+.stylecard .bl { font-size: .72rem; font-weight: 500; color: var(--muted); line-height: 1.25; }
+.stylecard.on { border: 2px solid var(--brand-fg); padding: 7px 7px 9px; }
+.stylecard.on .nm::after { content: " \2713"; color: var(--brand-fg); }
+.stylecard.loading { opacity: .6; }
+/* art styles may capitalise or space out button labels; cards that hold sentences stay readable */
+.modecard, .stylecard, .notecard, .li { text-transform: none; letter-spacing: normal; }

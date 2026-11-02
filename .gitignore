@@ -5,3 +5,4 @@ dist/
 *.log
 wrangler.local.toml
 public/hi/
+public/css/themes.css

@@ -1,8 +1,10 @@
-// WCAG contrast audit: computed styles over key pages in Clean/Soft x light/dark.
+// WCAG contrast audit: computed styles over key pages in every Settings > Style (x light/dark where the style follows it).
+// ONLY=psych,vapor limits the run to some styles.
 // Usage: BASE=http://localhost:8788 node scripts/contrast-check.mjs   (needs `playwright` installed elsewhere,
 // e.g. `npm i playwright` in a scratch dir and NODE_PATH pointing at its node_modules; shop from the smoke test).
 // Text must reach 4.5:1 (3:1 for large text); input borders 3:1. Elements on gradients/images are counted as skipped.
 import { chromium } from 'playwright';
+import { STYLES } from '../public/js/styles.js';
 const BASE = process.env.BASE || 'http://localhost:8788';
 const EXE = process.env.CHROME || '/opt/pw-browsers/chromium';
 const APP = ['quick', 'day', 'chat', 'bill', 'bills', 'dump', 'counter', 'dashboard', 'ledger', 'products', 'settings'];
@@ -18,8 +20,10 @@ function audit() {
     const layers = []; let n = el;
     while (n && n.nodeType === 1) {
       const cs = getComputedStyle(n);
-      if (cs.backgroundImage && cs.backgroundImage !== 'none') return null;
-      const c = parse(cs.backgroundColor); if (c && c.a > 0) { layers.push(c); if (c.a === 1) break; }
+      const c = parse(cs.backgroundColor);
+      // a pattern or sheen drawn over a solid colour: judge against the colour; a gradient with no solid colour under it: skip
+      if (cs.backgroundImage && cs.backgroundImage !== 'none' && !(c && c.a === 1)) return null;
+      if (c && c.a > 0) { layers.push(c); if (c.a === 1) break; }
       n = n.parentElement;
     }
     let base = { r: 255, g: 255, b: 255, a: 1 };
@@ -56,11 +60,13 @@ function audit() {
 
 const b = await chromium.launch({ executablePath: EXE });
 const results = []; const seen = new Set(); let total = 0;
-for (const style of ['clean', 'soft', 'bento']) for (const theme of ['light', 'dark']) {
+const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
+const combos = STYLES.filter((s) => !ONLY || ONLY.includes(s.id)).flatMap((s) => (s.scheme === 'any' ? ['light', 'dark'] : [s.scheme]).map((t) => [s.id, t, s.scheme === 'any']));
+for (const [style, theme, follows] of combos) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, colorScheme: theme });
   await ctx.addInitScript(([s, t]) => { try { localStorage.setItem('dk_theme', t); localStorage.setItem('dk_start_done', '1'); if (s !== 'clean') localStorage.setItem('dk_style', s); } catch {} }, [style, theme]);
   const page = await ctx.newPage();
-  const pages = [...LAND.map((p) => ({ name: 'landing ' + p, go: () => page.goto(BASE + p) }))];
+  const pages = follows ? LAND.map((p) => ({ name: 'landing ' + p, go: () => page.goto(BASE + p) })) : []; // art styles never touch the landing page
   for (const p of pages) { await p.go(); await page.waitForTimeout(900); const r = await page.evaluate(audit); total += r.checked; add(r, `${style}/${theme}`, p.name); }
   await page.request.post(BASE + '/api/auth/login', { data: { email: 'ravi@sharma.in', password: 'RaviPass123' } });
   for (const p of APP) {

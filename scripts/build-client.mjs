@@ -4,6 +4,7 @@
 import { build } from 'esbuild';
 import { rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { buildHindi } from './seo.mjs';
+import { buildThemesCss } from './themes.mjs';
 import { EN, HI } from '../public/js/landing-i18n.js';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -29,6 +30,9 @@ const result = await build({
   metafile: true,
   logLevel: 'warning',
 });
+
+// Art styles for Settings > Style (generated, git-ignored): loaded by boot.js only for people who picked one.
+writeFileSync(`${root}public/css/themes.css`, buildThemesCss());
 
 // Hindi landing page at /hi/ (generated, git-ignored): the same page with the Hindi text already in the HTML for search engines.
 mkdirSync(`${root}public/hi`, { recursive: true });

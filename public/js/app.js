@@ -1,7 +1,7 @@
 import { h, mount, toast, field, input, busy, icon, actionSheet, autoLabelTables, confirmDialog, modal } from './ui.js';
 import { api, netApi, state, loadContext, refreshContext, refreshLists, applyBranding, setViewCompany, isSuper, can, companyUrl, navigate, todayLocal } from './api.js';
 import * as S from './store.js';
-import { getTheme, setTheme, effectiveTheme } from './theme.js';
+import { getTheme, setTheme, effectiveTheme, applyTheme, styleScheme } from './theme.js';
 import { MODES, getMode, modeOrDefault, initMode, openModeSheet } from './mode.js';
 import { t as tx, applyLangAttr } from './i18n.js';
 import './device.js';
@@ -157,6 +157,7 @@ window.addEventListener('dk:syncfail', (e) => toast(`Couldn’t save: ${e.detail
 window.addEventListener('dk:unauthorized', () => { if (state.user) { state.user = null; clearSession(); } if (!/^#\/(login|setup)/.test(location.hash)) location.hash = '#/login'; });
 
 function themeButton() {
+  if (styleScheme()) return null; // the picked art style sets its own light or dark colours
   const next = { system: 'light', light: 'dark', dark: 'system' };
   const ic = { system: 'monitor', light: 'sun', dark: 'moon' };
   const t = getTheme();
@@ -302,7 +303,7 @@ function setupPage() {
 let ctxLoadedFor = null;
 let landingReady = false;
 function showLanding() {
-  document.documentElement.classList.remove('app-mode');
+  if (document.documentElement.classList.contains('app-mode')) { document.documentElement.classList.remove('app-mode'); applyTheme(); } // art styles only colour the app
   document.title = 'DailyKhata — the shop khata you can write like you talk';
   if (!landingReady) { landingReady = true; import('./landing.js').then((m) => m.initLanding()).catch(() => {}); }
   else import('./landing-i18n.js').then((m) => m.applyLang()).catch(() => {}); // coming back from the app: restore the landing language and title
@@ -316,7 +317,7 @@ async function route(reloadUser = false) {
 
   // visitors who are not signed in get the landing page (plain HTML in index.html); '#try' etc. are its own anchors
   if (!/^#\/./.test(location.hash) && !state.user && !loadSession()?.user) { showLanding(); return; }
-  document.documentElement.classList.add('app-mode');
+  if (!document.documentElement.classList.contains('app-mode')) { document.documentElement.classList.add('app-mode'); applyTheme(); }
   applyLangAttr(); // the app follows its own language setting (Settings > Language), not the landing's html lang
 
   if (path === 'setup') return setupPage();

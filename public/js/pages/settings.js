@@ -1,10 +1,31 @@
 import { h, mount, toast, busy, table, confirmDialog } from '../ui.js';
 import { api, state, can, companyUrl, refreshLists, navigate, applyBranding } from '../api.js';
-import { getTheme, setTheme } from '../theme.js';
+import { getTheme, setTheme, applyTheme, styleScheme } from '../theme.js';
+import { STYLES, currentStyle, setStyle } from '../styles.js';
 import { icon } from '../ui.js';
 import { modeCards, getMode, modeOrDefault } from '../mode.js';
 import { brandFromImage } from '../color.js';
 import { t as tx, lang, setLang } from '../i18n.js';
+
+// Settings > Style: a card per look, with four colours as a preview
+function stylePicker() {
+  const cur = currentStyle().id;
+  const groups = [['basic', tx('Basics')], ['art', tx('Art styles')], ['mix', tx('Mix of all')]];
+  return h('div', { role: 'group', 'aria-label': tx('Style') }, groups.map(([g, label]) => [
+    h('div', { class: 'stylegroup' }, label),
+    h('div', { class: 'stylegrid' }, STYLES.filter((s) => s.group === g).map((s) => h('button', {
+      type: 'button', class: 'stylecard' + (s.id === cur ? ' on' : ''), 'aria-pressed': s.id === cur ? 'true' : 'false',
+      onclick: async (e) => {
+        if (s.id === currentStyle().id) return;
+        e.currentTarget.classList.add('loading');
+        await setStyle(s.id);
+        applyTheme();
+        window.dispatchEvent(new Event('themechange'));
+      },
+    }, h('span', { class: 'sw4', 'aria-hidden': 'true' }, s.swatch.map((c) => h('i', { style: { background: c } }))),
+      h('span', { class: 'nm' }, s.name), h('span', { class: 'bl' }, tx(s.blurb))))),
+  ]).flat());
+}
 
 export async function settingsPage(main) {
   const c = state.company;
@@ -23,16 +44,10 @@ export async function settingsPage(main) {
     h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Appearance') }, [['system', tx('System'), 'monitor'], ['light', tx('Light'), 'sun'], ['dark', tx('Dark'), 'moon']].map(([v, l, ic]) =>
       h('button', { class: cur0 === v ? 'on' : '', role: 'radio', 'aria-checked': cur0 === v ? 'true' : 'false', onclick: () => setTheme(v) }, icon(ic, 16), l))),
     h('p', { class: 'small muted' }, 'System follows your phone or computer setting. Saved on this device.'),
-    h('h3', { style: { margin: '14px 0 8px', fontSize: '.95rem' } }, tx('Style')),
-    h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Style') }, [['clean', tx('Clean')], ['soft', tx('Soft')], ['bento', 'Bento']].map(([v, l]) => {
-      const cur = document.documentElement.dataset.style || 'clean';
-      return h('button', { class: cur === v ? 'on' : '', role: 'radio', 'aria-checked': cur === v ? 'true' : 'false', onclick: () => {
-        try { if (v !== 'clean') localStorage.setItem('dk_style', v); else localStorage.removeItem('dk_style'); } catch { /* storage blocked */ }
-        if (v !== 'clean') document.documentElement.dataset.style = v; else delete document.documentElement.dataset.style;
-        window.dispatchEvent(new Event('themechange'));
-      } }, l);
-    })),
-    h('p', { class: 'small muted' }, 'Soft: raised, pillow-like cards (neumorphism). Bento: colourful rounded tiles. Clean: flat and sharp.'),
+    styleScheme() ? h('p', { class: 'small muted' }, tx('Your style has its own colours, so Light and Dark do not change it. Pick Clean, Bento or Neumorphism to use them.')) : null,
+    h('h3', { style: { margin: '14px 0 4px', fontSize: '.95rem' } }, tx('Style')),
+    h('p', { class: 'small muted', style: { marginTop: 0 } }, tx('Changes only how the app looks. Your data stays the same. Saved on this device.')),
+    stylePicker(),
     h('h3', { style: { margin: '14px 0 8px', fontSize: '.95rem' } }, tx('Home screen')),
     h('div', { class: 'seg', role: 'radiogroup', 'aria-label': tx('Home screen') }, [['classic', tx('Buttons')], ['chat', tx('Chat')]].map(([v, l]) => {
       let cur = 'classic'; try { cur = localStorage.getItem('dk_layout') === 'chat' ? 'chat' : 'classic'; } catch { /* storage blocked */ }

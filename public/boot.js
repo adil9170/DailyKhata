@@ -4,10 +4,16 @@
   try { ls = localStorage; } catch (e) { ls = null; }
   var t = ls && ls.getItem('dk_theme');
   if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
-  var st = ls && ls.getItem('dk_style'); if (st === 'soft' || st === 'bento') d.setAttribute('data-style', st);
+  // Settings > Style. Keep in sync with public/js/styles.js (test/styles.test.ts checks): '' = follows Light/Dark (CSS in app.css),
+  // 'light' / 'dark' = an art style with its own colours, whose CSS is in /css/themes.css (loaded only for these).
+  var SS = { soft: '', bento: '', skeuo: 'light', nouveau: 'light', chrome: 'light', stijl: 'light', memphis: 'light', psych: 'dark', vapor: 'dark', steam: 'light', grunge: 'dark', cutout: 'light', glitch: 'dark', anti: 'light', inflated: 'light', iso: 'light', ukiyo: 'light', brutal: 'light', bauhaus: 'light', midcentury: 'light', collage: 'light' };
+  var st = ls && ls.getItem('dk_style'), sc = st && Object.prototype.hasOwnProperty.call(SS, st) ? SS[st] : null;
+  if (sc !== null) d.setAttribute('data-style', st);
+  if (sc) document.write('<link rel="stylesheet" id="themes-css" href="/css/themes.css">');
   // signed-in people (or anyone opening an app link) go straight to the app; everyone else sees the landing page
   var sess = null; try { sess = ls && JSON.parse(ls.getItem('dk_session') || 'null'); } catch (e) { sess = null; }
   if ((sess && sess.user) || /^#\/./.test(location.hash)) d.classList.add('app-mode');
+  if (sc && d.classList.contains('app-mode')) d.setAttribute('data-theme', sc); // art styles bring their own light or dark colours
   // landing language (EN default; Hindi if chosen, or if the browser says hi): set <html lang> now and hold the page back until landing-i18n.js has painted it
   if (!d.classList.contains('app-mode')) {
     var lg = ls && ls.getItem('dk_lang');
