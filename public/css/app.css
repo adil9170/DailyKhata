@@ -723,7 +723,7 @@ details.fold h3 { font-size: .9375rem; margin: 16px 0 8px; }
 
 /* ==== Soft style (neumorphism): Settings → Style → Soft. Everything sits on one colour; depth comes from light + shadow. ==== */
 :root[data-style="soft"] {
-  --bg: #e6e9ef; --surface: #e6e9ef; --surface-2: #e6e9ef; --surface-3: #c9cfda;
+  --bg: #e6e9ef; --surface: #e6e9ef; --surface-2: #e6e9ef; --surface-3: #c9cfda; --slip-in: #0a6b3d;
   --border: rgba(30,40,70,.07); --border-strong: rgba(30,40,70,.12);
   --neu-hi: rgba(255,255,255,.95); --neu-lo: rgba(150,160,182,.6);
 }
@@ -794,7 +794,7 @@ html.lite[data-style="soft"] { --raise: 4px 4px 8px var(--neu-lo), -4px -4px 8px
 .ent .et { min-width: 0; overflow-wrap: anywhere; }
 .ent .ek { display: inline-block; font-size: .6875rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; margin-right: 8px; vertical-align: 1px; background: rgba(127,127,127,.16); }
 .bub.bub-bot .ent.collections .ea { color: var(--good); }
-.bub.bub-me .ent .ek { background: rgba(255,255,255,.2); }
+.bub.bub-me .ent .ek { background: var(--on-brand); color: var(--brand); } /* solid tag: brand on its own text colour always reads (was white on a 20% tint) */
 .ent .ea { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ent.tap { cursor: pointer; border-radius: 8px; margin: 0 -8px; padding: 8px 8px; min-height: 44px; align-items: center; }
 .ent.tap:hover { background: rgba(127,127,127,.12); }
@@ -936,8 +936,8 @@ details summary, details.fold > summary, .dskip summary { min-height: 44px; min-
 
 /* ==== Bento style (Settings → Style → Bento): rounded colour tiles on a calm canvas ==== */
 :root[data-style="bento"] { --bg: #ebe6da; --surface: #fbf8f0; --surface-2: #f1ebdd; --border: transparent; --bn-green: #2e6f4f; --bn-gold: #ebb74a; --bn-brick: #a9372d; --bn-ink: #1c1a2b; --bn-sage: #dbe8d6; --bn-sand: #e2d9c4; --radius: 28px; }
-@media (prefers-color-scheme: dark) { :root[data-style="bento"]:not([data-theme="light"]) { --bg: #0d0c14; --surface: #1a1826; --surface-2: #232033; --border: transparent; } }
-:root[data-style="bento"][data-theme="dark"] { --bg: #0d0c14; --surface: #1a1826; --surface-2: #232033; --border: transparent; }
+@media (prefers-color-scheme: dark) { :root[data-style="bento"]:not([data-theme="light"]) { --bg: #0d0c14; --surface: #1a1826; --surface-2: #232033; --border: transparent; --muted: #8f97ab; } }
+:root[data-style="bento"][data-theme="dark"] { --bg: #0d0c14; --surface: #1a1826; --surface-2: #232033; --border: transparent; --muted: #8f97ab; }
 [data-style="bento"] .card, [data-style="bento"] .tile, [data-style="bento"] .notecard, [data-style="bento"] .strip, [data-style="bento"] .ctile, [data-style="bento"] .cpanel, [data-style="bento"] .pastelink { border-radius: 28px; border-color: transparent; box-shadow: none; }
 [data-style="bento"] .topbar, [data-style="bento"] .side { border-color: transparent; }
 [data-style="bento"] .page-head h1, [data-style="bento"] .qhead h1 { font-size: clamp(2.2rem, 1.6rem + 2.4vw, 3rem); letter-spacing: -.02em; }
@@ -1031,7 +1031,7 @@ button.qtool { font: inherit; text-align: left; cursor: pointer; }
 /* small text links that end a card header ("Full day view") still get a 44 pt target */
 a.more { display: inline-flex; align-items: center; min-height: 44px; }
 /* chat time stamps: readable on both bubble colours */
-.bub .bt { opacity: 1; } .bub.bub-bot .bt { color: var(--muted); } .bub.bub-me .bt { opacity: .92; }
+.bub .bt { opacity: 1; } .bub.bub-bot .bt { color: var(--muted); }
 /* fold-away lists in Settings (art styles, shortcuts) */
 .morefold { margin-top: 12px; border-top: 1px solid var(--border); }
 .morefold > summary { display: flex; align-items: center; gap: 12px; min-height: 48px; cursor: pointer; list-style: none; font-weight: 650; font-size: .9375rem; }

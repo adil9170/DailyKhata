@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
 import { STYLES } from '../public/js/styles.js';
 const BASE = process.env.BASE || 'http://localhost:8788';
 const EXE = process.env.CHROME || '/opt/pw-browsers/chromium';
-const APP = ['quick', 'day', 'chat', 'bill', 'bills', 'dump', 'counter', 'dashboard', 'ledger', 'products', 'settings'];
+const APP = (process.env.APP || 'quick,day,chat,bill,bills,dump,counter,dashboard,ledger,products,settings').split(','); // APP=chat,day limits the pages
 const LAND = ['/', '/hi/'];
 
 function audit() {
