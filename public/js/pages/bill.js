@@ -101,7 +101,10 @@ export async function billPage(main) {
   };
   const valid = () => {
     const bad = bill.items.find((it) => it.name.trim() && !num(it.rate));
-    if (bad) { toast(`Add a rate for ${bad.name}`, true); return false; }
+    if (bad) { toast(tx('Add a rate for {name}', null, { name: bad.name }), true); return false; }
+    // a row with a price but no name would be dropped, and the server then says "no items": ask for the name instead
+    const unnamed = bill.items.findIndex((it) => !it.name.trim() && num(it.rate));
+    if (unnamed >= 0) { toast(tx('Type what the item is'), true); main.querySelectorAll('.bname')[unnamed]?.focus(); return false; }
     if (!total()) { toast(tx('Add at least one item with a rate'), true); return false; }
     if (bill.mode === 'credit' && !bill.customer.trim()) { toast(tx('Udhaar needs the customer’s name'), true); customer.focus(); return false; }
     return true;
@@ -128,7 +131,7 @@ export async function billPage(main) {
     Object.assign(bill, blank()); keep(draftKey(), null);
     customer.value = ''; phone.value = ''; discount.value = ''; modeBtns.forEach((b, i) => b.classList.toggle('on', i === 0));
     paintRows(); paintTotals();
-    toast(`Bill #${no} saved as a sale`);
+    toast(tx('Bill #{no} saved as a sale', null, { no }));
     (await import('../receipt.js')).openReceiptSheet(opts);
   }));
   const clearBtn = h('button', { class: 'ghost small billclear', type: 'button', onclick: async () => {
