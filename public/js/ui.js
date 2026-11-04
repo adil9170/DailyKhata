@@ -103,11 +103,12 @@ export const clear = (el) => { while (el.firstChild) el.firstChild.remove(); ret
 export function mount(el, ...children) { clear(el); append(el, children); return el; }
 
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+const inr2 = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 /** paise → "₹1,020" */
 export function money(paise, { sign = false } = {}) {
   if (paise === null || paise === undefined) return '—';
   const r = paise / 100;
-  const s = '₹' + inr.format(Math.abs(r));
+  const s = '₹' + (Math.round(Math.abs(paise)) % 100 ? inr2 : inr).format(Math.abs(r)); // ₹2,549.50, never ₹2,549.5
   if (r < 0) return '−' + s;
   return sign && r > 0 ? '+' + s : s;
 }

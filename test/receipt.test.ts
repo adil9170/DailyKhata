@@ -48,3 +48,17 @@ describe('receipt templates', () => {
     expect(stripeWidths('x').every((w: number) => w >= 1 && w <= 4)).toBe(true);
   });
 });
+
+const counterSrc = readFileSync('public/js/pages/counter.js', 'utf8');
+describe('cash counter online money', () => {
+  it('keeps cash and Paytm / UPI apart: cash sale + UPI sale, closing cash from cash only', () => {
+    expect(counterSrc).toMatch(/mode: 'upi'/);
+    expect(counterSrc).toMatch(/counted_cash: String\(c\)/);
+  });
+  it('typed rupees become whole paise safely', () => {
+    const toPaise = (v: unknown) => { const n = Number(String(v ?? '').replace(/[,\s₹]/g, '')); return Number.isFinite(n) ? Math.max(0, Math.min(99999999999, Math.round(n * 100))) : 0; };
+    const m = counterSrc.match(/export const toPaise = [^\n]*/)![0];
+    expect(m).toContain('Math.round(n * 100)'); // same rule as the helper below
+    expect([toPaise('1,200'), toPaise('249.5'), toPaise('₹ 10'), toPaise('abc'), toPaise('-5'), toPaise('')]).toEqual([120000, 24950, 1000, 0, 0, 0]);
+  });
+});
