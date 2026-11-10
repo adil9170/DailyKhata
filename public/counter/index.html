@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" class="app-mode">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Free cash counter: count notes, coins and UPI | DailyKhata</title>
+  <meta name="description" content="Count your cash drawer in seconds: tap ₹500 to ₹1 notes and coins, add Paytm / UPI money, see the total in words and share a receipt. Free, no sign-in.">
+  <meta name="theme-color" content="#2e6f4f">
+  <meta name="color-scheme" content="light dark">
+  <link rel="canonical" href="https://jakcrew.com/counter/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/boot.js"></script>
+  <script type="module" src="/dist/counter-public.js"></script>
+</head>
+<body>
+  <header class="topbar pubbar">
+    <a class="topmark" href="/" aria-label="DailyKhata home"><img src="/logo.svg" alt="" width="36" height="36"></a>
+    <div class="title">Cash counter</div>
+    <a class="btn small" href="/#/login">Sign in</a>
+  </header>
+  <main class="main" id="main"><div class="boot">Loading…</div></main>
+  <p class="pubfoot small muted">Free to use. Your count stays on this phone. <a href="/">DailyKhata</a> keeps your whole shop khata.</p>
+  <noscript><p style="padding:24px">The cash counter needs JavaScript.</p></noscript>
+  <div id="toasts" aria-live="polite"></div>
+</body>
+</html>

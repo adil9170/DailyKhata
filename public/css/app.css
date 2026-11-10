@@ -1042,3 +1042,9 @@ a.more { display: inline-flex; align-items: center; min-height: 44px; }
 .cbtns { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
 .cbtns button { min-height: 52px; border-radius: 16px; }
 @media (max-width: 380px) { .ctile { padding: 8px 4px 4px; border-radius: 16px; } .cqty { font-size: 1.5rem !important; } .cgrid { gap: 8px; } .cpanel { padding: 12px; } }
+
+/* public cash counter page (/counter/) */
+.pubbar { display: grid; }
+.pubbar .topmark img { border-radius: 10px; }
+.pubfoot { max-width: 520px; margin: 0 auto; padding: 0 16px 32px; text-align: center; }
+@media (min-width: 861px) { .pubbar { position: sticky; top: 0; padding: 0 24px; min-height: 52px; align-items: center; grid-template-columns: 1fr auto 1fr; background: var(--glass); border-bottom: 1px solid var(--border); z-index: 40; } .pubbar > :last-child { justify-self: end; } .pubbar + .main .cpanel { top: 68px; } }

@@ -84,11 +84,12 @@ export async function counterPage(main) {
     if (!grand()) return toast(tx('Count some notes first'), true);
     const date = state.today || todayLocal();
     const c = cash(), o = online;
+    const ids = [crypto.randomUUID?.() || 'cc-' + Date.now() + '-a' + Math.random().toString(36).slice(2), crypto.randomUUID?.() || 'cc-' + Date.now() + '-b' + Math.random().toString(36).slice(2)];
     const addSale = async () => {
       if (saving) return; saving = true;
       try {
-        if (c) await api('/api/c/collections', { method: 'POST', body: { date, amount: String(c), mode: 'cash', customer: '', notes: 'Cash counter' } });
-        if (o) await api('/api/c/collections', { method: 'POST', body: { date, amount: (o / 100).toFixed(2), mode: 'upi', customer: '', notes: 'Cash counter (Paytm / UPI)' } });
+        if (c) await api('/api/c/collections', { method: 'POST', body: { date, amount: String(c), mode: 'cash', customer: '', notes: 'Cash counter', client_id: ids[0] } });
+        if (o) await api('/api/c/collections', { method: 'POST', body: { date, amount: (o / 100).toFixed(2), mode: 'upi', customer: '', notes: 'Cash counter (Paytm / UPI)', client_id: ids[1] } });
         toast(tx('Added to today’s sales'));
       } catch (e) { toast(e.message, true); } finally { saving = false; }
     };
@@ -114,7 +115,7 @@ export async function counterPage(main) {
     h('label', { class: 'conline' },
       h('span', { class: 'conlbl' }, tx('Money received online today'), h('small', null, tx('Paytm, GPay, PhonePe or any UPI. Type the total.'))),
       h('span', { class: 'conbox' }, h('span', { class: 'rs' }, '₹'), onlineIn)),
-    h('div', { class: 'cbtns' }, h('button', { class: 'primary', onclick: share }, icon('share', 18), tx('Share receipt')), h('button', { onclick: saveTo }, tx('Save…')))));
+    h('div', { class: 'cbtns' }, h('button', { class: 'primary', onclick: share }, icon('share', 18), tx('Share receipt')), can('entries.write') || can('cash.close') ? h('button', { onclick: saveTo }, tx('Save…')) : null)));
   for (const d of DENOMS) { tiles.get(d).input.value = qty[d] || ''; paintTile(d); }
   paintTotals();
 }

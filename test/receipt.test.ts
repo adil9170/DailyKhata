@@ -62,3 +62,17 @@ describe('cash counter online money', () => {
     expect([toPaise('1,200'), toPaise('249.5'), toPaise('₹ 10'), toPaise('abc'), toPaise('-5'), toPaise('')]).toEqual([120000, 24950, 1000, 0, 0, 0]);
   });
 });
+
+describe('public cash counter page', () => {
+  const html = readFileSync('public/counter/index.html', 'utf8');
+  it('is a stand-alone page that needs no sign-in and never offers Save to visitors', () => {
+    expect(html).toContain('/dist/counter-public.js');
+    expect(html).toContain('class="app-mode"');
+    expect(html).toContain('<link rel="canonical" href="https://jakcrew.com/counter/">');
+    expect(counterSrc).toMatch(/can\('entries\.write'\) \|\| can\('cash\.close'\) \? h\('button'/);
+    expect(readFileSync('scripts/build-client.mjs', 'utf8')).toContain("'counter-public'");
+  });
+  it('the mic is allowed by the page policy (voice entry on the landing page and chat)', () => {
+    expect(readFileSync('public/_headers', 'utf8')).toContain('microphone=(self)');
+  });
+});
